@@ -1,0 +1,6 @@
+# Verbose logging for local development: run with -Dspring-boot.run.profiles=dev
+logging:
+  level:
+    com.teamops: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.springframework.security: INFO

@@ -1,0 +1,30 @@
+package com.teamops.common.security;
+
+import java.io.IOException;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.stereotype.Component;
+
+import com.teamops.common.exception.ErrorResponseWriter;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+
+/** 403 as an ApiError JSON body. */
+@Component
+@RequiredArgsConstructor
+public class RestAccessDeniedHandler implements AccessDeniedHandler {
+
+	private final ErrorResponseWriter errorResponseWriter;
+
+	@Override
+	public void handle(HttpServletRequest request, HttpServletResponse response,
+			AccessDeniedException accessDeniedException) throws IOException {
+		errorResponseWriter.write(request, response, HttpStatus.FORBIDDEN, "FORBIDDEN",
+				"You do not have permission to perform this action");
+	}
+
+}

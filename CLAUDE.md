@@ -5,26 +5,40 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
 ## Workflow
 - Build **one phase at a time** in the order in `docs/implementation-plan.md`. Wait for the user's go-ahead before starting the next phase.
 - After every phase:
-  - Run `backend\mvnw.cmd verify` with **JDK 21**. The system `JAVA_HOME` currently points to JDK 8, so set `JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot` for the command.
-  - Run `npm run build` and the tests in `frontend/`.
+  - Run `backend\mvnw.cmd verify` (unit + MVC slice tests, no DB) with **JDK 21** (`C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot`). If the wrapper cannot write to `~/.m2/wrapper`, use the installed `mvn` (same 3.9.16).
+  - When MySQL is available, also run `mvnw verify -Pit`, which runs the `*IT.java` integration tests against the real DB.
+  - In `frontend/`, run `npm run typecheck`, `npm run lint`, `npm test` and `npm run build`. Builds must have no warnings.
   - Fix all compile, TypeScript and API errors. The app must stay runnable.
+- Test layout:
+  - `*Test.java` files are unit or slice tests that must not need a database.
+  - `*IT.java` files are integration tests and only run with the `-Pit` profile.
+  - Frontend tests sit next to the code they test, as `*.test.ts(x)` files.
 - Before creating a component, service or file, check whether an equivalent already exists. Do not duplicate.
 - Do not generate hundreds of files blindly. Build incrementally.
 
 ## Stack
 - **Backend** (`backend/`):
-  - Java 21, Spring Boot 4.x (latest GA), Maven via the `mvnw` wrapper.
+  - Java 21, Spring Boot 4.1.1, Hibernate 7, Jackson 3 (`tools.jackson.*`, while annotations stay `com.fasterxml.jackson.annotation`), Maven via the `mvnw` wrapper.
+  - Boot 4 uses modular starters (`spring-boot-starter-webmvc`, `-flyway`, `-security-oauth2-resource-server`, plus matching `*-test` starters). `@WebMvcTest` lives in `org.springframework.boot.webmvc.test.autoconfigure`. Use `@MockitoBean`, not `@MockBean`.
   - Spring Security with JWT (Spring's Nimbus encoder/decoder, HS256), plus a refresh token in an httpOnly cookie, hashed in the DB. BCrypt for passwords.
   - Spring Data JPA/Hibernate, Bean Validation, Lombok, MapStruct, springdoc-openapi.
   - Tests: JUnit 5, Mockito, Spring Boot Test.
 - **Database**: MySQL 8 (`team_ops_board` on localhost:3306) with **Flyway** migrations in `backend/src/main/resources/db/migration`.
-- **Frontend** (`frontend/`): React 19, TypeScript (strict), Vite, React Router, Tailwind CSS v4, shadcn/ui, Lucide, Recharts, React Hook Form + Zod, Axios, TanStack Query. Tests use Vitest + Testing Library.
+- **Frontend** (`frontend/`):
+  - React 19, TypeScript 6.0 (strict), Vite 8 (Rolldown), React Router 8, Tailwind CSS v4, shadcn/ui-style components, Lucide v1, Recharts, React Hook Form + Zod 4, Axios, TanStack Query. Tests use Vitest + Testing Library.
+  - Everything React Router needs is imported from `react-router`.
+  - TypeScript stays on 6.0.x because typescript-eslint doesn't support 7 yet.
+  - jsdom stays on 29 for Node 24.14 compatibility.
+  - Lucide v1 renamed icons: use `LoaderCircle`, `ChartColumn`, `Building`. Brand icons such as LinkedIn were removed.
+  - The navigation config in `src/config/navigation.ts` is the single source for the sidebar, the routes and the permission each route requires.
+  - The access token is kept in memory only (`src/lib/api/client.ts`); never put tokens in localStorage.
 - Package root: `com.teamops`. Organised by feature: `controller/ dto/ entity/ repository/ service/ mapper/`.
 
 ## Secrets & config
 - Credentials live **only** in `backend/.env`, which is git-ignored and imported with `spring.config.import=optional:file:.env[.properties]`. Never hard-code or commit them.
 - Keep `backend/.env.example` and `frontend/.env.example` up to date with placeholder values.
-- Dev seed data comes from the Java `DevDataSeeder` (`@Profile("dev")`), with dates relative to today. Never put dev data in Flyway.
+- Dev seed data comes from the Java `DevDataSeeder`, switched on with `DEV_SEED_ENABLED=true` (not a Spring profile, because `.env` can't activate profiles). Dates are relative to today, and the seeder must stay idempotent. Never put dev data in Flyway.
+- The `dev` Spring profile only turns on verbose SQL and debug logging.
 
 ## Coding rules
 - Controllers stay thin. Business logic goes in services, persistence in repositories.
@@ -32,7 +46,7 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
 - Validate input with Bean Validation and Zod. Handle errors centrally in `GlobalExceptionHandler`.
 - Avoid `any` in TypeScript. Write proper types for every API DTO.
 - **Backend authorization** is enforced on three layers:
-  - `@PreAuthorize` with permission authorities.
+  - `@PreAuthorize` with permission authorities, e.g. `hasAuthority('TASK_EDIT')`. Roles are `ROLE_SUPER_ADMIN` etc. Inject the current user with `@AuthenticationPrincipal AuthenticatedUser`.
   - `AccessScopeService`, which applies department and own-data scoping to queries.
   - The current user, role, department and permissions are always resolved server-side. Never trust frontend claims, and hiding routes in the UI is not security.
 - Flyway:
@@ -40,9 +54,14 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
   - `ddl-auto=validate`.
   - Ship each migration in the phase that first needs it.
 - Schema conventions:
-  - InnoDB with utf8mb4. `BIGINT UNSIGNED` IDs. `DATETIME(6)` timestamps in UTC.
-  - Enums are stored as VARCHAR and mapped with `@Enumerated(STRING)`.
-  - Money is `DECIMAL(14,2)` plus a currency column, defaulting to INR.
+  - InnoDB with utf8mb4. **Signed `BIGINT` IDs**, mapped to `Long`. This changed from the plan's UNSIGNED, to avoid signedness mismatches on foreign keys.
+  - `DATETIME(6)` timestamps in UTC, mapped to `Instant`. The JDBC URL forces the session time zone to UTC.
+  - Money is `DECIMAL(14,2)` plus a `VARCHAR(3)` currency column, defaulting to INR.
+- JPA mapping rules. Hibernate's `ddl-auto=validate` fails at startup if these are wrong:
+  - Every enum field needs `@Enumerated(EnumType.STRING)` **and** `@JdbcTypeCode(SqlTypes.VARCHAR)`. Without the second one, Hibernate expects a MySQL `ENUM` column.
+  - Don't use `CHAR(n)`; use `VARCHAR(n)`.
+  - `TEXT`, `MEDIUMTEXT` and `JSON` columns need `@Column(columnDefinition = "text" | "mediumtext" | "json")`.
+  - Extend `common.persistence.BaseEntity` (id, created_at, updated_at) when the table has both timestamps.
 - **Do not store derived values** (rates, remaining, achievement %, statuses, workload %, SLA state, project progress). Compute them in services.
 - Human-readable codes (`TSK-`, `TKT-`, `PRJ-`, `APR-`, `LEAD-`) come from the `code_sequences` table, read with `SELECT … FOR UPDATE`.
 - Performance:
@@ -52,6 +71,8 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
   - Add indexes for filter columns.
 - Integration seams are interfaces with manual implementations for now: `FileStorageService`, `SeoRankingProvider`, `EmailCampaignProvider`, `PaidCampaignProvider`, `AnalyticsProvider`, `LeadProvider`, `ReportExporter`.
 - File uploads must validate type, size and filename, and go through `FileStorageService`. Local storage for now.
+- Throw `ApiException` (with a stable `code`) for business errors. Don't build error responses by hand.
+- Write audit entries with `AuditService.record(...)`, which runs in its own transaction. Add new actions to the `AuditAction` enum.
 - Write audit log entries for logins, task/ticket create/assign/status changes, target, ranking, campaign, lead and backlink changes, and permission changes.
 - UI quality bar:
   - Should look like a modern enterprise SaaS product (Linear/Jira/HubSpot feel), not a Bootstrap template.

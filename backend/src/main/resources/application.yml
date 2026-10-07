@@ -1,0 +1,62 @@
+spring:
+  application:
+    name: team-ops-board
+  config:
+    # Local secrets live in backend/.env (git-ignored). Real environment variables take precedence.
+    import: optional:file:.env[.properties]
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        type:
+          preferred_instant_jdbc_type: TIMESTAMP
+        default_batch_fetch_size: 50
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: never
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      issuer: team-ops-board
+      access-token-ttl: ${JWT_ACCESS_TTL_MINUTES:60}
+      refresh-token-ttl: ${JWT_REFRESH_TTL_DAYS:7}
+    refresh-cookie:
+      name: tob_refresh
+      path: /api/auth
+      secure: ${REFRESH_COOKIE_SECURE:true}
+      same-site: Strict
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  bootstrap-admin:
+    email: ${BOOTSTRAP_ADMIN_EMAIL:}
+    password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+    first-name: ${BOOTSTRAP_ADMIN_FIRST_NAME:Rakesh}
+    department-code: ${BOOTSTRAP_ADMIN_DEPARTMENT_CODE:IT}
+  dev-seed:
+    enabled: ${DEV_SEED_ENABLED:false}
+    password: ${DEV_SEED_PASSWORD:}
