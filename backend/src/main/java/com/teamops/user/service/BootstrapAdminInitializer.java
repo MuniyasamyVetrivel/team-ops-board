@@ -8,6 +8,9 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import com.teamops.common.web.ClientInfo;
+import com.teamops.department.repository.DepartmentRepository;
+import com.teamops.user.dto.CreateUserRequest;
 import com.teamops.user.entity.RoleCodes;
 import com.teamops.user.repository.UserRepository;
 
@@ -30,7 +33,9 @@ public class BootstrapAdminInitializer implements ApplicationRunner {
 
 	private final UserRepository userRepository;
 
-	private final UserProvisioningService userProvisioningService;
+	private final DepartmentRepository departmentRepository;
+
+	private final UserService userService;
 
 	@Override
 	public void run(ApplicationArguments args) {
@@ -47,8 +52,12 @@ public class BootstrapAdminInitializer implements ApplicationRunner {
 		}
 		String firstName = StringUtils.hasText(properties.firstName()) ? properties.firstName() : "Admin";
 		String departmentCode = StringUtils.hasText(properties.departmentCode()) ? properties.departmentCode() : "IT";
-		userProvisioningService.createUser(new NewUser(properties.email(), properties.password(), firstName, "",
-				"Reporting Manager", departmentCode, Set.of(RoleCodes.SUPER_ADMIN), Set.of()), null);
+		Long departmentId = departmentRepository.findByCode(departmentCode)
+			.orElseThrow(() -> new IllegalStateException("BOOTSTRAP_ADMIN_DEPARTMENT_CODE not found: " + departmentCode))
+			.getId();
+		userService.create(new CreateUserRequest(properties.email(), properties.password(), firstName, "",
+				"Reporting Manager", null, null, null, departmentId, null, null, Set.of(RoleCodes.SUPER_ADMIN),
+				Set.of()), null, ClientInfo.unknown());
 		log.info("Bootstrap Super Admin created: {}", properties.email());
 	}
 

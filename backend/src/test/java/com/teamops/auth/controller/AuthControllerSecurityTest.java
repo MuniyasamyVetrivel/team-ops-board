@@ -26,7 +26,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,30 +35,22 @@ import com.teamops.auth.dto.MeResponse;
 import com.teamops.auth.service.AuthResult;
 import com.teamops.auth.service.AuthService;
 import com.teamops.auth.service.IssuedRefreshToken;
-import com.teamops.common.config.ClockConfig;
-import com.teamops.common.exception.ErrorResponseWriter;
 import com.teamops.common.security.AccessToken;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.security.JwtConfig;
 import com.teamops.common.security.JwtTokenService;
-import com.teamops.common.security.RestAccessDeniedHandler;
-import com.teamops.common.security.RestAuthenticationEntryPoint;
-import com.teamops.common.security.SecurityConfig;
 import com.teamops.common.security.SecurityProperties;
 import com.teamops.common.security.UserPrincipalService;
 import com.teamops.department.dto.DepartmentSummary;
+import com.teamops.support.SecuritySliceTest;
 import com.teamops.support.TestFixtures;
 
 import jakarta.servlet.http.Cookie;
 
 /** Security filter chain + auth endpoints with mocked services. No database required. */
 @WebMvcTest(controllers = AuthController.class)
-@Import({ SecurityConfig.class, JwtConfig.class, JwtTokenService.class, RestAuthenticationEntryPoint.class,
-		RestAccessDeniedHandler.class, ErrorResponseWriter.class, RefreshCookieManager.class, ClockConfig.class,
-		AuthControllerSecurityTest.ProbeController.class })
-@TestPropertySource(properties = { "app.security.jwt.secret=" + TestFixtures.JWT_SECRET,
-		"app.security.jwt.access-token-ttl=60", "app.security.jwt.refresh-token-ttl=7",
-		"app.security.refresh-cookie.secure=false", "app.security.cors.allowed-origins=http://localhost:5173" })
+@SecuritySliceTest
+@Import(AuthControllerSecurityTest.ProbeController.class)
 class AuthControllerSecurityTest {
 
 	private static final AuthenticatedUser ADMIN = new AuthenticatedUser(1L, "rakesh@teamops.local", "Rakesh", 1L,

@@ -10,7 +10,8 @@
 | Phase | Status |
 |---|---|
 | 1–2 | Done: this document |
-| 3 Authentication | Done in code. Unit and slice tests pass. DB integration tests (`mvnw verify -Pit`) are pending until the database exists |
+| 3 Authentication | Done and verified against MySQL |
+| 4 Users / Departments / Roles | Done: user admin (create, edit, access, disable, reset password), departments and secondary members, `AccessScopeService`, team directory and profile, 22-user seeder. 105 unit and slice tests plus 7 integration tests pass against MySQL |
 
 These decisions supersede the plan text below:
 - **Versions:** Spring Boot **4.1.1** (latest GA; 4.2.0 is still at milestone 2), TypeScript **6.0.x** (typescript-eslint doesn't support 7 yet), React Router **8**, Vite **8**, jsdom **29** (30 needs Node 24.15+).
@@ -18,6 +19,9 @@ These decisions supersede the plan text below:
 - **Dev seed data** is switched on with `DEV_SEED_ENABLED=true` in `.env`, not with a `dev` Spring profile, because a `.env` property can't activate profiles. The `dev` profile only adds verbose logging.
 - **Integration tests** use the local MySQL, run with `mvnw verify -Pit` (`*IT.java`). Testcontainers was not added.
 - **Schema/entity mapping rules** (enum `VARCHAR`, no `CHAR`, `columnDefinition` for `TEXT`/`JSON`) are recorded in `CLAUDE.md`.
+- **MapStruct was not added.** DTOs use small static `of(...)` factories, which are simpler at this size.
+- **The user admin UI assigns one role per user** (Super Admin, Department Manager or Employee), plus direct permission grants. The backend still accepts a set of roles.
+- **No new migrations in Phase 4.** V1 already created `department_members`, `user_permissions` and the other identity tables.
 
 ---
 

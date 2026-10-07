@@ -11,17 +11,22 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProp
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import com.teamops.common.web.ClientInfo;
+import com.teamops.department.repository.DepartmentRepository;
+import com.teamops.department.service.DepartmentService;
+import com.teamops.user.dto.CreateUserRequest;
 import com.teamops.user.entity.RoleCodes;
+import com.teamops.user.entity.User;
 import com.teamops.user.repository.UserRepository;
-import com.teamops.user.service.NewUser;
-import com.teamops.user.service.UserProvisioningService;
+import com.teamops.user.service.UserService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Development seed data, enabled with DEV_SEED_ENABLED=true. Idempotent: existing users are left untouched. All seeded
- * users share the password in DEV_SEED_PASSWORD. Later phases extend this with tasks, tickets, marketing data, etc.
+ * Development seed data, enabled with DEV_SEED_ENABLED=true. Idempotent: existing users are left untouched, and a
+ * department's manager is only set if it has none. All seeded users share the password in DEV_SEED_PASSWORD. Later
+ * phases extend this with tasks, tickets, marketing data, etc.
  */
 @Slf4j
 @Component
@@ -36,17 +41,53 @@ public class DevDataSeeder implements ApplicationRunner {
 
 	private static final String RAKESH = "rakesh@teamops.local";
 
-	private static final String DM_MANAGER = "priya.menon@teamops.local";
+	private static final String MANAGER = RoleCodes.DEPARTMENT_MANAGER;
 
-	private static final String SEO_EXECUTIVE = "arun.kumar@teamops.local";
+	private static final String EMPLOYEE = RoleCodes.EMPLOYEE;
 
-	private static final String WEB_DEVELOPER = "karthik.raj@teamops.local";
+	/**
+	 * Ordered so that every reports-to target is created before the people reporting to them. {@code leadsDepartment}
+	 * marks the user set as the department's manager.
+	 */
+	static final List<SeedUser> USERS = List.of(
+			new SeedUser(RAKESH, "Rakesh", "", "Reporting Manager", "IT", RoleCodes.SUPER_ADMIN, Set.of(), null, false),
+			// Department managers report to Rakesh.
+			new SeedUser("suresh.babu@teamops.local", "Suresh", "Babu", "IT Manager", "IT", MANAGER, Set.of(), RAKESH, true),
+			new SeedUser("anitha.raj@teamops.local", "Anitha", "Raj", "Security Lead", "CYBERSEC", MANAGER, Set.of(), RAKESH, true),
+			new SeedUser("lakshmi.priya@teamops.local", "Lakshmi", "Priya", "HR Manager", "HR", MANAGER, Set.of(), RAKESH, true),
+			new SeedUser("ramesh.kannan@teamops.local", "Ramesh", "Kannan", "Talent Acquisition Lead", "TA", MANAGER, Set.of(), RAKESH, true),
+			new SeedUser("sanjay.varma@teamops.local", "Sanjay", "Varma", "Web Development Lead", "WEBDEV", MANAGER, Set.of(), RAKESH, true),
+			new SeedUser("harish.prabhu@teamops.local", "Harish", "Prabhu", "Mobile Development Lead", "APPDEV", MANAGER, Set.of(), RAKESH, true),
+			new SeedUser("priya.menon@teamops.local", "Priya", "Menon", "Digital Marketing Manager", "DM", MANAGER, ALL_MARKETING_PERMISSIONS, RAKESH, true),
+			new SeedUser("gokul.ravi@teamops.local", "Gokul", "Ravi", "Pre-Sales Head", "PRESALES", MANAGER, Set.of(), RAKESH, true),
+			new SeedUser("ajay.dev@teamops.local", "Ajay", "Dev", "Creative Lead", "GRAPHICS", MANAGER, Set.of(), RAKESH, true),
+			new SeedUser("revathi.sundar@teamops.local", "Revathi", "Sundar", "Payroll Manager", "PAYROLL", MANAGER, Set.of(), RAKESH, true),
+			// Employees report to their department manager.
+			new SeedUser("vignesh.raman@teamops.local", "Vignesh", "Raman", "System Administrator", "IT", EMPLOYEE, Set.of(), "suresh.babu@teamops.local", false),
+			new SeedUser("deepak.nair@teamops.local", "Deepak", "Nair", "SOC Analyst", "CYBERSEC", EMPLOYEE, Set.of(), "anitha.raj@teamops.local", false),
+			new SeedUser("meena.sekar@teamops.local", "Meena", "Sekar", "HR Executive", "HR", EMPLOYEE, Set.of(), "lakshmi.priya@teamops.local", false),
+			new SeedUser("divya.mohan@teamops.local", "Divya", "Mohan", "Recruiter", "TA", EMPLOYEE, Set.of(), "ramesh.kannan@teamops.local", false),
+			new SeedUser("karthik.raj@teamops.local", "Karthik", "Raj", "Frontend Developer", "WEBDEV", EMPLOYEE, Set.of(), "sanjay.varma@teamops.local", false),
+			new SeedUser("nithya.ganesh@teamops.local", "Nithya", "Ganesh", "Flutter Developer", "APPDEV", EMPLOYEE, Set.of(), "harish.prabhu@teamops.local", false),
+			new SeedUser("arun.kumar@teamops.local", "Arun", "Kumar", "SEO Executive", "DM", EMPLOYEE,
+					Set.of("MARKETING_VIEW", "SEO_VIEW", "SEO_EDIT", "TARGET_VIEW", "BACKLINK_VIEW", "BACKLINK_EDIT", "CONTENT_VIEW"),
+					"priya.menon@teamops.local", false),
+			new SeedUser("kavya.suresh@teamops.local", "Kavya", "Suresh", "Content Writer", "DM", EMPLOYEE,
+					Set.of("MARKETING_VIEW", "CONTENT_VIEW", "CONTENT_EDIT", "SEO_VIEW", "TARGET_VIEW"),
+					"priya.menon@teamops.local", false),
+			new SeedUser("swetha.bala@teamops.local", "Swetha", "Bala", "Solutions Consultant", "PRESALES", EMPLOYEE, Set.of(), "gokul.ravi@teamops.local", false),
+			new SeedUser("pooja.lakshman@teamops.local", "Pooja", "Lakshman", "Graphic Designer", "GRAPHICS", EMPLOYEE, Set.of(), "ajay.dev@teamops.local", false),
+			new SeedUser("manoj.thomas@teamops.local", "Manoj", "Thomas", "Payroll Executive", "PAYROLL", EMPLOYEE, Set.of(), "revathi.sundar@teamops.local", false));
 
 	private final DevSeedProperties properties;
 
 	private final UserRepository userRepository;
 
-	private final UserProvisioningService userProvisioningService;
+	private final DepartmentRepository departmentRepository;
+
+	private final UserService userService;
+
+	private final DepartmentService departmentService;
 
 	@Override
 	public void run(ApplicationArguments args) {
@@ -57,38 +98,37 @@ public class DevDataSeeder implements ApplicationRunner {
 		}
 		log.warn("Seeding DEVELOPMENT data (DEV_SEED_ENABLED=true). Never enable this in production.");
 
-		List<NewUser> users = List.of(
-				new NewUser(RAKESH, properties.password(), "Rakesh", "", "Reporting Manager", "IT",
-						Set.of(RoleCodes.SUPER_ADMIN), Set.of()),
-				new NewUser(DM_MANAGER, properties.password(), "Priya", "Menon", "Digital Marketing Manager", "DM",
-						Set.of(RoleCodes.DEPARTMENT_MANAGER), ALL_MARKETING_PERMISSIONS),
-				new NewUser(SEO_EXECUTIVE, properties.password(), "Arun", "Kumar", "SEO Executive", "DM",
-						Set.of(RoleCodes.EMPLOYEE), Set.of("MARKETING_VIEW", "SEO_VIEW", "SEO_EDIT", "TARGET_VIEW",
-								"BACKLINK_VIEW", "BACKLINK_EDIT", "CONTENT_VIEW")),
-				new NewUser(WEB_DEVELOPER, properties.password(), "Karthik", "Raj", "Frontend Developer", "WEBDEV",
-						Set.of(RoleCodes.EMPLOYEE), Set.of()));
+		Map<String, Long> departmentIds = new HashMap<>();
+		departmentRepository.findAll().forEach(d -> departmentIds.put(d.getCode(), d.getId()));
 
-		Map<String, Long> created = new HashMap<>();
-		for (NewUser user : users) {
-			if (!userRepository.existsByEmailIgnoreCase(user.email())) {
-				created.put(user.email(), userProvisioningService.createUser(user, null).getId());
-				log.info("Seeded user {}", user.email());
+		int created = 0;
+		for (SeedUser seed : USERS) {
+			Long departmentId = departmentIds.get(seed.departmentCode());
+			Long userId = userRepository.findByEmailIgnoreCase(seed.email()).map(User::getId).orElse(null);
+			if (userId == null) {
+				Long reportsToId = seed.reportsToEmail() == null ? null
+						: userRepository.findByEmailIgnoreCase(seed.reportsToEmail()).map(User::getId).orElse(null);
+				userId = userService
+					.create(new CreateUserRequest(seed.email(), properties.password(), seed.firstName(),
+							seed.lastName(), seed.jobTitle(), null, "Chennai", "09:30 - 18:30 IST", departmentId,
+							reportsToId, null, Set.of(seed.role()), seed.permissions()), null, ClientInfo.unknown())
+					.id();
+				created++;
+			}
+			if (seed.leadsDepartment()) {
+				departmentService.assignManagerIfUnset(departmentId, userId);
 			}
 		}
-		if (created.containsKey(DM_MANAGER)) {
-			userProvisioningService.assignDepartmentManager("DM", created.get(DM_MANAGER));
-		}
-		linkReportsTo(created, DM_MANAGER, RAKESH);
-		linkReportsTo(created, WEB_DEVELOPER, RAKESH);
-		linkReportsTo(created, SEO_EXECUTIVE, DM_MANAGER);
+		log.info("Development seed: {} users created, {} already present", created, USERS.size() - created);
 	}
 
-	private void linkReportsTo(Map<String, Long> created, String email, String managerEmail) {
-		if (!created.containsKey(email)) {
-			return;
-		}
-		userRepository.findByEmailIgnoreCase(managerEmail)
-			.ifPresent(manager -> userProvisioningService.setReportsTo(created.get(email), manager.getId()));
+	record SeedUser(String email, String firstName, String lastName, String jobTitle, String departmentCode,
+			String role, Set<String> permissions, String reportsToEmail, boolean leadsDepartment) {
+	}
+
+	/** Exposed for tests: every seeded department code must exist in V2 reference data. */
+	static Set<String> departmentCodes() {
+		return Set.copyOf(USERS.stream().map(SeedUser::departmentCode).toList());
 	}
 
 }

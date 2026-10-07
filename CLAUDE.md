@@ -13,6 +13,10 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
   - `*Test.java` files are unit or slice tests that must not need a database.
   - `*IT.java` files are integration tests and only run with the `-Pit` profile.
   - Frontend tests sit next to the code they test, as `*.test.ts(x)` files.
+- Test helpers (reuse these, don't copy them):
+  - Controller slice tests: `@WebMvcTest(...)` + `@SecuritySliceTest` + `@MockitoBean UserPrincipalService`. Mint tokens with `SliceAuth.bearer(...)`; test principals are `SliceAuth.SUPER_ADMIN`, `EMPLOYEE`, `USER_ADMIN` and `NOBODY`.
+  - Integration tests: create throwaway users with `IntegrationUsers` and call `deleteAll()` in `@AfterEach`. Don't make ITs `@Transactional`, because audit writes use `REQUIRES_NEW`. Set `app.dev-seed.enabled=false`.
+  - Frontend page tests: use `renderPage(...)` + `mockApi({'GET /path': handler})` from `src/test/render.tsx`. They use the real query hooks with a fake HTTP adapter.
 - Before creating a component, service or file, check whether an equivalent already exists. Do not duplicate.
 - Do not generate hundreds of files blindly. Build incrementally.
 
@@ -21,7 +25,7 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
   - Java 21, Spring Boot 4.1.1, Hibernate 7, Jackson 3 (`tools.jackson.*`, while annotations stay `com.fasterxml.jackson.annotation`), Maven via the `mvnw` wrapper.
   - Boot 4 uses modular starters (`spring-boot-starter-webmvc`, `-flyway`, `-security-oauth2-resource-server`, plus matching `*-test` starters). `@WebMvcTest` lives in `org.springframework.boot.webmvc.test.autoconfigure`. Use `@MockitoBean`, not `@MockBean`.
   - Spring Security with JWT (Spring's Nimbus encoder/decoder, HS256), plus a refresh token in an httpOnly cookie, hashed in the DB. BCrypt for passwords.
-  - Spring Data JPA/Hibernate, Bean Validation, Lombok, MapStruct, springdoc-openapi.
+  - Spring Data JPA/Hibernate, Bean Validation, Lombok. DTOs map entities with static `of(...)` factories; MapStruct was not added. springdoc-openapi isn't added yet.
   - Tests: JUnit 5, Mockito, Spring Boot Test.
 - **Database**: MySQL 8 (`team_ops_board` on localhost:3306) with **Flyway** migrations in `backend/src/main/resources/db/migration`.
 - **Frontend** (`frontend/`):
@@ -30,7 +34,10 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
   - TypeScript stays on 6.0.x because typescript-eslint doesn't support 7 yet.
   - jsdom stays on 29 for Node 24.14 compatibility.
   - Lucide v1 renamed icons: use `LoaderCircle`, `ChartColumn`, `Building`. Brand icons such as LinkedIn were removed.
-  - The navigation config in `src/config/navigation.ts` is the single source for the sidebar, the routes and the permission each route requires.
+  - The navigation config in `src/config/navigation.ts` is the single source for the sidebar, the routes and the permission each route requires. Register built pages in `IMPLEMENTED_PAGES` in `src/routes/router.tsx`, and non-sidebar routes (e.g. `/team/:id`) in `detailRoutes`.
+  - API modules (`features/*/api.ts`) export DTO types that mirror the Java records, query-key factories, and TanStack Query hooks. Mutations update the detail cache and invalidate the related lists.
+  - Forms use React Hook Form + Zod, with schemas that mirror the backend validation. Map server field errors with `applyServerErrors`. Share field groups across forms through `FormProvider`/`useFormContext`, not by casting `register`.
+  - Use the existing UI pieces: `Dialog`/`SheetContent` (right-hand drawer), `Tabs`, `Table`, `Badge` (semantic tones), native `Select`/`Checkbox`, and the common `StatusBadge`, `UserCell`, `Pagination`, `SearchInput`, `ErrorState`, `EmptyState`, `FormField`.
   - The access token is kept in memory only (`src/lib/api/client.ts`); never put tokens in localStorage.
 - Package root: `com.teamops`. Organised by feature: `controller/ dto/ entity/ repository/ service/ mapper/`.
 
@@ -47,7 +54,12 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
 - Avoid `any` in TypeScript. Write proper types for every API DTO.
 - **Backend authorization** is enforced on three layers:
   - `@PreAuthorize` with permission authorities, e.g. `hasAuthority('TASK_EDIT')`. Roles are `ROLE_SUPER_ADMIN` etc. Inject the current user with `@AuthenticationPrincipal AuthenticatedUser`.
-  - `AccessScopeService`, which applies department and own-data scoping to queries.
+  - `AccessScopeService`, which applies department and own-data scoping to queries. `scopeFor(user)` returns ALL for a Super Admin, DEPARTMENTS for a manager (their primary department, departments where they are `manager_id`, and departments where they are a MANAGER member), or OWN for everyone else. Use `canViewWorkOf` and `canManageDepartment` rather than re-implementing the checks.
+  - User administration never allows privilege escalation (see `UserService`):
+    - You can only grant permissions you hold.
+    - SUPER_ADMIN can only be granted, disabled or demoted by a Super Admin.
+    - Nobody can change their own access or disable themselves.
+    - The last active Super Admin can't be removed.
   - The current user, role, department and permissions are always resolved server-side. Never trust frontend claims, and hiding routes in the UI is not security.
 - Flyway:
   - Never edit an applied migration. Add a new `V{n}__*.sql` instead.
@@ -72,6 +84,8 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
 - Integration seams are interfaces with manual implementations for now: `FileStorageService`, `SeoRankingProvider`, `EmailCampaignProvider`, `PaidCampaignProvider`, `AnalyticsProvider`, `LeadProvider`, `ReportExporter`.
 - File uploads must validate type, size and filename, and go through `FileStorageService`. Local storage for now.
 - Throw `ApiException` (with a stable `code`) for business errors. Don't build error responses by hand.
+- List endpoints take `page`, `size` and `sort=field,dir`. Build the `Pageable` with `PageRequests.of(...)` and a whitelist of sort fields, and return `PageResponse`. Filter with composable `Specification`s; use subqueries rather than collection joins, so paging stays correct.
+- Record field-level edits in audit entries with `AuditChanges` (`{changes: {field: {from, to}}}`), and skip the audit entry when nothing changed.
 - Write audit entries with `AuditService.record(...)`, which runs in its own transaction. Add new actions to the `AuditAction` enum.
 - Write audit log entries for logins, task/ticket create/assign/status changes, target, ranking, campaign, lead and backlink changes, and permission changes.
 - UI quality bar:

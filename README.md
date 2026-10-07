@@ -6,7 +6,7 @@ Internal Work & Performance Management System: tasks, workload, help desk, proje
 - Architecture, schema and phase plan: [`docs/implementation-plan.md`](docs/implementation-plan.md)
 - API reference: [`docs/api.md`](docs/api.md)
 
-**Status:** Phase 3 (authentication) complete. Other sidebar modules show a placeholder naming the phase that builds them.
+**Status:** Phases 3 (authentication) and 4 (users, departments, roles, team directory) complete. Other sidebar modules show a placeholder naming the phase that builds them.
 
 ## Stack
 
@@ -71,14 +71,20 @@ npm run dev
 
 ## Development credentials
 
-With `DEV_SEED_ENABLED=true`, these users are created on startup (idempotent). They all use the password set in `DEV_SEED_PASSWORD` in `backend/.env`:
+With `DEV_SEED_ENABLED=true`, 22 users are created on startup: Rakesh, plus a manager and at least one employee for each of the 10 departments. Seeding is idempotent, so existing users are left alone, and a department's manager is only set if it has none. Every manager reports to Rakesh, and every employee reports to their department manager. They all use the password set in `DEV_SEED_PASSWORD` in `backend/.env`.
+
+The most useful accounts for testing:
 
 | Email | Role | Department | Purpose |
 |---|---|---|---|
-| `rakesh@teamops.local` | Super Admin | IT | Sees everything |
+| `rakesh@teamops.local` | Super Admin | IT | Sees and manages everything |
 | `priya.menon@teamops.local` | Department Manager | Digital Marketing | Manager with all marketing permissions |
 | `arun.kumar@teamops.local` | Employee | Digital Marketing | SEO executive, partial marketing permissions |
-| `karthik.raj@teamops.local` | Employee | Web Development | No marketing access: checks that the menu and APIs are hidden |
+| `kavya.suresh@teamops.local` | Employee | Digital Marketing | Content writer, content permissions |
+| `karthik.raj@teamops.local` | Employee | Web Development | No marketing or admin access: checks that the menus and APIs are hidden |
+| `sanjay.varma@teamops.local` | Department Manager | Web Development | Karthik's manager, with no marketing access |
+
+The other departments follow the same pattern. Their managers are `suresh.babu` (IT), `anitha.raj` (Cyber Security), `lakshmi.priya` (HR), `ramesh.kannan` (Talent Acquisition), `harish.prabhu` (App Development), `gokul.ravi` (Pre-Sales), `ajay.dev` (Graphic & Media) and `revathi.sundar` (Payroll). The full list is in `DevDataSeeder.java`.
 
 These are development-only accounts on a `.local` domain. Never use them, or the seed flag, in production.
 
@@ -106,4 +112,19 @@ npm run build
 - **The frontend keeps the access token in memory only.** On page load it restores the session through `POST /api/auth/refresh`. On a 401 it refreshes once and retries. If the refresh fails, it returns to `/login?expired=1`.
 - **The backend decides who the user is and what they can do.** On every request it reloads the user, roles, department and permissions from the database; JWT claims are never trusted. Disabling a user or revoking a permission takes effect on their next request.
 - **Roles:** `SUPER_ADMIN` (all permissions), `DEPARTMENT_MANAGER`, `EMPLOYEE`. Permissions such as `TASK_EDIT` or `SEO_VIEW` are Spring authorities used with `@PreAuthorize`. Digital Marketing access is a direct grant (`MARKETING_VIEW` etc.).
-- **Audit:** logins, failed logins (with reason), logouts, refresh-token re-use and user creation are written to `audit_logs`.
+- **Data scope** (`AccessScopeService`):
+  - A Super Admin sees everything.
+  - A Department Manager sees their own department, any department where they are the manager, and any department where they hold a co-manager membership.
+  - An employee sees their own records.
+  - Later modules (tasks, workload, tickets) filter their queries through this scope.
+- **No privilege escalation:**
+  - An administrator can only grant permissions they hold themselves.
+  - Only a Super Admin can grant Super Admin, or disable or demote one.
+  - Nobody can disable themselves or change their own access.
+  - The last active Super Admin can't be removed.
+- **Audit:** these events are written to `audit_logs`:
+  - logins, failed logins (with the reason) and logouts
+  - refresh-token re-use
+  - user create, update, disable/enable and password reset
+  - role and permission changes, recorded with before and after values
+  - department create and update, and member changes

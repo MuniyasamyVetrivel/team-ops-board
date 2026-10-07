@@ -6,9 +6,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.util.Set;
-import java.util.UUID;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,33 +19,39 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import com.jayway.jsonpath.JsonPath;
+import com.teamops.department.repository.DepartmentRepository;
+import com.teamops.support.IntegrationUsers;
 import com.teamops.user.entity.RoleCodes;
 import com.teamops.user.entity.UserStatus;
 import com.teamops.user.repository.UserRepository;
-import com.teamops.user.service.NewUser;
-import com.teamops.user.service.UserProvisioningService;
+import com.teamops.user.service.UserService;
 
 import jakarta.servlet.http.Cookie;
 
 /**
  * Full login -> me -> refresh -> logout flow against MySQL. Run with: mvnw verify -Pit. Uses a throwaway user that is
- * deleted afterwards (not @Transactional, because audit entries are written in their own transactions).
+ * deleted afterwards.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(properties = "app.dev-seed.enabled=false")
 class AuthFlowIT {
 
-	private static final String PASSWORD = "Integration@Test1";
+	private static final String PASSWORD = IntegrationUsers.PASSWORD;
 
 	@Autowired
 	private MockMvc mvc;
 
 	@Autowired
-	private UserProvisioningService userProvisioningService;
+	private UserService userService;
 
 	@Autowired
 	private UserRepository userRepository;
+
+	@Autowired
+	private DepartmentRepository departmentRepository;
+
+	private IntegrationUsers users;
 
 	private String email;
 
@@ -56,14 +59,14 @@ class AuthFlowIT {
 
 	@BeforeEach
 	void createUser() {
-		email = "it-" + UUID.randomUUID() + "@teamops.local";
-		userId = userProvisioningService.createUser(new NewUser(email, PASSWORD, "Integration", "Test", "QA", "IT",
-				Set.of(RoleCodes.EMPLOYEE), Set.of("MARKETING_VIEW")), null).getId();
+		users = new IntegrationUsers(userService, userRepository, departmentRepository);
+		userId = users.create("IT", RoleCodes.EMPLOYEE, "MARKETING_VIEW");
+		email = users.email(userId);
 	}
 
 	@AfterEach
 	void deleteUser() {
-		userRepository.deleteById(userId);
+		users.deleteAll();
 	}
 
 	@Test

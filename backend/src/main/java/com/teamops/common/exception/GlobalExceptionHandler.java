@@ -9,9 +9,11 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -52,6 +54,22 @@ public class GlobalExceptionHandler {
 						error.getDefaultMessage())))
 			.toList();
 		return respond(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "Request validation failed", request, fieldErrors);
+	}
+
+	/** Wrong type for a path or query parameter, e.g. {@code ?status=SLEEPING} or {@code /api/users/abc}. */
+	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
+	public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException ex,
+			HttpServletRequest request) {
+		return respond(HttpStatus.BAD_REQUEST, "INVALID_PARAMETER",
+				"Invalid value for parameter '" + ex.getName() + "'", request,
+				List.of(new ApiError.FieldError(ex.getName(), "Invalid value")));
+	}
+
+	@ExceptionHandler(MissingServletRequestParameterException.class)
+	public ResponseEntity<ApiError> handleMissingParameter(MissingServletRequestParameterException ex,
+			HttpServletRequest request) {
+		return respond(HttpStatus.BAD_REQUEST, "MISSING_PARAMETER",
+				"Missing required parameter '" + ex.getParameterName() + "'", request, List.of());
 	}
 
 	@ExceptionHandler(HttpMessageNotReadableException.class)

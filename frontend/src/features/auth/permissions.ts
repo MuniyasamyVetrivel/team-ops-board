@@ -55,7 +55,7 @@ export type PermissionCode = (typeof PERMISSION_CODES)[number];
 
 export type RoleCode = 'SUPER_ADMIN' | 'DEPARTMENT_MANAGER' | 'EMPLOYEE';
 
-const ROLE_LABELS: Record<RoleCode, string> = {
+export const ROLE_LABELS: Record<RoleCode, string> = {
   SUPER_ADMIN: 'Super Admin',
   DEPARTMENT_MANAGER: 'Department Manager',
   EMPLOYEE: 'Employee',
