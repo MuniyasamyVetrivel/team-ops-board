@@ -20,6 +20,9 @@ const TeamProfilePage = lazy(() => import('@/features/team/TeamProfilePage'));
 const TasksPage = lazy(() => import('@/features/tasks/TasksPage'));
 const MyTasksPage = lazy(() => import('@/features/my-work/MyTasksPage'));
 const WorkloadPage = lazy(() => import('@/features/workload/WorkloadPage'));
+const TicketsPage = lazy(() => import('@/features/tickets/TicketsPage'));
+const MyTicketsPage = lazy(() => import('@/features/my-work/MyTicketsPage'));
+const SlaPage = lazy(() => import('@/features/sla/SlaPage'));
 
 /** Pages that exist so far. Every other sidebar entry renders a placeholder naming the phase that builds it. */
 const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
@@ -30,6 +33,9 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
   '/tasks': TasksPage,
   '/my/tasks': MyTasksPage,
   '/workload': WorkloadPage,
+  '/tickets': TicketsPage,
+  '/my/tickets': MyTicketsPage,
+  '/sla': SlaPage,
 };
 
 /** Detail routes that are not sidebar entries. */

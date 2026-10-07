@@ -3,7 +3,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { api } from '@/lib/api/client';
 import type { PageResponse } from '@/lib/api/types';
 
-export type NotificationType = 'TASK_ASSIGNED' | 'TASK_DUE_SOON' | 'TASK_OVERDUE';
+export type NotificationType = 'TASK_ASSIGNED' | 'TASK_DUE_SOON' | 'TASK_OVERDUE' | 'TICKET_ASSIGNED' | 'TICKET_UPDATED' | 'TICKET_REPLY';
 
 /** Mirrors com.teamops.notification.dto.NotificationResponse. */
 export interface AppNotification {
@@ -23,7 +23,9 @@ export interface UnreadCount {
 
 /** Where a notification leads; tasks open in the Tasks page drawer. */
 export function notificationHref(notification: AppNotification): string | null {
-  if (notification.entityType === 'TASK' && notification.entityId !== null) return `/tasks?task=${notification.entityId}`;
+  if (notification.entityId === null) return null;
+  if (notification.entityType === 'TASK') return `/tasks?task=${notification.entityId}`;
+  if (notification.entityType === 'TICKET') return `/tickets?ticket=${notification.entityId}`;
   return null;
 }
 

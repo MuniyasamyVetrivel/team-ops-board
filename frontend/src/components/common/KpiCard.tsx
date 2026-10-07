@@ -14,12 +14,14 @@ interface KpiCardProps {
   /** Highlights the value (e.g. overdue > 0). */
   alert?: boolean;
   hint?: string;
+  /** Appended to the value, e.g. "%". */
+  suffix?: string;
   to?: string;
   loading?: boolean;
 }
 
 /** Compact KPI tile. Links to the matching list when {@code to} is set. */
-export function KpiCard({ label, value, icon: Icon, tone = 'text-muted-foreground', alert, hint, to, loading }: KpiCardProps) {
+export function KpiCard({ label, value, icon: Icon, tone = 'text-muted-foreground', alert, hint, suffix, to, loading }: KpiCardProps) {
   const body = (
     <>
       <span className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -30,7 +32,7 @@ export function KpiCard({ label, value, icon: Icon, tone = 'text-muted-foregroun
         <Skeleton className="mt-2 h-8 w-12" />
       ) : (
         <span className={cn('mt-1 block text-3xl font-semibold tracking-tight tabular-nums', alert && 'text-status-danger', value == null && 'text-muted-foreground')}>
-          {value == null ? '—' : value.toLocaleString()}
+          {value == null ? '—' : `${value.toLocaleString()}${suffix ?? ''}`}
         </span>
       )}
       {hint && <span className="mt-0.5 block truncate text-xs text-muted-foreground">{hint}</span>}

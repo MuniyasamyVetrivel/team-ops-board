@@ -1,4 +1,5 @@
 const dateFormat = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+const dateTimeFormat = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
 const relativeFormat = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
 
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
@@ -12,6 +13,11 @@ const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
 
 export function formatDate(iso: string | null | undefined): string {
   return iso ? dateFormat.format(new Date(iso)) : '—';
+}
+
+/** "8 Oct, 3:30 pm"; "—" when there is no value. Use for instants (e.g. SLA due times), not calendar dates. */
+export function formatDateTime(iso: string | null | undefined): string {
+  return iso ? dateTimeFormat.format(new Date(iso)) : '—';
 }
 
 /** "3 hours ago", "yesterday"; "—" when there is no value. */

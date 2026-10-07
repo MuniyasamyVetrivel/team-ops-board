@@ -13,6 +13,7 @@
 | 3 Authentication | Done and verified against MySQL |
 | 5 Tasks + Workload | Done: V3 projects + V4 tasks; task CRUD, assign, status with reopen, comments, checklist, watchers, dependencies with cycle check, tags, attachments, history, audit; My Tasks; the Workload page; real work data on team profiles; 175-task seed. 170 unit and slice tests plus 10 integration tests pass against MySQL |
 | 6 Dashboard | Done: V5 notifications + calendar_events; role-scoped `/api/dashboard` (KPIs, status donut, weekly completion, department workload/performance, employee workload, overdue/upcoming, recent activity); notifications with assignment events and daily due/overdue reminders; calendar API (events + task deadlines) with scoped event CRUD; topbar bell. 198 unit and slice tests plus 13 integration tests pass against MySQL |
+| 7 Tickets + SLA | Done: V6 sla_policies (seeded), ticket_categories (seeded, routed to a team), tickets with snapshotted SLA, comments with internal notes, attachments, history; ticket API with scope rules and audit; SlaCalculator (warning, breach, paused clock, compliance); SLA summary and policy admin; dashboard ticket KPIs; Tickets, My Tickets and SLA pages; 19-ticket seed. 242 unit and slice tests plus 17 integration tests pass against MySQL; 78 frontend tests |
 | 4 Users / Departments / Roles | Done: user admin (create, edit, access, disable, reset password), departments and secondary members, `AccessScopeService`, team directory and profile, 22-user seeder. 105 unit and slice tests plus 7 integration tests pass against MySQL |
 
 These decisions supersede the plan text below:
@@ -32,6 +33,10 @@ These decisions supersede the plan text below:
 - **Recent activity comes from `task_history`** (scoped through the task), not `audit_logs`, so managers and employees get a meaningful, permission-safe feed.
 - **`notifications.dedup_key`** (unique per user) makes the daily reminder job idempotent. `calendar_events` gained `version` (optimistic locking) and stores all-day events as business-zone midnights.
 - **The calendar API ships in Phase 6 with task deadlines and events only.** Project milestones and approval deadlines join it in Phase 8 with their modules.
+- **SLA warning threshold is global** (`sla.warningThresholdPct` in `app_settings`), not per policy, and is snapshotted on each ticket with the due times (`sla_warning_pct`). `sla_policies` has one row per priority and no `active` flag. Tickets store an explicit `sla_start_at`.
+- **SLA states are ON_TRACK / WARNING / BREACHED per deadline**, plus `met` (null while open) and `paused` flags. The SLA clock also pauses between resolve and reopen, so time spent resolved never counts. A priority change does not move due times.
+- **Tickets are routed to a handling department** by category (`ticket_categories.default_department_id`). Help desk agents are users with `TICKET_EDIT` in that department; employees do not get it by role.
+- **Ticket search uses LIKE on subject and code**, consistent with tasks; the planned FULLTEXT index was not added. SLA figures are computed in Java with `SlaCalculator` over the viewer's tickets, so the list, SLA page and dashboard always agree.
 
 ---
 

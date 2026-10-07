@@ -23,6 +23,7 @@ import { useNavigate } from 'react-router';
 import { ErrorState } from '@/components/common/ErrorState';
 import { KpiCard } from '@/components/common/KpiCard';
 import { PageHeader } from '@/components/common/PageHeader';
+import { Panel, PanelLink } from '@/components/common/Panel';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { hasPermission } from '@/features/auth/permissions';
@@ -35,7 +36,7 @@ import { WorkloadMeter } from '@/features/workload/WorkloadMeter';
 
 import { useDashboard, type DashboardResponse } from './api';
 import { DepartmentWorkloadChart, StatusDonut, WeeklyCompletionChart } from './charts';
-import { DepartmentPerformanceTable, EmployeeWorkloadTable, Panel, PanelLink, RecentActivity, TaskList, UpcomingEvents } from './sections';
+import { DepartmentPerformanceTable, EmployeeWorkloadTable, RecentActivity, TaskList, UpcomingEvents } from './sections';
 
 function greeting(date: Date): string {
   const hour = date.getHours();
@@ -121,13 +122,13 @@ export default function DashboardPage() {
               <>
                 <KpiCard label="In progress" value={data.kpis.inProgress} icon={CircleDot} tone="text-primary" />
                 <KpiCard label="Blocked" value={data.kpis.blocked} icon={OctagonX} tone="text-status-danger" />
-                <KpiCard label="My tickets" value={data.kpis.openTickets} icon={LifeBuoy} hint="Available with the help desk" />
+                <KpiCard label="My open tickets" value={data.kpis.openTickets} icon={LifeBuoy} to="/my/tickets" />
                 <KpiCard label="Pending approvals" value={data.kpis.pendingApprovals} icon={Workflow} hint="Available with approvals" />
               </>
             ) : (
               <>
-                <KpiCard label="Open tickets" value={data.kpis.openTickets} icon={LifeBuoy} hint="Available with the help desk" />
-                <KpiCard label="SLA breaches" value={data.kpis.slaBreaches} icon={Timer} hint="Available with the help desk" />
+                <KpiCard label="Open tickets" value={data.kpis.openTickets} icon={LifeBuoy} to={hasPermission(user, 'TICKET_VIEW') ? '/tickets' : undefined} />
+                <KpiCard label="SLA breaches" value={data.kpis.slaBreaches} icon={Timer} tone="text-status-danger" alert={(data.kpis.slaBreaches ?? 0) > 0} to={hasPermission(user, 'TICKET_VIEW') ? '/sla' : undefined} />
                 <KpiCard label="Pending approvals" value={data.kpis.pendingApprovals} icon={Workflow} hint="Available with approvals" />
                 <KpiCard label="Team members" value={data.kpis.teamMembers} icon={Users} to={hasPermission(user, 'TEAM_VIEW') ? '/team' : undefined} />
               </>

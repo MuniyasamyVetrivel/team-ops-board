@@ -46,4 +46,18 @@ class DevDataSeederTest {
 			.forEach(u -> assertThat(led.add(u.departmentCode())).as("two leads for " + u.departmentCode()).isTrue());
 	}
 
+	@Test
+	void seedTicketsReferenceSeededPeople() {
+		Set<String> emails = new HashSet<>();
+		DevDataSeeder.USERS.forEach(u -> emails.add(u.email()));
+		for (DevTicketSeeder.Seed ticket : DevTicketSeeder.TICKETS) {
+			assertThat(emails).as("requester of " + ticket.subject()).contains(ticket.requester());
+			if (ticket.assignee() != null) {
+				assertThat(emails).as("assignee of " + ticket.subject()).contains(ticket.assignee());
+			}
+			assertThat(ticket.status().isDone() ? ticket.doneAfter() : 0).as("resolution time of " + ticket.subject())
+				.isNotNull();
+		}
+	}
+
 }

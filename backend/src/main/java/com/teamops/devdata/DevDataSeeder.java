@@ -93,6 +93,8 @@ public class DevDataSeeder implements ApplicationRunner {
 
 	private final DevDashboardSeeder devDashboardSeeder;
 
+	private final DevTicketSeeder devTicketSeeder;
+
 	@Override
 	public void run(ApplicationArguments args) {
 		if (properties.password() == null || properties.password().length() < 8) {
@@ -130,6 +132,14 @@ public class DevDataSeeder implements ApplicationRunner {
 			log.info("Development seed: {} tasks and 3 projects created", tasks);
 		}
 		log.info("Development seed: {}", devDashboardSeeder.seed());
+		int agents = devTicketSeeder.grantAgentAccess();
+		if (agents > 0) {
+			log.info("Development seed: TICKET_EDIT granted to {} help desk agents", agents);
+		}
+		int tickets = devTicketSeeder.seedIfEmpty();
+		if (tickets > 0) {
+			log.info("Development seed: {} help desk tickets created", tickets);
+		}
 	}
 
 	record SeedUser(String email, String firstName, String lastName, String jobTitle, String departmentCode,

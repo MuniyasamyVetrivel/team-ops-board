@@ -18,7 +18,7 @@ function dashboard(overrides: Partial<DashboardResponse> = {}): DashboardRespons
     today: '2026-10-08',
     weekStart: '2026-10-05',
     scope: 'ALL',
-    kpis: { openTasks: 142, dueToday: 6, overdue: 17, completedThisWeek: 23, inProgress: 40, blocked: 9, teamMembers: 22, openTickets: null, slaBreaches: null, pendingApprovals: null },
+    kpis: { openTasks: 142, dueToday: 6, overdue: 17, completedThisWeek: 23, inProgress: 40, blocked: 9, teamMembers: 22, openTickets: 9, slaBreaches: 2, pendingApprovals: null },
     statusDistribution: [
       { status: 'TODO', count: 60 },
       { status: 'IN_PROGRESS', count: 40 },
@@ -73,7 +73,7 @@ describe('DashboardPage', () => {
     api.defaults.adapter = originalAdapter;
   });
 
-  it('shows company KPIs, with modules that are not built yet as "—"', async () => {
+  it('shows company KPIs, with ticket figures linked and unbuilt modules as "—"', async () => {
     mockApi({ 'GET /dashboard': () => dashboard(), 'GET /calendar': () => calendar });
 
     renderPage(<DashboardPage />, superAdmin);
@@ -81,8 +81,10 @@ describe('DashboardPage', () => {
     const kpis = await screen.findByRole('region', { name: 'Key figures' });
     expect(within(kpis).getByText('142')).toBeInTheDocument();
     expect(within(kpis).getByText('17')).toHaveClass('text-status-danger');
-    const tickets = within(kpis).getByText('Open tickets').closest('div');
-    expect(within(tickets!).getByText('—')).toBeInTheDocument();
+    const approvals = within(kpis).getByText('Pending approvals').closest('div');
+    expect(within(approvals!).getByText('—')).toBeInTheDocument();
+    expect(within(kpis).getByRole('link', { name: /SLA breaches/ })).toHaveAttribute('href', '/sla');
+    expect(within(kpis).getByRole('link', { name: /Open tickets/ })).toHaveTextContent('9');
     expect(screen.getByText(/Company-wide view/)).toBeInTheDocument();
   });
 

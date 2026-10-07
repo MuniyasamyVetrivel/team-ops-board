@@ -6,7 +6,7 @@ Internal Work & Performance Management System: tasks, workload, help desk, proje
 - Architecture, schema and phase plan: [`docs/implementation-plan.md`](docs/implementation-plan.md)
 - API reference: [`docs/api.md`](docs/api.md)
 
-**Status:** Phases 3–6 complete: authentication; users, departments, roles and the team directory; tasks, My Tasks and workload; the role-aware home dashboard, in-app notifications and the calendar API. Other sidebar modules show a placeholder naming the phase that builds them.
+**Status:** Phases 3–7 complete: authentication; users, departments, roles and the team directory; tasks, My Tasks and workload; the role-aware home dashboard, in-app notifications and the calendar API; the help desk (tickets, My Tickets) with SLA tracking. Other sidebar modules show a placeholder naming the phase that builds them.
 
 ## Stack
 
@@ -86,10 +86,14 @@ The most useful accounts for testing:
 | `kavya.suresh@teamops.local` | Employee | Digital Marketing | Content writer, content permissions |
 | `karthik.raj@teamops.local` | Employee | Web Development | No marketing or admin access: checks that the menus and APIs are hidden |
 | `sanjay.varma@teamops.local` | Department Manager | Web Development | Karthik's manager, with no marketing access |
+| `suresh.babu@teamops.local` | Department Manager | IT | Runs the IT help desk queue: assigns tickets, reopens closed ones |
+| `vignesh.raman@teamops.local` | Employee + `TICKET_EDIT` | IT | Help desk agent: works on IT tickets, writes internal notes |
 
 The other departments follow the same pattern. Their managers are `suresh.babu` (IT), `anitha.raj` (Cyber Security), `lakshmi.priya` (HR), `ramesh.kannan` (Talent Acquisition), `harish.prabhu` (App Development), `gokul.ravi` (Pre-Sales), `ajay.dev` (Graphic & Media) and `revathi.sundar` (Payroll). The full list is in `DevDataSeeder.java`.
 
 The seeder also creates 3 projects and about 175 tasks, with due dates relative to today. This happens only when the tasks table is empty. The tasks give some people a deliberately heavy load: Karthik Raj, Priya Menon and Deepak Nair are overloaded, Arun Kumar and Sanjay Varma are high, and most others are low. That means the Overdue, Due today and Workload views have realistic content straight away.
+
+When the tickets table is empty it also raises 19 help desk tickets across the categories, with times relative to now: some met, some at risk, two breached and one paused while waiting for the requester. Everyone who is assigned a seeded ticket (Vignesh, Deepak, Meena, Manoj, Karthik, Pooja, Arun) is granted `TICKET_EDIT`, which makes them a help desk agent for their department.
 
 These are development-only accounts on a `.local` domain. Never use them, or the seed flag, in production.
 
@@ -143,3 +147,23 @@ npm run build
   - Ticket, SLA and approval counts are `null` (shown as "—") until Phases 7 and 8 build those modules. The Digital Marketing summary arrives with the marketing dashboard (Phase 19).
 - **Notifications** (`/api/notifications`, any signed-in user, always their own): a notification when someone else assigns you a task, plus a daily reminder for tasks due today/tomorrow and for overdue tasks. Reminders carry a dedup key (type, task, due date, assignee), so each is sent once. The topbar bell polls the unread count every minute.
 - **Calendar** (`GET /api/calendar?from&to&mine`, `CALENDAR_VIEW`, at most 100 days): stored events merged at query time with the task deadlines the viewer can see. Event writes (`/api/calendar/events`, `CALENDAR_EDIT`): company-wide events need a Super Admin, department events need department management, and leave needs scope over the person. The calendar page itself arrives in Phase 8; the dashboard shows the next 14 days of events.
+
+## Help desk & SLA (Phase 7)
+
+- **Tickets** (`/api/tickets`, `TICKET_VIEW`): `TKT-000001` codes; search, filters (status, priority, category, team, view), sorting and paging. Anyone with `TICKET_CREATE` raises a ticket. The category decides the handling team (for "Other", the requester picks one).
+- **Who sees what:**
+  - Everyone sees the tickets they raised or are assigned.
+  - Managers see their departments' tickets, and agents (`TICKET_EDIT`) see their own department's tickets.
+  - Super Admin sees everything. Any other ticket returns 404.
+- **Who does what:**
+  - Agents change status, priority, category and team, and write **internal notes** that requesters never receive.
+  - Managers (`TICKET_ASSIGN`) assign within their department and reopen closed tickets.
+  - Requesters reply, and confirm (close) or reopen a resolved ticket.
+- **SLA** (brief section 12): URGENT 1h/4h, HIGH 2h/8h, MEDIUM 4h/24h, LOW 8h/48h (first response / resolution).
+  - **Due times:** set from the policy when the ticket is raised. Editing a policy only affects new tickets.
+  - **States:** ON_TRACK, WARNING (from `sla.warningThresholdPct`, default 75% of the target used), BREACHED.
+  - **First response:** the first public reply from anyone other than the requester. Resolving also counts.
+  - **Paused clock:** the clock stops while the ticket waits for the requester, and between resolve and reopen. A requester reply while waiting resumes it.
+  - **Compliance %:** met ÷ (met + missed) for tickets raised in the window; "—" when nothing is decided yet.
+- **SLA page** (`/api/sla/summary`, `/api/sla/policies`): compliance, open tickets by state, tickets at risk, and per-priority targets. Targets can be edited by `SLA_MANAGE` holders; every change is versioned and audited.
+- **Audit and notifications:** ticket create, assign and status changes are audited. Assignees are notified on assignment; requesters on status changes and agent replies; assignees on requester replies.

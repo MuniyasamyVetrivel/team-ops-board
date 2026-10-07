@@ -1,4 +1,4 @@
-import { AlarmClock, Bell, BellOff, CalendarClock, CheckCheck, UserPlus, type LucideIcon } from 'lucide-react';
+import { AlarmClock, Bell, BellOff, CalendarClock, CheckCheck, LifeBuoy, MessageSquareReply, RefreshCw, UserPlus, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -23,6 +23,9 @@ const TYPE_META: Record<NotificationType, { icon: LucideIcon; tone: string; labe
   TASK_ASSIGNED: { icon: UserPlus, tone: 'text-primary', label: 'Assigned' },
   TASK_DUE_SOON: { icon: CalendarClock, tone: 'text-status-warning', label: 'Due soon' },
   TASK_OVERDUE: { icon: AlarmClock, tone: 'text-status-danger', label: 'Overdue' },
+  TICKET_ASSIGNED: { icon: LifeBuoy, tone: 'text-primary', label: 'Ticket assigned' },
+  TICKET_UPDATED: { icon: RefreshCw, tone: 'text-primary', label: 'Ticket update' },
+  TICKET_REPLY: { icon: MessageSquareReply, tone: 'text-primary', label: 'New reply' },
 };
 
 export function NotificationBell() {
@@ -79,7 +82,7 @@ export function NotificationBell() {
             <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
               <BellOff className="size-6 text-muted-foreground" aria-hidden />
               <p className="text-sm font-medium">{unreadOnly ? "You're all caught up" : 'No notifications yet'}</p>
-              <p className="text-xs text-muted-foreground">Assignments and due-date reminders show up here.</p>
+              <p className="text-xs text-muted-foreground">Assignments, ticket replies and due-date reminders show up here.</p>
             </div>
           ) : (
             list.data.content.map((notification) => {
