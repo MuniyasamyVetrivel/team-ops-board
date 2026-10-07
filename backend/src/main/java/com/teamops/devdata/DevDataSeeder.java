@@ -89,6 +89,8 @@ public class DevDataSeeder implements ApplicationRunner {
 
 	private final DepartmentService departmentService;
 
+	private final DevTaskSeeder devTaskSeeder;
+
 	@Override
 	public void run(ApplicationArguments args) {
 		if (properties.password() == null || properties.password().length() < 8) {
@@ -120,6 +122,11 @@ public class DevDataSeeder implements ApplicationRunner {
 			}
 		}
 		log.info("Development seed: {} users created, {} already present", created, USERS.size() - created);
+
+		int tasks = devTaskSeeder.seedIfEmpty();
+		if (tasks > 0) {
+			log.info("Development seed: {} tasks and 3 projects created", tasks);
+		}
 	}
 
 	record SeedUser(String email, String firstName, String lastName, String jobTitle, String departmentCode,

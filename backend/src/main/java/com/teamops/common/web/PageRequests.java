@@ -52,9 +52,10 @@ public final class PageRequests {
 			}
 			direction = Sort.Direction.valueOf(value);
 		}
+		// Empty values always sort last (undated tasks, people who never signed in), in either direction.
 		List<Sort.Order> orders = new ArrayList<>();
 		for (String path : paths) {
-			orders.add(new Sort.Order(direction, path));
+			orders.add(new Sort.Order(direction, path).nullsLast());
 		}
 		return Sort.by(orders);
 	}

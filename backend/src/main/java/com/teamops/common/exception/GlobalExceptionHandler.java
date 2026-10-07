@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -14,6 +15,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -70,6 +74,32 @@ public class GlobalExceptionHandler {
 			HttpServletRequest request) {
 		return respond(HttpStatus.BAD_REQUEST, "MISSING_PARAMETER",
 				"Missing required parameter '" + ex.getParameterName() + "'", request, List.of());
+	}
+
+	@ExceptionHandler(MaxUploadSizeExceededException.class)
+	public ResponseEntity<ApiError> handleUploadTooLarge(MaxUploadSizeExceededException ex,
+			HttpServletRequest request) {
+		return respond(HttpStatus.BAD_REQUEST, "FILE_TOO_LARGE", "The file is larger than the allowed upload size",
+				request, List.of());
+	}
+
+	@ExceptionHandler(MultipartException.class)
+	public ResponseEntity<ApiError> handleMultipart(MultipartException ex, HttpServletRequest request) {
+		return respond(HttpStatus.BAD_REQUEST, "INVALID_UPLOAD", "The upload could not be read", request, List.of());
+	}
+
+	@ExceptionHandler(MissingServletRequestPartException.class)
+	public ResponseEntity<ApiError> handleMissingPart(MissingServletRequestPartException ex,
+			HttpServletRequest request) {
+		return respond(HttpStatus.BAD_REQUEST, "MISSING_FILE", "No file was uploaded", request, List.of());
+	}
+
+	/** Two people saved the same record at once; the later save must reload first. */
+	@ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+	public ResponseEntity<ApiError> handleOptimisticLock(ObjectOptimisticLockingFailureException ex,
+			HttpServletRequest request) {
+		return respond(HttpStatus.CONFLICT, "STALE_UPDATE",
+				"Someone else changed this just now. Reload and try again.", request, List.of());
 	}
 
 	@ExceptionHandler(HttpMessageNotReadableException.class)

@@ -24,3 +24,14 @@ export function cleanParams<T extends object>(params: T): Partial<T> {
     Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== ''),
   ) as Partial<T>;
 }
+
+/** Query string with repeated keys for arrays (status=A&status=B), as Spring binds collections. */
+export function serializeParams(params: Record<string, unknown>): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    for (const item of Array.isArray(value) ? value : [value]) {
+      if (item !== undefined && item !== null && item !== '') search.append(key, String(item));
+    }
+  }
+  return search.toString();
+}

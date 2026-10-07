@@ -131,6 +131,51 @@ These rules are enforced by the service, so they apply even to someone who holds
 | GET | `/api/team` | `TEAM_VIEW` | Directory. Filters: `search`, `departmentId`, `status` (default `ACTIVE`). Sort fields: `name`, `department`, `jobTitle` |
 | GET | `/api/team/{id}` | `TEAM_VIEW` | Profile with roles, manager and direct reports. `canViewWork` says whether the viewer may see this person's tasks, workload and tickets (Super Admin, their department manager, or the person themselves) |
 
+## Tasks: `/api/tasks`
+
+All task endpoints need `TASK_VIEW`. Scope is enforced on every call:
+- **Super Admin:** every task.
+- **Department manager:** tasks in their departments.
+- **Everyone:** tasks they are assigned to, created or watch.
+
+A task you can't see returns **404**, not 403, so its existence is not revealed. `dueState` (`OVERDUE`, `DUE_TODAY`, `DUE_SOON` within 3 days, `SCHEDULED`, or `NONE` for closed or undated tasks) is computed in the business time zone (`APP_TIME_ZONE`).
+
+| Method | Path | Permission | Description |
+|---|---|---|---|
+| GET | `/api/tasks` | `TASK_VIEW` | Search. Filters: `search` (title or code), `status` (repeatable), `priority` (repeatable), `assigneeId`, `departmentId`, `projectId`, `due` (`OVERDUE` / `TODAY` / `UPCOMING` = next 7 days / `NO_DUE_DATE`, open tasks only), `view` (`ALL` / `ASSIGNED_TO_ME` / `CREATED_BY_ME` / `WATCHING`). Sort fields: `due`, `priority`, `updated`, `created`, `code`, `title`, `status`. Empty values sort last |
+| GET | `/api/tasks/my/summary` | `TASK_VIEW` | Counts of my open, overdue, due-today, upcoming (7 days), in-progress and blocked tasks, and tasks completed this week |
+| GET | `/api/tasks/{id}` | `TASK_VIEW` | Full detail: checklist, comments, attachments, dependencies, watchers, history, `version`, and the viewer's `permissions` |
+| POST | `/api/tasks` | `TASK_CREATE` | Create. The department defaults to yours; you can create in your own department or one you manage. Assigning anyone but yourself needs `TASK_ASSIGN` and someone within your scope. Returns `201` with a code such as `TSK-000042` |
+| PUT | `/api/tasks/{id}` | `TASK_EDIT` | Replace editable fields. **Send `version`**: a stale version returns 409 `STALE_UPDATE` |
+| PUT | `/api/tasks/{id}/assignee` | `TASK_EDIT` | `{ "assigneeId": 4 }` or `null`. You can take or drop a task yourself; assigning others needs `TASK_ASSIGN` within scope (403 `CANNOT_ASSIGN`) |
+| PUT | `/api/tasks/{id}/status` | `TASK_EDIT` | `COMPLETED` stamps `completedAt`. Moving a completed or cancelled task back to an open status reopens it. `CANCELLED` needs `TASK_DELETE` |
+| POST / PUT / DELETE | `/api/tasks/{id}/comments[/{commentId}]` | `TASK_VIEW` | Anyone who can see the task can comment. Only the author can edit; the author or an editor can delete |
+| POST / PUT / DELETE | `/api/tasks/{id}/checklist[/{itemId}]` | `TASK_EDIT` | Add an item, toggle `{ "done": true }`, or remove it |
+| POST / DELETE | `/api/tasks/{id}/watchers[/{userId}]` | `TASK_VIEW` | Anyone can watch or unwatch themselves; adding or removing others needs edit rights. Returns 204 if you unwatch and lose access |
+| POST / DELETE | `/api/tasks/{id}/dependencies[/{dependsOnTaskId}]` | `TASK_EDIT` | Rejects self-references (`INVALID_DEPENDENCY`) and loops (`DEPENDENCY_CYCLE`) |
+| POST | `/api/tasks/{id}/attachments` | `TASK_EDIT` | Multipart field `file`. Allowed types: PDF, Office, CSV/TXT/MD, PNG/JPG/GIF/WEBP and ZIP, up to `FILE_MAX_SIZE_MB`. The filename is sanitised and the content type comes from the extension |
+| GET | `/api/tasks/{id}/attachments/{fileId}` | `TASK_VIEW` | Always served as a download (`Content-Disposition: attachment`, `X-Content-Type-Options: nosniff`) |
+| DELETE | `/api/tasks/{id}/attachments/{fileId}` | `TASK_VIEW` | Allowed for the uploader or an editor |
+
+Task changes are written to `task_history`. Creating, assigning and changing the status of a task are also written to `audit_logs`.
+
+## Workload: `/api/workload`
+
+| Method | Path | Permission | Description |
+|---|---|---|---|
+| GET | `/api/workload` | `WORKLOAD_VIEW`, or `userId` = yourself | One row per active person in your scope, including people with no tasks (at 0%). Filters: `departmentId`, `userId`, `search`, `status`, `priority` (both repeatable), `from` + `to` (ISO dates, both or neither). Sort: `HIGHEST`, `LOWEST`, `MOST_OVERDUE`, `MOST_COMPLETED`, `MOST_ACTIVE`, `NAME` |
+
+- **Workload %** = remaining hours of open tasks that are overdue, undated or due within `workload.windowDays` (default 14) ÷ (weekly capacity × window weeks) × 100. Remaining hours are max(estimate − logged, 0); an unestimated task counts as `workload.defaultTaskHours` (default 4).
+- **Levels:** 0–40 `LOW`, 41–70 `NORMAL`, 71–100 `HIGH`, 101+ `OVERLOADED`.
+- **What the filters change:** status, priority and the date range narrow the count columns only. Workload % always uses every open task, so people stay comparable.
+- **Completed column:** with a date range, it counts tasks completed in that range; without one, the last 30 days.
+
+## Projects: `/api/projects`
+
+| Method | Path | Permission | Description |
+|---|---|---|---|
+| GET | `/api/projects/options` | `PROJECT_VIEW` or `TASK_CREATE` | Open projects (planning, active, on hold) for task pickers. Full project management arrives in Phase 8 |
+
 ## Actuator
 
 | Path | Auth |

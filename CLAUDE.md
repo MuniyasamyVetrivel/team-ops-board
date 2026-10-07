@@ -15,6 +15,7 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
   - Frontend tests sit next to the code they test, as `*.test.ts(x)` files.
 - Test helpers (reuse these, don't copy them):
   - Controller slice tests: `@WebMvcTest(...)` + `@SecuritySliceTest` + `@MockitoBean UserPrincipalService`. Mint tokens with `SliceAuth.bearer(...)`; test principals are `SliceAuth.SUPER_ADMIN`, `EMPLOYEE`, `USER_ADMIN` and `NOBODY`.
+  - Integration tests should run in their own throwaway department (see `TaskFlowIT`), so seeded data never changes the counts they check.
   - Integration tests: create throwaway users with `IntegrationUsers` and call `deleteAll()` in `@AfterEach`. Don't make ITs `@Transactional`, because audit writes use `REQUIRES_NEW`. Set `app.dev-seed.enabled=false`.
   - Frontend page tests: use `renderPage(...)` + `mockApi({'GET /path': handler})` from `src/test/render.tsx`. They use the real query hooks with a fake HTTP adapter.
 - Before creating a component, service or file, check whether an equivalent already exists. Do not duplicate.
@@ -83,6 +84,11 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
   - Add indexes for filter columns.
 - Integration seams are interfaces with manual implementations for now: `FileStorageService`, `SeoRankingProvider`, `EmailCampaignProvider`, `PaidCampaignProvider`, `AnalyticsProvider`, `LeadProvider`, `ReportExporter`.
 - File uploads must validate type, size and filename, and go through `FileStorageService`. Local storage for now.
+- "Today" always comes from `BusinessCalendar` (`APP_TIME_ZONE`, default Asia/Kolkata). Never use the server clock or the browser for due-today or overdue. The server sends `dueState`; the UI only renders it, and parses dates with `parseLocalDate`.
+- Human-readable codes come from `CodeGenerator.next(...)`, which must run inside the caller's transaction.
+- Uploads go through `FileService` (validation in `UploadPolicy`, bytes stored by `FileStorageService`), and downloads are always served as attachments with `nosniff`.
+- Task authorization lives in `TaskAccess`; reuse it and don't re-implement the checks. Return 404 (not 403) for tasks the user can't see.
+- Editable records carry `@Version`. Clients send `version` and get 409 `STALE_UPDATE` on a conflict.
 - Throw `ApiException` (with a stable `code`) for business errors. Don't build error responses by hand.
 - List endpoints take `page`, `size` and `sort=field,dir`. Build the `Pageable` with `PageRequests.of(...)` and a whitelist of sort fields, and return `PageResponse`. Filter with composable `Specification`s; use subqueries rather than collection joins, so paging stays correct.
 - Record field-level edits in audit entries with `AuditChanges` (`{changes: {field: {from, to}}}`), and skip the audit entry when nothing changed.
@@ -103,7 +109,7 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
 - **Task statuses**: TODO, IN_PROGRESS, BLOCKED, IN_REVIEW, COMPLETED, CANCELLED.
 - **Task priorities**: LOW, MEDIUM, HIGH, URGENT.
 - **Ticket statuses**: NEW, OPEN, IN_PROGRESS, WAITING_FOR_REQUESTER, RESOLVED, CLOSED. Ticket codes look like `TKT-000001`.
-- **Workload %**: remaining estimated hours of active tasks due in the window (default 14 days, overdue included) ÷ (weekly capacity × window weeks) × 100.
+- **Workload %**: remaining estimated hours of active tasks that are overdue, undated, or due within the window (default 14 days) ÷ (weekly capacity × window weeks) × 100. Implemented in `WorkloadCalculator` and `WorkloadQuery`.
   - Remaining hours = max(estimated − actual, 0).
   - An unestimated task counts as the `default_task_hours` setting (default 4).
   - Levels: 0–40 LOW, 41–70 NORMAL, 71–100 HIGH, 101+ OVERLOADED.

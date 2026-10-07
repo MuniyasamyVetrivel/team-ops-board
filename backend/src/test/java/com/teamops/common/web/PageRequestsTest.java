@@ -21,7 +21,7 @@ class PageRequestsTest {
 	void usesDefaultSortWhenNoneGiven() {
 		Pageable pageable = PageRequests.of(0, 20, null, FIELDS, "name,asc");
 
-		assertThat(pageable.getSort()).isEqualTo(Sort.by(Sort.Order.asc("firstName"), Sort.Order.asc("lastName")));
+		assertThat(pageable.getSort()).isEqualTo(Sort.by(Sort.Order.asc("firstName").nullsLast(), Sort.Order.asc("lastName").nullsLast()));
 	}
 
 	@Test
@@ -29,7 +29,7 @@ class PageRequestsTest {
 		Pageable pageable = PageRequests.of(2, 10, "email,DESC", FIELDS, "name,asc");
 
 		assertThat(pageable.getPageNumber()).isEqualTo(2);
-		assertThat(pageable.getSort()).isEqualTo(Sort.by(Sort.Order.desc("email")));
+		assertThat(pageable.getSort()).isEqualTo(Sort.by(Sort.Order.desc("email").nullsLast()));
 	}
 
 	@Test

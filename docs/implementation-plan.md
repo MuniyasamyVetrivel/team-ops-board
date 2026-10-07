@@ -11,6 +11,7 @@
 |---|---|
 | 1–2 | Done: this document |
 | 3 Authentication | Done and verified against MySQL |
+| 5 Tasks + Workload | Done: V3 projects + V4 tasks; task CRUD, assign, status with reopen, comments, checklist, watchers, dependencies with cycle check, tags, attachments, history, audit; My Tasks; the Workload page; real work data on team profiles; 175-task seed. 170 unit and slice tests plus 10 integration tests pass against MySQL |
 | 4 Users / Departments / Roles | Done: user admin (create, edit, access, disable, reset password), departments and secondary members, `AccessScopeService`, team directory and profile, 22-user seeder. 105 unit and slice tests plus 7 integration tests pass against MySQL |
 
 These decisions supersede the plan text below:
@@ -21,6 +22,10 @@ These decisions supersede the plan text below:
 - **Schema/entity mapping rules** (enum `VARCHAR`, no `CHAR`, `columnDefinition` for `TEXT`/`JSON`) are recorded in `CLAUDE.md`.
 - **MapStruct was not added.** DTOs use small static `of(...)` factories, which are simpler at this size.
 - **The user admin UI assigns one role per user** (Super Admin, Department Manager or Employee), plus direct permission grants. The backend still accepts a set of roles.
+- **Workload includes undated open tasks** (as well as overdue tasks and tasks due within the window), so undated work can't hide an overload. Status, priority and date filters only narrow the count columns. The Completed column defaults to the last 30 days.
+- **"Today" is evaluated in a business time zone** (`APP_TIME_ZONE`, default Asia/Kolkata), and the server sends each task's `dueState`.
+- **`projects.progress_override` is `INT`** rather than `TINYINT`, which keeps schema validation simple; a CHECK constraint keeps it within 0–100.
+- **Every sort puts empty values last** (`PageRequests`), for example undated tasks.
 - **No new migrations in Phase 4.** V1 already created `department_members`, `user_permissions` and the other identity tables.
 
 ---

@@ -6,7 +6,7 @@ Internal Work & Performance Management System: tasks, workload, help desk, proje
 - Architecture, schema and phase plan: [`docs/implementation-plan.md`](docs/implementation-plan.md)
 - API reference: [`docs/api.md`](docs/api.md)
 
-**Status:** Phases 3 (authentication) and 4 (users, departments, roles, team directory) complete. Other sidebar modules show a placeholder naming the phase that builds them.
+**Status:** Phases 3–5 complete: authentication; users, departments, roles and the team directory; tasks, My Tasks and workload. Other sidebar modules show a placeholder naming the phase that builds them.
 
 ## Stack
 
@@ -53,6 +53,8 @@ cp backend/.env.example backend/.env    # then fill in real values
 | `CORS_ALLOWED_ORIGINS` | Comma-separated browser origins allowed to call the API |
 | `DEV_SEED_ENABLED`, `DEV_SEED_PASSWORD` | Development users (never enable in production) |
 | `BOOTSTRAP_ADMIN_*` | Creates the first Super Admin on an empty production database |
+| `FILE_STORAGE_DIR`, `FILE_MAX_SIZE_MB` | Where task attachments are stored (default `./uploads`) and the upload limit (default 20 MB) |
+| `APP_TIME_ZONE` | Business time zone for "due today" and "overdue" (default `Asia/Kolkata`) |
 
 The frontend needs no `.env` in development. See `frontend/.env.example` to point a build at another API host.
 
@@ -85,6 +87,8 @@ The most useful accounts for testing:
 | `sanjay.varma@teamops.local` | Department Manager | Web Development | Karthik's manager, with no marketing access |
 
 The other departments follow the same pattern. Their managers are `suresh.babu` (IT), `anitha.raj` (Cyber Security), `lakshmi.priya` (HR), `ramesh.kannan` (Talent Acquisition), `harish.prabhu` (App Development), `gokul.ravi` (Pre-Sales), `ajay.dev` (Graphic & Media) and `revathi.sundar` (Payroll). The full list is in `DevDataSeeder.java`.
+
+The seeder also creates 3 projects and about 175 tasks, with due dates relative to today. This happens only when the tasks table is empty. The tasks give some people a deliberately heavy load: Karthik Raj, Priya Menon and Deepak Nair are overloaded, Arun Kumar and Sanjay Varma are high, and most others are low. That means the Overdue, Due today and Workload views have realistic content straight away.
 
 These are development-only accounts on a `.local` domain. Never use them, or the seed flag, in production.
 

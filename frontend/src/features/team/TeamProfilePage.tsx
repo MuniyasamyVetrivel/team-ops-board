@@ -11,18 +11,127 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { RoleBadges } from '@/features/admin/users/RoleBadges';
 import { hasPermission, type RoleCode } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
+import { useTasks } from '@/features/tasks/api';
+import { DueBadge, TaskStatusBadge } from '@/features/tasks/TaskBadges';
+import { ACTIVE_STATUSES } from '@/features/tasks/types';
+import { useWorkload } from '@/features/workload/api';
+import { WorkloadMeter } from '@/features/workload/WorkloadMeter';
 import { formatDate } from '@/lib/format';
+import { cn } from '@/lib/utils';
 
 import { useTeamProfile } from './api';
 
-/** Work sections filled in by later phases. */
-const WORK_SECTIONS: { title: string; icon: LucideIcon; phase: number }[] = [
-  { title: 'Current tasks', icon: ListTodo, phase: 5 },
-  { title: 'Completed tasks', icon: CircleCheck, phase: 5 },
-  { title: 'Workload', icon: Gauge, phase: 5 },
+/** Work sections still to come. */
+const LATER_SECTIONS: { title: string; icon: LucideIcon; phase: number }[] = [
   { title: 'Recent activity', icon: Activity, phase: 6 },
   { title: 'Tickets', icon: Ticket, phase: 7 },
 ];
+
+/** Workload and current tasks; only rendered when the server says the viewer may see this person's work. */
+function MemberWork({ userId, firstName }: { userId: number; firstName: string }) {
+  const workload = useWorkload({ userId });
+  const tasks = useTasks({ assigneeId: userId, status: ACTIVE_STATUSES, sort: 'due,asc', size: 6 });
+  const row = workload.data?.rows[0];
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Gauge className="size-4 text-muted-foreground" aria-hidden />
+            Workload
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {workload.isPending ? (
+            <Skeleton className="h-16" />
+          ) : workload.isError ? (
+            <ErrorState error={workload.error} onRetry={() => void workload.refetch()} />
+          ) : !row ? (
+            <p className="text-sm text-muted-foreground">No workload data.</p>
+          ) : (
+            <div className="space-y-4">
+              <WorkloadMeter percent={row.workloadPercent} level={row.level} />
+              <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                <Stat label="Open tasks" value={row.activeTasks} />
+                <Stat label="Overdue" value={row.overdue} danger={row.overdue > 0} />
+                <Stat label="Due today" value={row.dueToday} />
+                <Stat label="Completed (30 days)" value={row.completed} />
+              </dl>
+              <p className="text-xs text-muted-foreground">
+                {row.remainingHours} h of work against {row.capacityHours} h of capacity in the next {workload.data.windowDays} days.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ListTodo className="size-4 text-muted-foreground" aria-hidden />
+            Current tasks
+          </CardTitle>
+          {tasks.data && tasks.data.totalElements > tasks.data.content.length && (
+            <span className="text-xs text-muted-foreground">
+              Showing {tasks.data.content.length} of {tasks.data.totalElements}
+            </span>
+          )}
+        </CardHeader>
+        <CardContent>
+          {tasks.isPending ? (
+            <Skeleton className="h-24" />
+          ) : tasks.isError ? (
+            <ErrorState error={tasks.error} onRetry={() => void tasks.refetch()} />
+          ) : tasks.data.content.length === 0 ? (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CircleCheck className="size-4 text-status-success" aria-hidden />
+              {firstName} has no open tasks.
+            </p>
+          ) : (
+            <ul className="divide-y">
+              {tasks.data.content.map((task) => (
+                <li key={task.id}>
+                  <Link to={`/tasks?task=${task.id}`} className="flex items-center gap-3 py-2.5 hover:bg-muted/40">
+                    <span className="font-mono text-xs text-muted-foreground">{task.code}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm">{task.title}</span>
+                    <TaskStatusBadge status={task.status} />
+                    <DueBadge dueDate={task.dueDate} state={task.dueState} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {LATER_SECTIONS.map(({ title, icon: Icon, phase }) => (
+          <Card key={title} className="border-dashed">
+            <CardContent className="flex items-center gap-3 p-4">
+              <span className="flex size-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                <Icon className="size-4" aria-hidden />
+              </span>
+              <div>
+                <p className="text-sm font-medium">{title}</p>
+                <p className="text-xs text-muted-foreground">Arrives in Phase {phase}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, danger = false }: { label: string; value: number; danger?: boolean }) {
+  return (
+    <div>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className={cn('text-xl font-semibold tabular-nums', danger && 'text-status-danger')}>{value}</dd>
+    </div>
+  );
+}
 
 export default function TeamProfilePage() {
   const { id } = useParams();
@@ -147,21 +256,7 @@ export default function TeamProfilePage() {
           </Card>
 
           {canViewWork ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {WORK_SECTIONS.map(({ title, icon: Icon, phase }) => (
-                <Card key={title} className="border-dashed">
-                  <CardContent className="flex items-center gap-3 p-4">
-                    <span className="flex size-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                      <Icon className="size-4" aria-hidden />
-                    </span>
-                    <div>
-                      <p className="text-sm font-medium">{title}</p>
-                      <p className="text-xs text-muted-foreground">Arrives in Phase {phase}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <MemberWork userId={member.id} firstName={member.firstName} />
           ) : (
             <Card>
               <CardContent className="flex items-center gap-3 p-4 text-sm text-muted-foreground">
