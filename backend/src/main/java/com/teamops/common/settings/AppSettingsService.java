@@ -26,6 +26,10 @@ public class AppSettingsService {
 
 	public static final BigDecimal DEFAULT_TASK_HOURS = new BigDecimal("4");
 
+	public static final String SLA_WARNING_THRESHOLD_PCT = "sla.warningThresholdPct";
+
+	public static final int DEFAULT_SLA_WARNING_PCT = 75;
+
 	private final AppSettingRepository repository;
 
 	/** Days ahead (plus overdue) counted towards workload %. */
@@ -38,6 +42,12 @@ public class AppSettingsService {
 	public BigDecimal defaultTaskHours() {
 		BigDecimal hours = decimal(WORKLOAD_DEFAULT_TASK_HOURS, DEFAULT_TASK_HOURS);
 		return hours.signum() < 0 ? DEFAULT_TASK_HOURS : hours;
+	}
+
+	/** Elapsed SLA % at which a ticket shows a warning (1–99). Snapshotted on each ticket at creation. */
+	public int slaWarningThresholdPct() {
+		int pct = decimal(SLA_WARNING_THRESHOLD_PCT, BigDecimal.valueOf(DEFAULT_SLA_WARNING_PCT)).intValue();
+		return pct < 1 || pct > 99 ? DEFAULT_SLA_WARNING_PCT : pct;
 	}
 
 	private BigDecimal decimal(String key, BigDecimal fallback) {

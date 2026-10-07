@@ -28,6 +28,8 @@ public class NotificationService {
 
 	public static final String ENTITY_TASK = "TASK";
 
+	public static final String ENTITY_TICKET = "TICKET";
+
 	private final NotificationRepository repository;
 
 	private final BusinessCalendar calendar;

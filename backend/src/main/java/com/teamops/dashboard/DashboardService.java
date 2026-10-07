@@ -24,6 +24,8 @@ import com.teamops.dashboard.DashboardDtos.Response;
 import com.teamops.dashboard.DashboardDtos.StatusSlice;
 import com.teamops.dashboard.DashboardDtos.WorkloadPanel;
 import com.teamops.department.dto.DepartmentSummary;
+import com.teamops.sla.dto.SlaDtos;
+import com.teamops.sla.service.SlaService;
 import com.teamops.department.entity.Department;
 import com.teamops.department.entity.DepartmentStatus;
 import com.teamops.department.repository.DepartmentRepository;
@@ -70,6 +72,8 @@ public class DashboardService {
 
 	private final AccessScopeService accessScopeService;
 
+	private final SlaService slaService;
+
 	private final BusinessCalendar calendar;
 
 	public Response dashboard(AuthenticatedUser actor) {
@@ -85,9 +89,11 @@ public class DashboardService {
 		WorkloadDtos.Response workload = workloadService.workload(new WorkloadDtos.Criteria(null,
 				personal ? actor.id() : null, null, null, null, null, null, WorkloadDtos.Sort.HIGHEST), actor);
 
+		SlaDtos.TicketKpis tickets = actor.hasPermission("TICKET_VIEW") ? slaService.openTicketKpis(actor) : null;
 		Kpis kpis = new Kpis(counts.open(), counts.dueToday(), counts.overdue(), counts.completedThisWeek(),
 				counts.inProgress(), counts.blocked(),
-				scope.kind() == AccessScope.Kind.OWN ? null : (long) workload.summary().people(), null, null, null);
+				scope.kind() == AccessScope.Kind.OWN ? null : (long) workload.summary().people(),
+				tickets == null ? null : tickets.open(), tickets == null ? null : tickets.breached(), null);
 
 		List<StatusSlice> distribution = List.of(new StatusSlice(TaskStatus.TODO, counts.todo()),
 				new StatusSlice(TaskStatus.IN_PROGRESS, counts.inProgress()),

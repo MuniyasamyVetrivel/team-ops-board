@@ -34,6 +34,8 @@ import com.teamops.dashboard.DashboardDtos.Response;
 import com.teamops.department.dto.DepartmentSummary;
 import com.teamops.department.entity.Department;
 import com.teamops.department.repository.DepartmentRepository;
+import com.teamops.sla.dto.SlaDtos;
+import com.teamops.sla.service.SlaService;
 import com.teamops.support.SliceAuth;
 import com.teamops.support.TestFixtures;
 import com.teamops.task.entity.Task;
@@ -60,17 +62,20 @@ class DashboardServiceTest {
 
 	private final AccessScopeService scopes = mock(AccessScopeService.class);
 
+	private final SlaService slaService = mock(SlaService.class);
+
 	private DashboardService service;
 
 	@BeforeEach
 	@SuppressWarnings("unchecked")
 	void setUp() {
 		service = new DashboardService(query, taskRepository, departmentRepository, workloadService, scopes,
-				new BusinessCalendar(Clock.fixed(NOW, ZoneOffset.UTC), "Asia/Kolkata"));
+				slaService, new BusinessCalendar(Clock.fixed(NOW, ZoneOffset.UTC), "Asia/Kolkata"));
 		when(query.taskCounts(any(), any(), any(), any()))
 			.thenReturn(new DashboardQuery.TaskCounts(9, 2, 3, 4, 4, 3, 1, 1, 7));
 		when(query.weeklyCompletions(any(), any(), anyInt())).thenReturn(Map.of());
 		when(query.recentActivity(any(), anyInt())).thenReturn(List.of());
+		when(slaService.openTicketKpis(any())).thenReturn(new SlaDtos.TicketKpis(2, 1));
 		when(taskRepository.findAll(any(Specification.class), any(Pageable.class)))
 			.thenReturn((Page<Task>) new PageImpl<Task>(List.of()));
 	}
@@ -111,7 +116,9 @@ class DashboardServiceTest {
 		assertThat(response.today()).isEqualTo(LocalDate.of(2026, 10, 8));
 		assertThat(response.weekStart()).isEqualTo(LocalDate.of(2026, 10, 5));
 		assertThat(response.kpis().teamMembers()).isNull();
-		assertThat(response.kpis().openTickets()).as("help desk not built yet").isNull();
+		assertThat(response.kpis().openTickets()).isEqualTo(2);
+		assertThat(response.kpis().slaBreaches()).isEqualTo(1);
+		assertThat(response.kpis().pendingApprovals()).as("approvals not built yet").isNull();
 		assertThat(response.kpis().overdue()).isEqualTo(3);
 		assertThat(response.departments()).isEmpty();
 		assertThat(response.weeklyCompletion()).hasSize(DashboardService.WEEKS);

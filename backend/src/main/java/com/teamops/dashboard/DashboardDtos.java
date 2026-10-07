@@ -19,7 +19,8 @@ public final class DashboardDtos {
 	}
 
 	/**
-	 * Top KPI row. Ticket, SLA and approval counts stay {@code null} until those modules exist (Phases 7 and 8).
+	 * Top KPI row. Ticket counts cover the tickets the viewer can see ({@code null} without TICKET_VIEW);
+	 * {@code slaBreaches} counts open tickets with a breached SLA. Approvals stay {@code null} until Phase 8.
 	 * {@code teamMembers} is {@code null} on a personal (OWN) dashboard.
 	 */
 	public record Kpis(long openTasks, long dueToday, long overdue, long completedThisWeek, long inProgress,

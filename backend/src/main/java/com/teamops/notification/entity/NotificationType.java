@@ -5,6 +5,11 @@ public enum NotificationType {
 
 	TASK_ASSIGNED,
 	TASK_DUE_SOON,
-	TASK_OVERDUE
+	TASK_OVERDUE,
+	TICKET_ASSIGNED,
+	/** Status change on a ticket you raised (e.g. resolved, waiting for you). */
+	TICKET_UPDATED,
+	/** A public reply on a ticket you raised or are assigned to. */
+	TICKET_REPLY
 
 }
