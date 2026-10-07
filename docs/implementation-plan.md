@@ -12,6 +12,7 @@
 | 1–2 | Done: this document |
 | 3 Authentication | Done and verified against MySQL |
 | 5 Tasks + Workload | Done: V3 projects + V4 tasks; task CRUD, assign, status with reopen, comments, checklist, watchers, dependencies with cycle check, tags, attachments, history, audit; My Tasks; the Workload page; real work data on team profiles; 175-task seed. 170 unit and slice tests plus 10 integration tests pass against MySQL |
+| 6 Dashboard | Done: V5 notifications + calendar_events; role-scoped `/api/dashboard` (KPIs, status donut, weekly completion, department workload/performance, employee workload, overdue/upcoming, recent activity); notifications with assignment events and daily due/overdue reminders; calendar API (events + task deadlines) with scoped event CRUD; topbar bell. 198 unit and slice tests plus 13 integration tests pass against MySQL |
 | 4 Users / Departments / Roles | Done: user admin (create, edit, access, disable, reset password), departments and secondary members, `AccessScopeService`, team directory and profile, 22-user seeder. 105 unit and slice tests plus 7 integration tests pass against MySQL |
 
 These decisions supersede the plan text below:
@@ -27,6 +28,10 @@ These decisions supersede the plan text below:
 - **`projects.progress_override` is `INT`** rather than `TINYINT`, which keeps schema validation simple; a CHECK constraint keeps it within 0–100.
 - **Every sort puts empty values last** (`PageRequests`), for example undated tasks.
 - **No new migrations in Phase 4.** V1 already created `department_members`, `user_permissions` and the other identity tables.
+- **Phase 6 dashboard is one endpoint for every role**, scoped by `AccessScope`; dashboard counts use the viewer's *work* (`TaskSpecifications.workOf`: managed departments plus own assignments), not every task they can open. Ticket/SLA/approval KPIs are `null` until their phases; the marketing summary waits for Phase 19.
+- **Recent activity comes from `task_history`** (scoped through the task), not `audit_logs`, so managers and employees get a meaningful, permission-safe feed.
+- **`notifications.dedup_key`** (unique per user) makes the daily reminder job idempotent. `calendar_events` gained `version` (optimistic locking) and stores all-day events as business-zone midnights.
+- **The calendar API ships in Phase 6 with task deadlines and events only.** Project milestones and approval deadlines join it in Phase 8 with their modules.
 
 ---
 

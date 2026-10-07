@@ -91,6 +91,8 @@ public class DevDataSeeder implements ApplicationRunner {
 
 	private final DevTaskSeeder devTaskSeeder;
 
+	private final DevDashboardSeeder devDashboardSeeder;
+
 	@Override
 	public void run(ApplicationArguments args) {
 		if (properties.password() == null || properties.password().length() < 8) {
@@ -127,6 +129,7 @@ public class DevDataSeeder implements ApplicationRunner {
 		if (tasks > 0) {
 			log.info("Development seed: {} tasks and 3 projects created", tasks);
 		}
+		log.info("Development seed: {}", devDashboardSeeder.seed());
 	}
 
 	record SeedUser(String email, String firstName, String lastName, String jobTitle, String departmentCode,

@@ -66,6 +66,7 @@ function useTaskMutation<V, R extends TaskDetail | null>(mutationFn: (variables:
       void queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
       void queryClient.invalidateQueries({ queryKey: taskKeys.summary() });
       void queryClient.invalidateQueries({ queryKey: ['workload'] });
+      void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }

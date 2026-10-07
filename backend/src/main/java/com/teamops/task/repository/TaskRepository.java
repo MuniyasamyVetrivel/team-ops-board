@@ -3,6 +3,7 @@ package com.teamops.task.repository;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -42,6 +43,17 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
 			""")
 	MyTaskCounts countForAssignee(@Param("userId") Long userId, @Param("active") Collection<TaskStatus> active,
 			@Param("today") LocalDate today, @Param("soon") LocalDate soon, @Param("weekStart") Instant weekStart);
+
+	/** Active tasks with an active assignee, due on or before {@code until} (overdue included). */
+	@Query("""
+			select t.id as id, t.code as code, t.title as title, t.assignee.id as assigneeId, t.dueDate as dueDate
+			from Task t
+			where t.status in :active and t.dueDate <= :until
+			  and t.assignee.status = com.teamops.user.entity.UserStatus.ACTIVE
+			order by t.dueDate, t.id
+			""")
+	List<TaskReminderRow> findReminderCandidates(@Param("active") Collection<TaskStatus> active,
+			@Param("until") LocalDate until);
 
 	/** Is {@code from} (transitively) depending on {@code to}? Used to reject dependency cycles. */
 	@Query(value = """

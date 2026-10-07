@@ -45,6 +45,12 @@ management:
 app:
   # Business time zone: "due today" and "overdue" are evaluated here, not in the server's or browser's zone.
   time-zone: ${APP_TIME_ZONE:Asia/Kolkata}
+  scheduling:
+    # Background jobs (daily task reminders). Set APP_SCHEDULING_ENABLED=false to run without them.
+    enabled: ${APP_SCHEDULING_ENABLED:true}
+  notifications:
+    # Daily "due soon" / "overdue" reminders, evaluated in app.time-zone.
+    reminder-cron: ${TASK_REMINDER_CRON:0 0 8 * * *}
   storage:
     dir: ${FILE_STORAGE_DIR:./uploads}
     max-file-size-mb: ${FILE_MAX_SIZE_MB:20}

@@ -107,6 +107,27 @@ public final class TaskSpecifications {
 		};
 	}
 
+	/** Due date within [from, to], both inclusive. */
+	public static Specification<Task> dueBetween(LocalDate from, LocalDate to) {
+		return (root, query, cb) -> cb.between(root.get("dueDate"), from, to);
+	}
+
+	/**
+	 * Work counted on dashboards: everything (ALL), tasks in managed departments plus the viewer's own assignments
+	 * (DEPARTMENTS), or only tasks assigned to the viewer (OWN). Narrower than {@link #visibleTo}, which also includes
+	 * tasks the viewer created or watches.
+	 */
+	public static Specification<Task> workOf(AccessScope scope) {
+		if (scope.isAll()) {
+			return all();
+		}
+		return (root, query, cb) -> {
+			Predicate mine = cb.equal(root.get("assignee").get("id"), scope.userId());
+			return scope.kind() == AccessScope.Kind.DEPARTMENTS && !scope.departmentIds().isEmpty()
+					? cb.or(root.get("department").get("id").in(scope.departmentIds()), mine) : mine;
+		};
+	}
+
 	private static Subquery<Long> watchedBy(jakarta.persistence.criteria.CriteriaQuery<?> query,
 			jakarta.persistence.criteria.CriteriaBuilder cb, Long userId) {
 		Subquery<Long> subquery = query.subquery(Long.class);

@@ -23,6 +23,7 @@ import java.util.Set;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -48,6 +49,7 @@ import com.teamops.task.entity.Task;
 import com.teamops.task.entity.TaskHistory;
 import com.teamops.task.entity.TaskPriority;
 import com.teamops.task.entity.TaskStatus;
+import com.teamops.task.event.TaskAssignedEvent;
 import com.teamops.task.repository.TaskAttachmentRepository;
 import com.teamops.task.repository.TaskChecklistItemRepository;
 import com.teamops.task.repository.TaskCommentRepository;
@@ -79,6 +81,8 @@ class TaskServiceTest {
 
 	private final AuditService auditService = mock(AuditService.class);
 
+	private final ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
+
 	private final ClientInfo client = ClientInfo.unknown();
 
 	private final Department webDev = TestFixtures.department(5L, "WEBDEV", "Web Development");
@@ -96,7 +100,7 @@ class TaskServiceTest {
 		service = new TaskService(taskRepository, mock(TaskCommentRepository.class),
 				mock(TaskChecklistItemRepository.class), historyRepository, mock(TaskAttachmentRepository.class),
 				departmentRepository, mock(ProjectRepository.class), userRepository, tagService, codeGenerator, scopes,
-				auditService, new BusinessCalendar(Clock.fixed(NOW, ZoneOffset.UTC), "Asia/Kolkata"));
+				auditService, new BusinessCalendar(Clock.fixed(NOW, ZoneOffset.UTC), "Asia/Kolkata"), events);
 		when(scopes.scopeFor(employee)).thenReturn(AccessScope.own(employee.id()));
 		when(scopes.scopeFor(SliceAuth.SUPER_ADMIN)).thenReturn(AccessScope.all(1L));
 		when(departmentRepository.findById(5L)).thenReturn(Optional.of(webDev));
@@ -213,6 +217,30 @@ class TaskServiceTest {
 
 		verify(auditService).record(eq(AuditAction.TASK_ASSIGNED), eq(1L), eq("TASK"), eq(42L), anyMap(), eq(client));
 		verify(historyRepository).save(argThat((TaskHistory h) -> h.getFieldName().equals("assignee")));
+		verify(events).publishEvent(new TaskAssignedEvent(42L, "TSK-000042", "Fix header", 41L, 1L, "Rakesh"));
+	}
+
+	@Test
+	void selfAssignmentPublishesNoAssignmentEvent() {
+		service.create(new TaskRequests.CreateTask("Fix header", null, null, null, 4L, null, null, null, null,
+				List.of()), employee, client);
+		Task unassigned = existing(TaskStatus.TODO);
+		unassigned.setAssignee(null);
+		unassigned.setCreatedBy(karthik);
+		service.assign(42L, 4L, employee, client);
+
+		verify(events, never()).publishEvent(any(Object.class));
+	}
+
+	@Test
+	void creatingForSomeoneElsePublishesAnAssignmentEvent() {
+		User colleague = user(41L, webDev);
+		when(userRepository.findWithDepartmentById(41L)).thenReturn(Optional.of(colleague));
+
+		service.create(new TaskRequests.CreateTask("Fix header", null, 5L, null, 41L, null, null, null, null,
+				List.of()), SliceAuth.SUPER_ADMIN, client);
+
+		verify(events).publishEvent(new TaskAssignedEvent(42L, "TSK-000042", "Fix header", 41L, 1L, "Rakesh"));
 	}
 
 	private Task existing(TaskStatus status) {

@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +44,7 @@ import com.teamops.task.dto.TaskRef;
 import com.teamops.task.dto.TaskRequests;
 import com.teamops.task.dto.TaskSearchCriteria;
 import com.teamops.task.entity.Task;
+import com.teamops.task.event.TaskAssignedEvent;
 import com.teamops.task.entity.TaskHistory;
 import com.teamops.task.entity.TaskPriority;
 import com.teamops.task.entity.TaskStatus;
@@ -92,6 +94,8 @@ public class TaskService {
 	private final AuditService auditService;
 
 	private final BusinessCalendar calendar;
+
+	private final ApplicationEventPublisher events;
 
 	// --- queries --------------------------------------------------------------------------------------------
 
@@ -158,6 +162,7 @@ public class TaskService {
 				Map.of("code", saved.getCode(), "departmentId", departmentId, "assigneeId",
 						assignee == null ? "none" : assignee.getId()),
 				client);
+		publishAssigned(saved, actor);
 		return toDetail(saved, access);
 	}
 
@@ -233,6 +238,7 @@ public class TaskService {
 				Map.of("code", task.getCode(), "from", previous == null ? "none" : previous, "to",
 						assigneeId == null ? "none" : assigneeId),
 				client);
+		publishAssigned(task, actor);
 		taskRepository.flush();
 		return toDetail(task, access);
 	}
@@ -325,6 +331,15 @@ public class TaskService {
 	}
 
 	// --- private helpers ------------------------------------------------------------------------------------
+
+	/** Lets listeners (notifications) react in this transaction; self-assignment notifies nobody. */
+	private void publishAssigned(Task task, AuthenticatedUser actor) {
+		Long assigneeId = userId(task.getAssignee());
+		if (assigneeId != null && !assigneeId.equals(actor.id())) {
+			events.publishEvent(new TaskAssignedEvent(task.getId(), task.getCode(), task.getTitle(), assigneeId,
+					actor.id(), actor.fullName()));
+		}
+	}
 
 	private void track(Task task, AuthenticatedUser actor, String field, Object oldValue, Object newValue) {
 		if (!Objects.equals(oldValue, newValue)) {

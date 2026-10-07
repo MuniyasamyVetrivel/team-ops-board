@@ -6,7 +6,7 @@ Internal Work & Performance Management System: tasks, workload, help desk, proje
 - Architecture, schema and phase plan: [`docs/implementation-plan.md`](docs/implementation-plan.md)
 - API reference: [`docs/api.md`](docs/api.md)
 
-**Status:** Phases 3–5 complete: authentication; users, departments, roles and the team directory; tasks, My Tasks and workload. Other sidebar modules show a placeholder naming the phase that builds them.
+**Status:** Phases 3–6 complete: authentication; users, departments, roles and the team directory; tasks, My Tasks and workload; the role-aware home dashboard, in-app notifications and the calendar API. Other sidebar modules show a placeholder naming the phase that builds them.
 
 ## Stack
 
@@ -55,6 +55,7 @@ cp backend/.env.example backend/.env    # then fill in real values
 | `BOOTSTRAP_ADMIN_*` | Creates the first Super Admin on an empty production database |
 | `FILE_STORAGE_DIR`, `FILE_MAX_SIZE_MB` | Where task attachments are stored (default `./uploads`) and the upload limit (default 20 MB) |
 | `APP_TIME_ZONE` | Business time zone for "due today" and "overdue" (default `Asia/Kolkata`) |
+| `APP_SCHEDULING_ENABLED`, `TASK_REMINDER_CRON` | Background jobs; the daily task due-soon/overdue reminders run at 08:00 in `APP_TIME_ZONE` by default |
 
 The frontend needs no `.env` in development. See `frontend/.env.example` to point a build at another API host.
 
@@ -120,7 +121,7 @@ npm run build
   - A Super Admin sees everything.
   - A Department Manager sees their own department, any department where they are the manager, and any department where they hold a co-manager membership.
   - An employee sees their own records.
-  - Later modules (tasks, workload, tickets) filter their queries through this scope.
+  - Tasks, workload, the dashboard and the calendar filter their queries through this scope.
 - **No privilege escalation:**
   - An administrator can only grant permissions they hold themselves.
   - Only a Super Admin can grant Super Admin, or disable or demote one.
@@ -132,3 +133,13 @@ npm run build
   - user create, update, disable/enable and password reset
   - role and permission changes, recorded with before and after values
   - department create and update, and member changes
+
+## Dashboard, notifications & calendar (Phase 6)
+
+- **`GET /api/dashboard`** (`DASHBOARD_VIEW`) serves every role from one endpoint, scoped on the server:
+  - Super Admin: the whole company. Department manager: their departments plus their own assignments. Employee: their own assignments only, with no team or department sections.
+  - KPIs, task status mix, weekly completions (8 weeks, with the on-time rate), department workload and performance, the busiest people, overdue and upcoming tasks, and recent task activity.
+  - It is built from a few aggregate queries (`DashboardQuery`) plus the existing workload query, never per-row lookups.
+  - Ticket, SLA and approval counts are `null` (shown as "—") until Phases 7 and 8 build those modules. The Digital Marketing summary arrives with the marketing dashboard (Phase 19).
+- **Notifications** (`/api/notifications`, any signed-in user, always their own): a notification when someone else assigns you a task, plus a daily reminder for tasks due today/tomorrow and for overdue tasks. Reminders carry a dedup key (type, task, due date, assignee), so each is sent once. The topbar bell polls the unread count every minute.
+- **Calendar** (`GET /api/calendar?from&to&mine`, `CALENDAR_VIEW`, at most 100 days): stored events merged at query time with the task deadlines the viewer can see. Event writes (`/api/calendar/events`, `CALENDAR_EDIT`): company-wide events need a Super Admin, department events need department management, and leave needs scope over the person. The calendar page itself arrives in Phase 8; the dashboard shows the next 14 days of events.

@@ -1,11 +1,41 @@
-import { Construction, ShieldCheck } from 'lucide-react';
+import {
+  AlarmClock,
+  Building,
+  CalendarClock,
+  CalendarDays,
+  CircleCheck,
+  CircleDot,
+  ClipboardList,
+  Gauge,
+  History,
+  LifeBuoy,
+  ChartColumn,
+  ListTodo,
+  OctagonX,
+  PartyPopper,
+  PieChart,
+  Timer,
+  Users,
+  Workflow,
+} from 'lucide-react';
+import { useNavigate } from 'react-router';
 
-import { EmptyState } from '@/components/common/EmptyState';
+import { ErrorState } from '@/components/common/ErrorState';
+import { KpiCard } from '@/components/common/KpiCard';
 import { PageHeader } from '@/components/common/PageHeader';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { visibleNavigation } from '@/config/navigation';
-import { primaryRoleLabel } from '@/features/auth/permissions';
+import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { hasPermission } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
+import { useCalendar } from '@/features/calendar/api';
+import { TaskDrawer } from '@/features/tasks/TaskDrawer';
+import { parseLocalDate } from '@/features/tasks/task-meta';
+import { useTaskParam } from '@/features/tasks/use-task-param';
+import { WorkloadMeter } from '@/features/workload/WorkloadMeter';
+
+import { useDashboard, type DashboardResponse } from './api';
+import { DepartmentWorkloadChart, StatusDonut, WeeklyCompletionChart } from './charts';
+import { DepartmentPerformanceTable, EmployeeWorkloadTable, Panel, PanelLink, RecentActivity, TaskList, UpcomingEvents } from './sections';
 
 function greeting(date: Date): string {
   const hour = date.getHours();
@@ -14,69 +44,177 @@ function greeting(date: Date): string {
   return 'Good evening';
 }
 
-const dateFormat = new Intl.DateTimeFormat(undefined, {
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-});
+const dateFormat = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+const shortDate = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
 
+const SCOPE_TEXT: Record<DashboardResponse['scope'], string> = {
+  ALL: 'Company-wide view',
+  DEPARTMENTS: 'Your departments',
+  OWN: 'Your work',
+};
+
+const EVENTS_DAYS = 14;
+
+function addDays(isoDate: string, days: number): string {
+  const date = parseLocalDate(isoDate);
+  date.setDate(date.getDate() + days);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6" role="status" aria-label="Loading dashboard">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {Array.from({ length: 8 }, (_, i) => (
+          <Skeleton key={i} className="h-24 rounded-xl" />
+        ))}
+      </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Skeleton className="h-80 rounded-xl" />
+        <Skeleton className="h-80 rounded-xl lg:col-span-2" />
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Skeleton className="h-72 rounded-xl" />
+        <Skeleton className="h-72 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Home dashboard (brief sections 8, 67, 68, 82). One page for every role: the server scopes the data, and team
+ * sections appear only when the response is for more than the viewer's own work.
+ */
 export default function DashboardPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const dashboard = useDashboard();
+  const [taskId, setTaskId] = useTaskParam();
+  const canSeeCalendar = hasPermission(user, 'CALENDAR_VIEW');
+  const today = dashboard.data?.today;
+  const events = useCalendar({ from: today ?? '', to: today ? addDays(today, EVENTS_DAYS - 1) : '' }, canSeeCalendar && Boolean(today));
   if (!user) return null;
 
-  const now = new Date();
-  const modules = visibleNavigation(user).filter((section) => section.label);
+  const title = `${greeting(new Date())}, ${user.firstName}`;
+  const data = dashboard.data;
+  const personal = data?.scope === 'OWN';
+  const tasksPath = personal ? '/my/tasks' : '/tasks';
 
   return (
     <div className="space-y-6">
-      <PageHeader title={`${greeting(now)}, ${user.firstName}`} description={dateFormat.format(now)} />
+      <PageHeader title={title} description={data ? `${dateFormat.format(parseLocalDate(data.today))} · ${SCOPE_TEXT[data.scope]}` : undefined} />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <EmptyState
-            icon={Construction}
-            title="Your dashboard is on its way"
-            description="KPI cards, team and department workload, overdue tasks, upcoming deadlines and the Digital Marketing summary arrive in Phase 6."
-          />
-        </Card>
-
+      {dashboard.isError ? (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ShieldCheck className="size-4 text-status-success" aria-hidden />
-              Your access
-            </CardTitle>
-            <CardDescription>Computed by the server from your role and grants.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <dl className="space-y-3 text-sm">
-              <div className="flex justify-between gap-4">
-                <dt className="text-muted-foreground">Role</dt>
-                <dd className="font-medium">{primaryRoleLabel(user)}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-muted-foreground">Department</dt>
-                <dd className="font-medium">{user.department.name}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-muted-foreground">Permissions</dt>
-                <dd className="font-medium tabular-nums">{user.permissions.length}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Modules</dt>
-                <dd className="mt-2 flex flex-wrap gap-1.5">
-                  {modules.map((section) => (
-                    <span key={section.id} className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
-                      {section.label}
-                    </span>
-                  ))}
-                </dd>
-              </div>
-            </dl>
-          </CardContent>
+          <ErrorState error={dashboard.error} title="Couldn't load the dashboard" onRetry={() => void dashboard.refetch()} />
         </Card>
-      </div>
+      ) : !data ? (
+        <DashboardSkeleton />
+      ) : (
+        <>
+          <section aria-label="Key figures" className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <KpiCard label={personal ? 'My open tasks' : 'Open tasks'} value={data.kpis.openTasks} icon={ClipboardList} tone="text-primary" to={tasksPath} />
+            <KpiCard label="Due today" value={data.kpis.dueToday} icon={CalendarClock} tone="text-status-warning" to={tasksPath} />
+            <KpiCard label="Overdue" value={data.kpis.overdue} icon={AlarmClock} tone="text-status-danger" alert={data.kpis.overdue > 0} to={tasksPath} />
+            <KpiCard label="Completed this week" value={data.kpis.completedThisWeek} icon={CircleCheck} tone="text-status-success" hint={`Since ${shortDate.format(parseLocalDate(data.weekStart))}`} />
+            {personal ? (
+              <>
+                <KpiCard label="In progress" value={data.kpis.inProgress} icon={CircleDot} tone="text-primary" />
+                <KpiCard label="Blocked" value={data.kpis.blocked} icon={OctagonX} tone="text-status-danger" />
+                <KpiCard label="My tickets" value={data.kpis.openTickets} icon={LifeBuoy} hint="Available with the help desk" />
+                <KpiCard label="Pending approvals" value={data.kpis.pendingApprovals} icon={Workflow} hint="Available with approvals" />
+              </>
+            ) : (
+              <>
+                <KpiCard label="Open tickets" value={data.kpis.openTickets} icon={LifeBuoy} hint="Available with the help desk" />
+                <KpiCard label="SLA breaches" value={data.kpis.slaBreaches} icon={Timer} hint="Available with the help desk" />
+                <KpiCard label="Pending approvals" value={data.kpis.pendingApprovals} icon={Workflow} hint="Available with approvals" />
+                <KpiCard label="Team members" value={data.kpis.teamMembers} icon={Users} to={hasPermission(user, 'TEAM_VIEW') ? '/team' : undefined} />
+              </>
+            )}
+          </section>
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            <Panel title="Task status" icon={PieChart} description="Open work by status">
+              <div className="p-5">
+                <StatusDonut slices={data.statusDistribution} completedWindowDays={data.completedWindowDays} />
+              </div>
+            </Panel>
+            <Panel title="Weekly task completion" icon={ChartColumn} description="Tasks completed per week, last 8 weeks" className="lg:col-span-2">
+              <div className="p-5">
+                <WeeklyCompletionChart weeks={data.weeklyCompletion} />
+              </div>
+            </Panel>
+          </div>
+
+          {personal ? (
+            data.workload.rows[0] && (
+              <Panel title="My workload" icon={Gauge} description={`Remaining hours against your capacity over the next ${data.workload.windowDays} days`}>
+                <div className="p-5">
+                  <WorkloadMeter percent={data.workload.rows[0].workloadPercent} level={data.workload.rows[0].level} />
+                  <p className="mt-2 text-xs text-muted-foreground tabular-nums">
+                    {data.workload.rows[0].remainingHours} h of {data.workload.rows[0].capacityHours} h
+                  </p>
+                </div>
+              </Panel>
+            )
+          ) : (
+            <div className="grid gap-6 lg:grid-cols-2">
+              <Panel title="Department workload" icon={Building} description="Remaining hours as a share of each team's capacity">
+                <div className="p-5">
+                  <DepartmentWorkloadChart departments={data.departments} />
+                </div>
+              </Panel>
+              <Panel
+                title="Employee workload"
+                icon={Gauge}
+                description={`Busiest ${data.workload.rows.length} of ${data.workload.people} · average ${data.workload.averagePercent}%`}
+                action={hasPermission(user, 'WORKLOAD_VIEW') && <PanelLink to="/workload">View all</PanelLink>}
+              >
+                <EmployeeWorkloadTable rows={data.workload.rows} onOpenPerson={hasPermission(user, 'TEAM_VIEW') ? (row) => void navigate(`/team/${row.user.id}`) : undefined} />
+              </Panel>
+            </div>
+          )}
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Panel title="Overdue tasks" icon={AlarmClock} description={`${data.kpis.overdue} overdue, oldest first`} action={<PanelLink to={tasksPath}>View tasks</PanelLink>}>
+              <TaskList tasks={data.overdueTasks} empty="Nothing overdue" emptyIcon={PartyPopper} onOpen={(t) => setTaskId(t.id)} showAssignee={!personal} />
+            </Panel>
+            <Panel title="Upcoming deadlines" icon={CalendarClock} description="Due in the next 7 days">
+              <TaskList tasks={data.upcomingTasks} empty="No deadlines this week" emptyIcon={ListTodo} onOpen={(t) => setTaskId(t.id)} showAssignee={!personal} />
+            </Panel>
+          </div>
+
+          {!personal && data.departments.length > 0 && (
+            <Panel title="Department performance" icon={Building} description={`Open and overdue now; completions and on-time rate over the last ${data.completedWindowDays} days`}>
+              <DepartmentPerformanceTable departments={data.departments} completedWindowDays={data.completedWindowDays} />
+            </Panel>
+          )}
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Panel title="Recent activity" icon={History}>
+              <RecentActivity items={data.recentActivity} onOpenTask={setTaskId} />
+            </Panel>
+            {canSeeCalendar && (
+              <Panel title="Coming up" icon={CalendarDays} description={`Events and leave in the next ${EVENTS_DAYS} days`}>
+                {events.isPending ? (
+                  <div className="space-y-2 p-5" role="status" aria-label="Loading events">
+                    {Array.from({ length: 3 }, (_, i) => (
+                      <Skeleton key={i} className="h-10" />
+                    ))}
+                  </div>
+                ) : events.isError ? (
+                  <ErrorState error={events.error} title="Couldn't load events" onRetry={() => void events.refetch()} />
+                ) : (
+                  <UpcomingEvents items={events.data.items} />
+                )}
+              </Panel>
+            )}
+          </div>
+        </>
+      )}
+
+      <TaskDrawer taskId={taskId} onClose={() => setTaskId(null)} />
     </div>
   );
 }

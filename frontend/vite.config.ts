@@ -20,6 +20,12 @@ export default defineConfig({
             { name: 'ui', test: /node_modules[\\/](@radix-ui|@floating-ui|lucide-react|sonner)[\\/]/, priority: 20 },
             { name: 'data', test: /node_modules[\\/](@tanstack|axios)[\\/]/, priority: 20 },
             { name: 'forms', test: /node_modules[\\/](react-hook-form|@hookform|zod)[\\/]/, priority: 20 },
+            // Recharts and its own dependencies: only loaded by pages with charts.
+            {
+              name: 'charts',
+              test: /node_modules[\\/](recharts|victory-vendor|d3-[^\\/]+|internmap|@reduxjs|react-redux|redux|redux-thunk|immer|reselect|es-toolkit|decimal\.js-light|eventemitter3|tiny-invariant)[\\/]/,
+              priority: 20,
+            },
           ],
         },
       },

@@ -1,6 +1,7 @@
 import { Menu } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { NotificationBell } from '@/features/notifications/NotificationBell';
 
 import { UserMenu } from './UserMenu';
 
@@ -11,6 +12,7 @@ export function Topbar({ onOpenNavigation }: { onOpenNavigation: () => void }) {
         <Menu />
       </Button>
       <div className="flex-1" />
+      <NotificationBell />
       <UserMenu />
     </header>
   );
