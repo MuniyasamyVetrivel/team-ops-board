@@ -23,7 +23,7 @@ public final class CalendarDtos {
 
 	public enum ItemKind {
 
-		EVENT, TASK_DEADLINE
+		EVENT, TASK_DEADLINE, MILESTONE, APPROVAL_DUE
 
 	}
 
@@ -35,11 +35,13 @@ public final class CalendarDtos {
 	/**
 	 * One entry on the calendar. {@code startDate}/{@code endDate} (inclusive) are business-zone dates for every
 	 * item; {@code startAt}/{@code endAt} are set for timed events only.
-	 * @param key unique across kinds, e.g. "EVENT-7" or "TASK-42"
+	 * @param key unique across kinds, e.g. "EVENT-7", "TASK-42", "MILESTONE-3" or "APPROVAL-9"
+	 * @param reference code of the related record (project code for milestones, approval code), or null
+	 * @param parentId the project for milestones, otherwise null
 	 */
 	public record CalendarItem(String key, ItemKind kind, Long id, String title, CalendarEventType eventType,
 			boolean allDay, LocalDate startDate, LocalDate endDate, Instant startAt, Instant endAt,
-			DepartmentSummary department, UserSummary user, TaskInfo task) {
+			DepartmentSummary department, UserSummary user, TaskInfo task, String reference, Long parentId) {
 
 	}
 

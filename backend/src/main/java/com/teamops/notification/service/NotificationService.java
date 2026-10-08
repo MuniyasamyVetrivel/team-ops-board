@@ -30,6 +30,10 @@ public class NotificationService {
 
 	public static final String ENTITY_TICKET = "TICKET";
 
+	public static final String ENTITY_APPROVAL = "APPROVAL";
+
+	public static final String ENTITY_ANNOUNCEMENT = "ANNOUNCEMENT";
+
 	private final NotificationRepository repository;
 
 	private final BusinessCalendar calendar;

@@ -50,6 +50,10 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
 	long countByDepartmentIdAndStatus(Long departmentId, UserStatus status);
 
+	/** Active holders of a role (e.g. everyone who may decide a ROLE approval step). */
+	@Query("select distinct u from User u join u.roles r where r.code = :roleCode and u.status = :status")
+	List<User> findByRoleAndStatus(@Param("roleCode") String roleCode, @Param("status") UserStatus status);
+
 	@Query("select u.department.id as departmentId, count(u) as total from User u where u.status = :status "
 			+ "group by u.department.id")
 	List<DepartmentCount> countByDepartment(@Param("status") UserStatus status);

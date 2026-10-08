@@ -127,7 +127,7 @@ class DashboardFlowIT {
 			.andExpect(jsonPath("$.kpis.completedThisWeek").value(1))
 			.andExpect(jsonPath("$.kpis.teamMembers").value(2))
 			.andExpect(jsonPath("$.kpis.openTickets").value(0))
-			.andExpect(jsonPath("$.kpis.pendingApprovals").doesNotExist())
+			.andExpect(jsonPath("$.kpis.pendingApprovals").value(0))
 			.andExpect(jsonPath("$.departments.length()").value(1))
 			.andExpect(jsonPath("$.departments[0].openTasks").value(3))
 			.andExpect(jsonPath("$.departments[0].completed").value(1))

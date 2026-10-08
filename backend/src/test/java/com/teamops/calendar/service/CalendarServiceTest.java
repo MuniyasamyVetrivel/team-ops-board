@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.teamops.approval.service.ApprovalService;
 import com.teamops.calendar.dto.CalendarDtos.EventDetail;
 import com.teamops.calendar.dto.CalendarDtos.SaveEvent;
 import com.teamops.calendar.entity.CalendarEvent;
@@ -31,6 +32,7 @@ import com.teamops.common.security.AccessScopeService;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.department.entity.Department;
 import com.teamops.department.repository.DepartmentRepository;
+import com.teamops.project.repository.ProjectMilestoneRepository;
 import com.teamops.support.SliceAuth;
 import com.teamops.support.TestFixtures;
 import com.teamops.task.repository.TaskRepository;
@@ -62,7 +64,8 @@ class CalendarServiceTest {
 	@BeforeEach
 	void setUp() {
 		service = new CalendarService(eventRepository, mock(TaskRepository.class), departmentRepository,
-				userRepository, scopes, new BusinessCalendar(Clock.fixed(NOW, ZoneOffset.UTC), "Asia/Kolkata"));
+				userRepository, scopes, mock(ProjectMilestoneRepository.class), mock(ApprovalService.class),
+				new BusinessCalendar(Clock.fixed(NOW, ZoneOffset.UTC), "Asia/Kolkata"));
 		when(scopes.scopeFor(MANAGER)).thenReturn(AccessScope.departments(3L, Set.of(5L)));
 		when(scopes.scopeFor(SliceAuth.EMPLOYEE)).thenReturn(AccessScope.own(4L));
 		when(scopes.scopeFor(SliceAuth.SUPER_ADMIN)).thenReturn(AccessScope.all(1L));

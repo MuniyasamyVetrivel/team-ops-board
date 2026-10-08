@@ -40,7 +40,7 @@ public class TagService {
 			normalised.put(clean, clean);
 		}
 		if (normalised.size() > MAX_TAGS) {
-			throw ApiException.badRequest("TOO_MANY_TAGS", "A task can have at most " + MAX_TAGS + " tags");
+			throw ApiException.badRequest("TOO_MANY_TAGS", "At most " + MAX_TAGS + " tags are allowed");
 		}
 		Set<Tag> tags = new HashSet<>(tagRepository.findByNameIn(normalised.keySet()));
 		tags.forEach(tag -> normalised.remove(tag.getName().toLowerCase(Locale.ROOT)));

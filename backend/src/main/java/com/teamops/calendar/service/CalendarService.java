@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import com.teamops.approval.entity.Approval;
+import com.teamops.approval.service.ApprovalService;
 import com.teamops.calendar.dto.CalendarDtos.CalendarItem;
 import com.teamops.calendar.dto.CalendarDtos.CalendarResponse;
 import com.teamops.calendar.dto.CalendarDtos.EventDetail;
@@ -33,6 +35,10 @@ import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.department.dto.DepartmentSummary;
 import com.teamops.department.entity.Department;
 import com.teamops.department.repository.DepartmentRepository;
+import com.teamops.project.entity.Project;
+import com.teamops.project.entity.ProjectMilestone;
+import com.teamops.project.repository.ProjectMilestoneRepository;
+import com.teamops.project.service.ProjectAccess;
 import com.teamops.task.dto.DueState;
 import com.teamops.task.entity.Task;
 import com.teamops.task.entity.TaskStatus;
@@ -45,8 +51,8 @@ import com.teamops.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
- * The calendar merges stored events with task deadlines at query time (brief section 19). Deadlines follow task
- * visibility. Events are visible when company-wide, in the viewer's own or managed departments, about the viewer,
+ * The calendar merges stored events with task deadlines, open project milestones and pending approval due dates at
+ * query time (brief section 19). Each follows its own module's visibility rules. Events are visible when company-wide, in the viewer's own or managed departments, about the viewer,
  * or created by them. Events the viewer cannot see are reported as not found.
  * <p>
  * Changing an event needs CALENDAR_EDIT plus: Super Admin for company-wide events, department management
@@ -74,6 +80,10 @@ public class CalendarService {
 
 	private final AccessScopeService accessScopeService;
 
+	private final ProjectMilestoneRepository milestoneRepository;
+
+	private final ApprovalService approvalService;
+
 	private final BusinessCalendar calendar;
 
 	/**
@@ -100,6 +110,17 @@ public class CalendarService {
 			.and(mine ? TaskSpecifications.assignee(actor.id()) : TaskSpecifications.all());
 		taskRepository.findAll(spec, PageRequest.of(0, MAX_TASKS, Sort.by("dueDate", "id")))
 			.forEach(task -> items.add(toItem(task, today)));
+
+		if (actor.hasPermission("PROJECT_VIEW")) {
+			ProjectAccess projects = new ProjectAccess(actor, scope);
+			milestoneRepository.findOpenDueBetween(from, to)
+				.stream()
+				.filter(milestone -> projects.canView(milestone.getProject()))
+				.forEach(milestone -> items.add(toItem(milestone)));
+		}
+		if (actor.hasPermission("APPROVAL_VIEW")) {
+			approvalService.pendingDueBetween(from, to, actor).forEach(approval -> items.add(toItem(approval)));
+		}
 
 		items.sort(Comparator.comparing(CalendarItem::startDate)
 			.thenComparing(item -> item.kind() == ItemKind.TASK_DEADLINE)
@@ -237,14 +258,30 @@ public class CalendarService {
 				event.getEventType(), event.isAllDay(), startDate(event), endDate(event),
 				event.isAllDay() ? null : event.getStartAt(), event.isAllDay() ? null : event.getEndAt(),
 				event.getDepartment() == null ? null : DepartmentSummary.of(event.getDepartment()),
-				UserSummary.of(event.getUser()), null);
+				UserSummary.of(event.getUser()), null, null, null);
 	}
 
 	private static CalendarItem toItem(Task task, LocalDate today) {
 		return new CalendarItem("TASK-" + task.getId(), ItemKind.TASK_DEADLINE, task.getId(), task.getTitle(), null,
 				true, task.getDueDate(), task.getDueDate(), null, null, DepartmentSummary.of(task.getDepartment()),
 				UserSummary.of(task.getAssignee()), new TaskInfo(task.getCode(), task.getStatus(), task.getPriority(),
-						DueState.of(task.getDueDate(), task.getStatus(), today)));
+						DueState.of(task.getDueDate(), task.getStatus(), today)),
+				task.getCode(), null);
+	}
+
+	private static CalendarItem toItem(ProjectMilestone milestone) {
+		Project project = milestone.getProject();
+		return new CalendarItem("MILESTONE-" + milestone.getId(), ItemKind.MILESTONE, milestone.getId(),
+				milestone.getName(), null, true, milestone.getDueDate(), milestone.getDueDate(), null, null,
+				DepartmentSummary.of(project.getDepartment()), UserSummary.of(project.getOwner()), null,
+				project.getCode(), project.getId());
+	}
+
+	private static CalendarItem toItem(Approval approval) {
+		return new CalendarItem("APPROVAL-" + approval.getId(), ItemKind.APPROVAL_DUE, approval.getId(),
+				approval.getTitle(), null, true, approval.getDueDate(), approval.getDueDate(), null, null,
+				DepartmentSummary.of(approval.getDepartment()), UserSummary.of(approval.getRequester()), null,
+				approval.getCode(), null);
 	}
 
 	private EventDetail toDetail(CalendarEvent event, AccessScope scope, AuthenticatedUser actor) {

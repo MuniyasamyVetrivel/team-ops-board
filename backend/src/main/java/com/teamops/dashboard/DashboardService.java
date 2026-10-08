@@ -14,6 +14,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.teamops.approval.service.ApprovalService;
 import com.teamops.common.config.BusinessCalendar;
 import com.teamops.common.security.AccessScope;
 import com.teamops.common.security.AccessScopeService;
@@ -74,6 +75,8 @@ public class DashboardService {
 
 	private final SlaService slaService;
 
+	private final ApprovalService approvalService;
+
 	private final BusinessCalendar calendar;
 
 	public Response dashboard(AuthenticatedUser actor) {
@@ -93,7 +96,8 @@ public class DashboardService {
 		Kpis kpis = new Kpis(counts.open(), counts.dueToday(), counts.overdue(), counts.completedThisWeek(),
 				counts.inProgress(), counts.blocked(),
 				scope.kind() == AccessScope.Kind.OWN ? null : (long) workload.summary().people(),
-				tickets == null ? null : tickets.open(), tickets == null ? null : tickets.breached(), null);
+				tickets == null ? null : tickets.open(), tickets == null ? null : tickets.breached(),
+				actor.hasPermission("APPROVAL_VIEW") ? approvalService.pendingCount(actor) : null);
 
 		List<StatusSlice> distribution = List.of(new StatusSlice(TaskStatus.TODO, counts.todo()),
 				new StatusSlice(TaskStatus.IN_PROGRESS, counts.inProgress()),

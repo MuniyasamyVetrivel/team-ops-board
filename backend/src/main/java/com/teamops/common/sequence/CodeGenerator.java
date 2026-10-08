@@ -24,6 +24,8 @@ public class CodeGenerator {
 
 	public static final String TICKET = "TICKET";
 
+	public static final String APPROVAL = "APPROVAL";
+
 	private final JdbcTemplate jdbcTemplate;
 
 	@Transactional(propagation = Propagation.MANDATORY)

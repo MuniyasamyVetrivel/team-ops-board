@@ -124,7 +124,7 @@ public class TicketController {
 	@PostMapping("/{id}/comments")
 	public TicketDetail addComment(@PathVariable Long id, @Valid @RequestBody TicketRequests.Comment request,
 			@AuthenticationPrincipal AuthenticatedUser actor) {
-		return collaborationService.addComment(id, request.body(), request.internal(), actor);
+		return collaborationService.addComment(id, request.body(), request.isInternal(), actor);
 	}
 
 	@PutMapping("/{id}/comments/{commentId}")

@@ -10,6 +10,11 @@ public enum NotificationType {
 	/** Status change on a ticket you raised (e.g. resolved, waiting for you). */
 	TICKET_UPDATED,
 	/** A public reply on a ticket you raised or are assigned to. */
-	TICKET_REPLY
+	TICKET_REPLY,
+	/** A request is waiting for your decision. */
+	APPROVAL_REQUIRED,
+	/** Your request was approved or rejected. */
+	APPROVAL_DECIDED,
+	ANNOUNCEMENT_PUBLISHED
 
 }

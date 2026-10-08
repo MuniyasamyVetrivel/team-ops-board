@@ -26,6 +26,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
+import com.teamops.approval.service.ApprovalService;
 import com.teamops.common.config.BusinessCalendar;
 import com.teamops.common.security.AccessScope;
 import com.teamops.common.security.AccessScopeService;
@@ -64,18 +65,21 @@ class DashboardServiceTest {
 
 	private final SlaService slaService = mock(SlaService.class);
 
+	private final ApprovalService approvalService = mock(ApprovalService.class);
+
 	private DashboardService service;
 
 	@BeforeEach
 	@SuppressWarnings("unchecked")
 	void setUp() {
 		service = new DashboardService(query, taskRepository, departmentRepository, workloadService, scopes,
-				slaService, new BusinessCalendar(Clock.fixed(NOW, ZoneOffset.UTC), "Asia/Kolkata"));
+				slaService, approvalService, new BusinessCalendar(Clock.fixed(NOW, ZoneOffset.UTC), "Asia/Kolkata"));
 		when(query.taskCounts(any(), any(), any(), any()))
 			.thenReturn(new DashboardQuery.TaskCounts(9, 2, 3, 4, 4, 3, 1, 1, 7));
 		when(query.weeklyCompletions(any(), any(), anyInt())).thenReturn(Map.of());
 		when(query.recentActivity(any(), anyInt())).thenReturn(List.of());
 		when(slaService.openTicketKpis(any())).thenReturn(new SlaDtos.TicketKpis(2, 1));
+		when(approvalService.pendingCount(any())).thenReturn(3L);
 		when(taskRepository.findAll(any(Specification.class), any(Pageable.class)))
 			.thenReturn((Page<Task>) new PageImpl<Task>(List.of()));
 	}
@@ -118,7 +122,7 @@ class DashboardServiceTest {
 		assertThat(response.kpis().teamMembers()).isNull();
 		assertThat(response.kpis().openTickets()).isEqualTo(2);
 		assertThat(response.kpis().slaBreaches()).isEqualTo(1);
-		assertThat(response.kpis().pendingApprovals()).as("approvals not built yet").isNull();
+		assertThat(response.kpis().pendingApprovals()).as("pending requests the employee can see").isEqualTo(3);
 		assertThat(response.kpis().overdue()).isEqualTo(3);
 		assertThat(response.departments()).isEmpty();
 		assertThat(response.weeklyCompletion()).hasSize(DashboardService.WEEKS);

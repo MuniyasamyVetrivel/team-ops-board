@@ -1,6 +1,8 @@
 package com.teamops.project.entity;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -15,13 +17,18 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
 
-/** Project header. Milestones, risks and the project UI arrive in Phase 8; tasks already link to projects. */
+/**
+ * A project. Progress is never stored: it is {@code progressOverride} when set, otherwise computed from the
+ * project's tasks. Members and dependencies are plain link tables.
+ */
 @Getter
 @Setter
 @Entity
@@ -56,8 +63,31 @@ public class Project extends BaseEntity {
 	@Column(name = "status", nullable = false, length = 32)
 	private ProjectStatus status = ProjectStatus.PLANNING;
 
+	/** Manual progress (0–100) that replaces the task-based figure; {@code null} = computed. */
+	@Column(name = "progress_override")
+	private Integer progressOverride;
+
 	@Version
 	@Column(name = "version", nullable = false)
 	private Integer version;
+
+	@ManyToMany
+	@JoinTable(name = "project_members", joinColumns = @JoinColumn(name = "project_id"),
+			inverseJoinColumns = @JoinColumn(name = "user_id"))
+	private Set<User> members = new HashSet<>();
+
+	/** Projects that must finish before this one. */
+	@ManyToMany
+	@JoinTable(name = "project_dependencies", joinColumns = @JoinColumn(name = "project_id"),
+			inverseJoinColumns = @JoinColumn(name = "depends_on_project_id"))
+	private Set<Project> dependsOn = new HashSet<>();
+
+	public boolean isOwnedBy(Long userId) {
+		return owner != null && owner.getId().equals(userId);
+	}
+
+	public boolean hasMember(Long userId) {
+		return members.stream().anyMatch(user -> user.getId().equals(userId));
+	}
 
 }

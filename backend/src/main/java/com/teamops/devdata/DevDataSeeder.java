@@ -95,6 +95,8 @@ public class DevDataSeeder implements ApplicationRunner {
 
 	private final DevTicketSeeder devTicketSeeder;
 
+	private final DevCollaborationSeeder devCollaborationSeeder;
+
 	@Override
 	public void run(ApplicationArguments args) {
 		if (properties.password() == null || properties.password().length() < 8) {
@@ -140,6 +142,7 @@ public class DevDataSeeder implements ApplicationRunner {
 		if (tickets > 0) {
 			log.info("Development seed: {} help desk tickets created", tickets);
 		}
+		log.info("Development seed: {}", devCollaborationSeeder.seed());
 	}
 
 	record SeedUser(String email, String firstName, String lastName, String jobTitle, String departmentCode,

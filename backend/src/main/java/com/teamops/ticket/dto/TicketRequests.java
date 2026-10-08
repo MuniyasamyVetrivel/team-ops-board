@@ -53,9 +53,13 @@ public final class TicketRequests {
 
 	}
 
-	/** {@code internal} notes are for agents only. */
+	/** {@code internal} notes are for agents only; omitted means a public reply. */
 	public record Comment(@NotBlank(message = "Reply cannot be empty") @Size(max = 10000) String body,
-			boolean internal) {
+			Boolean internal) {
+
+		public boolean isInternal() {
+			return Boolean.TRUE.equals(internal);
+		}
 
 	}
 
