@@ -54,6 +54,12 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 	@Query("select distinct u from User u join u.roles r where r.code = :roleCode and u.status = :status")
 	List<User> findByRoleAndStatus(@Param("roleCode") String roleCode, @Param("status") UserStatus status);
 
+	/** Active users holding a permission through a role or a direct grant, by name. */
+	@Query("select u from User u where u.status = :status and (exists (select 1 from Role r join r.permissions p "
+			+ "where r member of u.roles and p.code = :permission) or exists (select 1 from Permission dp "
+			+ "where dp member of u.directPermissions and dp.code = :permission)) order by u.firstName, u.lastName")
+	List<User> findActiveWithPermission(@Param("permission") String permission, @Param("status") UserStatus status);
+
 	@Query("select u.department.id as departmentId, count(u) as total from User u where u.status = :status "
 			+ "group by u.department.id")
 	List<DepartmentCount> countByDepartment(@Param("status") UserStatus status);

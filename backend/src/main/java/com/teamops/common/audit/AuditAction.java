@@ -34,6 +34,8 @@ public enum AuditAction {
 	ANNOUNCEMENT_PUBLISHED,
 	ARTICLE_PUBLISHED,
 	DOCUMENT_UPLOADED,
-	DOCUMENT_DELETED
+	DOCUMENT_DELETED,
+	/** A validated CSV import was committed (type, file, imported and skipped counts). */
+	CSV_IMPORTED
 
 }

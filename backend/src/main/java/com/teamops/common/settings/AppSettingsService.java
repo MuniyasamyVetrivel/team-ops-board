@@ -30,6 +30,10 @@ public class AppSettingsService {
 
 	public static final int DEFAULT_SLA_WARNING_PCT = 75;
 
+	public static final String MARKETING_BEHIND_THRESHOLD_PCT = "marketing.target.behindThresholdPct";
+
+	public static final BigDecimal DEFAULT_BEHIND_THRESHOLD_PCT = new BigDecimal("60");
+
 	private final AppSettingRepository repository;
 
 	/** Days ahead (plus overdue) counted towards workload %. */
@@ -48,6 +52,12 @@ public class AppSettingsService {
 	public int slaWarningThresholdPct() {
 		int pct = decimal(SLA_WARNING_THRESHOLD_PCT, BigDecimal.valueOf(DEFAULT_SLA_WARNING_PCT)).intValue();
 		return pct < 1 || pct > 99 ? DEFAULT_SLA_WARNING_PCT : pct;
+	}
+
+	/** Achievement % below which a marketing target is BEHIND (0–100). Target types may override it. */
+	public BigDecimal marketingBehindThresholdPct() {
+		BigDecimal pct = decimal(MARKETING_BEHIND_THRESHOLD_PCT, DEFAULT_BEHIND_THRESHOLD_PCT);
+		return pct.signum() < 0 || pct.compareTo(BigDecimal.valueOf(100)) > 0 ? DEFAULT_BEHIND_THRESHOLD_PCT : pct;
 	}
 
 	private BigDecimal decimal(String key, BigDecimal fallback) {

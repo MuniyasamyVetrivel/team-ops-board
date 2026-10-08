@@ -52,6 +52,9 @@ public class SecurityConfig {
 				.permitAll()
 				.requestMatchers("/error")
 				.permitAll()
+				// The Digital Marketing module as a whole: SUPER_ADMIN and users granted MARKETING_VIEW only.
+				.requestMatchers("/api/marketing/**")
+				.hasAuthority("MARKETING_VIEW")
 				.anyRequest()
 				.authenticated())
 			.oauth2ResourceServer(oauth2 -> oauth2

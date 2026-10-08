@@ -112,6 +112,7 @@ public class UserService {
 		Set<Role> roles = resolveRoles(request.roles());
 		Set<Permission> grants = resolvePermissions(request.permissions());
 		assertCanGrant(actor, roles, grants);
+		assertConsistent(roles, grants);
 
 		User user = new User();
 		user.setEmail(email);
@@ -189,6 +190,7 @@ public class UserService {
 		Set<Role> addedRoles = difference(roles, user.getRoles(), Role::getCode);
 		Set<Permission> addedGrants = difference(grants, user.getDirectPermissions(), Permission::getCode);
 		assertCanGrant(actor, addedRoles, addedGrants);
+		assertConsistent(roles, grants);
 
 		boolean losesSuperAdmin = hasRole(user.getRoles(), RoleCodes.SUPER_ADMIN)
 				&& !hasRole(roles, RoleCodes.SUPER_ADMIN);
@@ -331,6 +333,13 @@ public class UserService {
 			throw ApiException.forbidden("CANNOT_GRANT_PERMISSIONS",
 					"You cannot grant permissions you do not hold: " + requested);
 		}
+	}
+
+	private static void assertConsistent(Set<Role> roles, Set<Permission> grants) {
+		MarketingPermissionRules.assertConsistent(
+				Stream.concat(roles.stream().flatMap(role -> role.getPermissions().stream()), grants.stream())
+					.map(Permission::getCode)
+					.collect(Collectors.toSet()));
 	}
 
 	private void assertNotLastActiveSuperAdmin(User user) {
