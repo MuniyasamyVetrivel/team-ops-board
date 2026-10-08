@@ -45,6 +45,7 @@ import com.teamops.task.dto.TaskRequests;
 import com.teamops.task.dto.TaskSearchCriteria;
 import com.teamops.task.entity.Task;
 import com.teamops.task.event.TaskAssignedEvent;
+import com.teamops.task.event.TaskStatusChangedEvent;
 import com.teamops.task.entity.TaskHistory;
 import com.teamops.task.entity.TaskPriority;
 import com.teamops.task.entity.TaskStatus;
@@ -271,6 +272,7 @@ public class TaskService {
 		auditService.record(AuditAction.TASK_STATUS_CHANGED, actor.id(), "TASK", task.getId(),
 				Map.of("code", task.getCode(), "from", previous, "to", status, "reopened", reopened), client);
 		taskRepository.flush();
+		events.publishEvent(new TaskStatusChangedEvent(task.getId(), previous, status, actor.id()));
 		return toDetail(task, access);
 	}
 

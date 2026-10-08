@@ -53,6 +53,13 @@ public enum AuditAction {
 	TARGET_CREATED,
 	/** A month's target, actual, owner or notes changed ({@code changes} holds from/to). */
 	TARGET_UPDATED,
-	TARGET_DELETED
+	TARGET_DELETED,
+	MARKETING_ACTIVITY_CREATED,
+	MARKETING_ACTIVITY_UPDATED,
+	MARKETING_ACTIVITY_DELETED,
+	/** An occurrence without a task was completed, skipped or reopened by hand (task-backed ones follow the task). */
+	MARKETING_ACTIVITY_OCCURRENCE_COMPLETED,
+	MARKETING_ACTIVITY_OCCURRENCE_SKIPPED,
+	MARKETING_ACTIVITY_OCCURRENCE_REOPENED
 
 }

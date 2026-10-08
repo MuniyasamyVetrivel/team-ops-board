@@ -34,6 +34,8 @@ public class NotificationService {
 
 	public static final String ENTITY_ANNOUNCEMENT = "ANNOUNCEMENT";
 
+	public static final String ENTITY_MARKETING_ACTIVITY = "MARKETING_ACTIVITY";
+
 	private final NotificationRepository repository;
 
 	private final BusinessCalendar calendar;

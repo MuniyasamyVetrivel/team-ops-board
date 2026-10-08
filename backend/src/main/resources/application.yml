@@ -51,6 +51,9 @@ app:
   notifications:
     # Daily "due soon" / "overdue" reminders, evaluated in app.time-zone.
     reminder-cron: ${TASK_REMINDER_CRON:0 0 8 * * *}
+  marketing:
+    # Daily recurring-activity job: creates the current period's occurrences and their tasks (app.time-zone).
+    activity-cron: ${MARKETING_ACTIVITY_CRON:0 10 0 * * *}
   storage:
     dir: ${FILE_STORAGE_DIR:./uploads}
     max-file-size-mb: ${FILE_MAX_SIZE_MB:20}
