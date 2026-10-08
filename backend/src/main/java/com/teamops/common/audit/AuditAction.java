@@ -64,6 +64,14 @@ public enum AuditAction {
 	EMAIL_CAMPAIGN_CREATED,
 	/** Details, status or counts changed ({@code changes} holds from/to). */
 	EMAIL_CAMPAIGN_UPDATED,
-	EMAIL_CAMPAIGN_DELETED
+	EMAIL_CAMPAIGN_DELETED,
+	PAID_CAMPAIGN_CREATED,
+	/** The plan (dates, budget, status, owner) changed ({@code changes} holds from/to). */
+	PAID_CAMPAIGN_UPDATED,
+	PAID_CAMPAIGN_DELETED,
+	/** A month's results were added (by hand or CSV). */
+	PAID_RESULTS_RECORDED,
+	/** A recorded month was corrected; {@code closedMonth} marks a Super Admin correction of a closed month. */
+	PAID_RESULTS_CORRECTED
 
 }
