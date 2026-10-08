@@ -35,6 +35,7 @@ const CalendarPage = lazy(() => import('@/features/calendar/CalendarPage'));
 const MarketingHomePage = lazy(() => import('@/features/marketing/MarketingHomePage'));
 const SeoRankingsPage = lazy(() => import('@/features/marketing/seo/SeoRankingsPage'));
 const SeoPageDetailPage = lazy(() => import('@/features/marketing/seo/SeoPageDetailPage'));
+const TargetsPage = lazy(() => import('@/features/marketing/targets/TargetsPage'));
 
 /** Pages that exist so far. Every other sidebar entry renders a placeholder naming the phase that builds it. */
 const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
@@ -57,6 +58,7 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
   // The marketing home until the executive dashboard replaces it in Phase 19.
   '/digital-marketing': MarketingHomePage,
   '/digital-marketing/seo': SeoRankingsPage,
+  '/digital-marketing/targets': TargetsPage,
 };
 
 /** Detail routes that are not sidebar entries. */
