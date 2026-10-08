@@ -11,7 +11,8 @@ import com.teamops.marketing.common.RankingStatus;
 /**
  * Monthly ranking rules (brief sections 25 and 56). History is insert-only per month: recording a month never touches
  * another month. A month's own row may be corrected only while the month is open, which is the current business month
- * and the month before it (rankings for a month are usually entered early in the next one). Older months are locked.
+ * and the month before it (rankings for a month are usually entered early in the next one). Older months are locked,
+ * except to a Super Admin.
  */
 public final class RankingRules {
 
@@ -36,6 +37,14 @@ public final class RankingRules {
 	public static boolean isCorrectable(MarketingPeriod period, LocalDate today) {
 		MarketingPeriod current = MarketingPeriod.of(today);
 		return period.equals(current) || period.equals(current.previous());
+	}
+
+	/**
+	 * Whether this actor may correct a recorded month: anyone with SEO_EDIT while the month is open, and a Super Admin
+	 * for any past month (still audited).
+	 */
+	public static boolean canCorrect(MarketingPeriod period, LocalDate today, boolean superAdmin) {
+		return superAdmin ? isRecordable(period, today) : isCorrectable(period, today);
 	}
 
 	/** A position from 1 to 100, or {@code null} for Not Ranked. */

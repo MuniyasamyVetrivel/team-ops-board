@@ -119,7 +119,7 @@ public class SeoRankingController {
 			.body(rankingService.recordMonthly(request, actor, ClientInfo.from(http)));
 	}
 
-	/** Corrects an open month's ranking (audited); closed months return 409 MONTH_LOCKED. */
+	/** Corrects a ranking (audited). Closed months return 409 MONTH_LOCKED, except for a Super Admin. */
 	@PutMapping("/rankings/{id}")
 	@PreAuthorize("hasAuthority('SEO_EDIT')")
 	public KeywordHistory correct(@PathVariable Long id, @Valid @RequestBody CorrectRanking request,
@@ -129,8 +129,8 @@ public class SeoRankingController {
 
 	@GetMapping("/keywords/{id}/rankings")
 	@PreAuthorize("hasAuthority('SEO_VIEW')")
-	public KeywordHistory history(@PathVariable Long id) {
-		return rankingService.history(id);
+	public KeywordHistory history(@PathVariable Long id, @AuthenticationPrincipal AuthenticatedUser viewer) {
+		return rankingService.history(id, viewer);
 	}
 
 	/** Records a month that has no ranking yet (409 RANKING_EXISTS otherwise). */

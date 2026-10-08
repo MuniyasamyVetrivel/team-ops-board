@@ -51,6 +51,16 @@ class RankingRulesTest {
 	}
 
 	@Test
+	void superAdminsMayCorrectAnyPastMonth() {
+		MarketingPeriod closed = new MarketingPeriod(3, 2024);
+		assertThat(RankingRules.canCorrect(closed, TODAY, false)).isFalse();
+		assertThat(RankingRules.canCorrect(closed, TODAY, true)).isTrue();
+		assertThat(RankingRules.canCorrect(new MarketingPeriod(9, 2026), TODAY, false)).isTrue();
+		// Still never the future.
+		assertThat(RankingRules.canCorrect(new MarketingPeriod(11, 2026), TODAY, true)).isFalse();
+	}
+
+	@Test
 	void positionCellsAcceptNumbersAndNrButNeverBlank() {
 		assertThat(RankingRules.parsePosition("7").position()).isEqualTo(7);
 		assertThat(RankingRules.parsePosition(" #12 ").position()).isEqualTo(12);

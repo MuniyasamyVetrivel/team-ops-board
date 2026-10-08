@@ -115,7 +115,8 @@ public class KeywordRankingService {
 				stats(pageId, ownerId, previous));
 	}
 
-	public KeywordHistory history(Long keywordId) {
+	/** {@code correctable} on each entry is evaluated for {@code viewer} (a Super Admin may correct any past month). */
+	public KeywordHistory history(Long keywordId, AuthenticatedUser viewer) {
 		SeoKeyword keyword = loadKeyword(keywordId);
 		LocalDate today = calendar.today();
 		List<KeywordRanking> rows = rankingRepository.findByKeywordIdOrderByYearDescMonthDesc(keywordId);
@@ -129,7 +130,7 @@ public class KeywordRankingService {
 			return new RankingEntry(row.getId(), period.month(), period.year(), period.label(), row.getPosition(),
 					RankingStatus.of(row.getPosition()), change, row.getSearchVolume(), row.getNotes(),
 					row.getSource(), UserSummary.of(row.getRecordedBy()), row.getCreatedAt(), row.getUpdatedAt(),
-					row.getVersion(), RankingRules.isCorrectable(period, today));
+					row.getVersion(), RankingRules.canCorrect(period, today, viewer.isSuperAdmin()));
 		}).toList();
 		return new KeywordHistory(keyword.getId(), keyword.getKeyword(), PageRef.of(keyword.getPage()),
 				keyword.getSearchEngine(), keyword.getLocation(), keyword.getDevice(), keyword.getTargetPosition(),
@@ -228,7 +229,7 @@ public class KeywordRankingService {
 				RankingSource.MANUAL, userRepository.getReferenceById(actor.id()));
 		auditRecorded(saved, keywordId, period, actor, client);
 		refreshCaches(List.of(keywordId));
-		return history(keywordId);
+		return history(keywordId, actor);
 	}
 
 	/** The monthly update: many keywords for one month, all or nothing. */
@@ -265,16 +266,21 @@ public class KeywordRankingService {
 		return new RecordResult(Period.of(period), ids.size());
 	}
 
-	/** Corrects a recorded month while it is open (current business month or the one before). Audited. */
+	/**
+	 * Corrects a recorded month while it is open (current business month or the one before); a Super Admin may correct
+	 * any past month. Always audited; closed-month corrections are flagged with {@code closedMonth}.
+	 */
 	@Transactional
 	public KeywordHistory correct(Long rankingId, CorrectRanking request, AuthenticatedUser actor, ClientInfo client) {
 		KeywordRanking row = rankingRepository.findDetailedById(rankingId)
 			.orElseThrow(() -> ApiException.notFound("RANKING_NOT_FOUND", "Ranking not found"));
 		MarketingPeriod period = periodOf(row);
-		if (!RankingRules.isCorrectable(period, calendar.today())) {
+		LocalDate today = calendar.today();
+		if (!RankingRules.canCorrect(period, today, actor.isSuperAdmin())) {
 			throw ApiException.conflict("MONTH_LOCKED",
 					period.label() + " is closed. Only the current and previous month can be corrected.");
 		}
+		boolean closedMonth = !RankingRules.isCorrectable(period, today);
 		if (!Objects.equals(row.getVersion(), request.version())) {
 			throw ApiException.conflict("STALE_UPDATE",
 					"Someone else changed this ranking just now. Reload and try again.");
@@ -286,7 +292,7 @@ public class KeywordRankingService {
 			.track("notes", row.getNotes(), notes);
 		Long keywordId = row.getKeyword().getId();
 		if (changes.isEmpty()) {
-			return history(keywordId);
+			return history(keywordId, actor);
 		}
 		row.setPosition(position);
 		row.setSearchVolume(request.searchVolume());
@@ -300,9 +306,13 @@ public class KeywordRankingService {
 		details.put("keywordId", keywordId);
 		details.put("month", period.month());
 		details.put("year", period.year());
+		if (closedMonth) {
+			// A Super Admin override of a closed month, flagged so it stands out in the audit log.
+			details.put("closedMonth", true);
+		}
 		auditService.record(AuditAction.SEO_RANKING_CORRECTED, actor.id(), ENTITY, rankingId, details, client);
 		refreshCaches(List.of(keywordId));
-		return history(keywordId);
+		return history(keywordId, actor);
 	}
 
 	/**

@@ -78,9 +78,13 @@ class RankingFlowIT {
 
 	private Long editorId;
 
+	private Long adminId;
+
 	private String editorToken;
 
 	private String readerToken;
+
+	private String adminToken;
 
 	private String url;
 
@@ -93,10 +97,11 @@ class RankingFlowIT {
 	@BeforeEach
 	void setUp() throws Exception {
 		users = new IntegrationUsers(userService, userRepository, departmentRepository);
-		Long adminId = users.create("IT", RoleCodes.SUPER_ADMIN);
+		adminId = users.create("IT", RoleCodes.SUPER_ADMIN);
 		String nonce = Long.toHexString(System.nanoTime()).toUpperCase();
 		String code = "RNK_" + nonce;
-		departmentId = id(as(login(users.email(adminId)), post("/api/departments").contentType(MediaType.APPLICATION_JSON)
+		adminToken = login(users.email(adminId));
+		departmentId = id(as(adminToken, post("/api/departments").contentType(MediaType.APPLICATION_JSON)
 			.content("{\"name\":\"Rankings %s\",\"code\":\"%s\"}".formatted(code, code)))
 			.andExpect(status().isCreated()));
 		editorId = users.create(departmentId, RoleCodes.EMPLOYEE, "MARKETING_VIEW", "SEO_VIEW", "SEO_EDIT");
@@ -120,8 +125,8 @@ class RankingFlowIT {
 				departmentId);
 		jdbc.update("DELETE FROM marketing_keywords WHERE page_id IN (SELECT id FROM (" + pages + ") p)", departmentId);
 		jdbc.update("DELETE FROM marketing_pages WHERE department_id = ?", departmentId);
-		jdbc.update("DELETE FROM audit_logs WHERE (action LIKE 'SEO_%' OR action = 'CSV_IMPORTED') AND actor_id = ?",
-				editorId);
+		jdbc.update("DELETE FROM audit_logs WHERE (action LIKE 'SEO_%' OR action = 'CSV_IMPORTED') AND actor_id IN "
+				+ "(SELECT id FROM users WHERE department_id = ? OR id = ?)", departmentId, adminId);
 		users.deleteAll();
 		departmentRepository.deleteById(departmentId);
 	}
@@ -206,6 +211,22 @@ class RankingFlowIT {
 		as(editorToken, put("/api/marketing/rankings/" + olderId).contentType(MediaType.APPLICATION_JSON)
 			.content("{\"version\":0,\"position\":19}")).andExpect(status().isConflict())
 			.andExpect(jsonPath("$.code").value("MONTH_LOCKED"));
+		as(editorToken, get("/api/marketing/keywords/" + desktopId + "/rankings"))
+			.andExpect(jsonPath("$.entries[2].correctable").value(false));
+
+		// ...except to a Super Admin, which is still audited and flagged as a closed-month correction.
+		as(adminToken, get("/api/marketing/keywords/" + desktopId + "/rankings"))
+			.andExpect(jsonPath("$.entries[2].correctable").value(true));
+		as(adminToken, put("/api/marketing/rankings/" + olderId).contentType(MediaType.APPLICATION_JSON)
+			.content("{\"version\":0,\"position\":19}")).andExpect(status().isOk())
+			.andExpect(jsonPath("$.entries[2].position").value(19))
+			.andExpect(jsonPath("$.entries[1].change.value").value(9));
+		assertThat(snapshot(desktopId, previous)).containsExactly(10, 19, 9);
+		String override = jdbc.queryForObject(
+				"SELECT details FROM audit_logs WHERE action = 'SEO_RANKING_CORRECTED' AND entity_id = ?", String.class,
+				olderId);
+		assertThat(override).containsPattern("\"closedMonth\":\\s?true");
+		assertThat(details).doesNotContain("closedMonth");
 	}
 
 	@Test
