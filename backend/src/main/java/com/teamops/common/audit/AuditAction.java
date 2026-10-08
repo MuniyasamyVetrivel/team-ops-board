@@ -60,6 +60,10 @@ public enum AuditAction {
 	/** An occurrence without a task was completed, skipped or reopened by hand (task-backed ones follow the task). */
 	MARKETING_ACTIVITY_OCCURRENCE_COMPLETED,
 	MARKETING_ACTIVITY_OCCURRENCE_SKIPPED,
-	MARKETING_ACTIVITY_OCCURRENCE_REOPENED
+	MARKETING_ACTIVITY_OCCURRENCE_REOPENED,
+	EMAIL_CAMPAIGN_CREATED,
+	/** Details, status or counts changed ({@code changes} holds from/to). */
+	EMAIL_CAMPAIGN_UPDATED,
+	EMAIL_CAMPAIGN_DELETED
 
 }

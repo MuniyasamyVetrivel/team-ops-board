@@ -103,6 +103,8 @@ public class DevDataSeeder implements ApplicationRunner {
 
 	private final DevActivitySeeder devActivitySeeder;
 
+	private final DevEmailCampaignSeeder devEmailCampaignSeeder;
+
 	@Override
 	public void run(ApplicationArguments args) {
 		if (properties.password() == null || properties.password().length() < 8) {
@@ -160,6 +162,10 @@ public class DevDataSeeder implements ApplicationRunner {
 		int activities = devActivitySeeder.seedIfEmpty();
 		if (activities > 0) {
 			log.info("Development seed: {} recurring marketing activities created", activities);
+		}
+		int campaigns = devEmailCampaignSeeder.seedIfEmpty();
+		if (campaigns > 0) {
+			log.info("Development seed: {} email campaigns created", campaigns);
 		}
 	}
 
