@@ -5,7 +5,8 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { UserAvatar, UserCell } from '@/components/common/UserAvatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { CalendarEventType, CalendarItem } from '@/features/calendar/api';
+import type { CalendarItem } from '@/features/calendar/api';
+import { EVENT_TYPE_LABELS } from '@/features/calendar/calendar-meta';
 import { DueBadge, PriorityIndicator } from '@/features/tasks/TaskBadges';
 import { historyLabel, historyValue, parseLocalDate } from '@/features/tasks/task-meta';
 import type { TaskListItem } from '@/features/tasks/types';
@@ -165,12 +166,6 @@ export function RecentActivity({ items, onOpenTask }: { items: ActivityItem[]; o
   );
 }
 
-const EVENT_LABELS: Record<CalendarEventType, string> = {
-  TEAM_EVENT: 'Team event',
-  MEETING: 'Meeting',
-  IMPORTANT_DATE: 'Important date',
-  LEAVE: 'Leave',
-};
 
 const dayFormat = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
 const timeFormat = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
@@ -197,7 +192,7 @@ export function UpcomingEvents({ items }: { items: CalendarItem[] }) {
             </p>
           </div>
           <Badge tone={item.eventType === 'LEAVE' ? 'warning' : item.eventType === 'IMPORTANT_DATE' ? 'primary' : 'neutral'}>
-            {item.eventType ? EVENT_LABELS[item.eventType] : 'Event'}
+            {item.eventType ? EVENT_TYPE_LABELS[item.eventType] : 'Event'}
           </Badge>
         </li>
       ))}

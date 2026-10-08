@@ -13,6 +13,7 @@ import { useTeamDirectory } from '@/features/team/api';
 import { errorMessage } from '@/lib/api/errors';
 import { formatRelative } from '@/lib/format';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
+import { ACCEPTED_UPLOADS } from '@/lib/uploads';
 
 import { downloadAttachment, useTaskAttachments, useTaskChecklist, useTaskComments, useTaskDependencies, useTaskWatchers, useTasks } from './api';
 import { TaskStatusBadge } from './TaskBadges';
@@ -195,7 +196,7 @@ export function AttachmentsSection({ task }: { task: TaskDetail }) {
             ref={input}
             type="file"
             className="hidden"
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.md,.png,.jpg,.jpeg,.gif,.webp,.zip"
+            accept={ACCEPTED_UPLOADS}
             onChange={(event) => {
               const file = event.target.files?.[0];
               event.target.value = '';

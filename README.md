@@ -6,7 +6,7 @@ Internal Work & Performance Management System: tasks, workload, help desk, proje
 - Architecture, schema and phase plan: [`docs/implementation-plan.md`](docs/implementation-plan.md)
 - API reference: [`docs/api.md`](docs/api.md)
 
-**Status:** Phases 3–7 complete: authentication; users, departments, roles and the team directory; tasks, My Tasks and workload; the role-aware home dashboard, in-app notifications and the calendar API; the help desk (tickets, My Tickets) with SLA tracking. Other sidebar modules show a placeholder naming the phase that builds them.
+**Status:** Phases 3–7 complete: authentication; users, departments, roles and the team directory; tasks, My Tasks and workload; the role-aware home dashboard, in-app notifications and the calendar API; the help desk (tickets, My Tickets) with SLA tracking; projects, approvals, announcements, the knowledge base, documents and the calendar. Other sidebar modules show a placeholder naming the phase that builds them.
 
 ## Stack
 
@@ -95,6 +95,8 @@ The seeder also creates 3 projects and about 175 tasks, with due dates relative 
 
 When the tickets table is empty it also raises 19 help desk tickets across the categories, with times relative to now: some met, some at risk, two breached and one paused while waiting for the requester. Everyone who is assigned a seeded ticket (Vignesh, Deepak, Meena, Manoj, Karthik, Pooja, Arun) is granted `TICKET_EDIT`, which makes them a help desk agent for their department.
 
+Phase 8 seed data (each part only while its table is empty): milestones, risks and members for the three projects (plus a few completed tasks linked to each, so progress is realistic); five approval requests in every state; four announcements (one asks for acknowledgement, one is scheduled); six published knowledge base articles; and three documents with several versions.
+
 These are development-only accounts on a `.local` domain. Never use them, or the seed flag, in production.
 
 ## Build & test
@@ -167,3 +169,27 @@ npm run build
   - **Compliance %:** met ÷ (met + missed) for tickets raised in the window; "—" when nothing is decided yet.
 - **SLA page** (`/api/sla/summary`, `/api/sla/policies`): compliance, open tickets by state, tickets at risk, and per-priority targets. Targets can be edited by `SLA_MANAGE` holders; every change is versioned and audited.
 - **Audit and notifications:** ticket create, assign and status changes are audited. Assignees are notified on assignment; requesters on status changes and agent replies; assignees on requester replies.
+
+## Projects & collaboration (Phase 8)
+
+- **Projects** (`/api/projects`, `PROJECT_VIEW`; changes need `PROJECT_EDIT`):
+  - Progress is the share of non-cancelled tasks that are completed, unless a manual override is set ("—" when there are no tasks).
+  - Projects have members, milestones (overdue when open and past due), risks (severity = probability × impact) and dependencies on other projects, with a loop check.
+  - Visible to the project's department, its managers, the owner and members. Managers of the department and the owner can edit.
+- **Approvals** (`/api/approvals`, `APPROVAL_VIEW`):
+  - Seven request types, each with a configurable workflow (`APPROVAL_CONFIGURE`). A step is decided by the requester's department manager, by anyone holding a role, or by a named person.
+  - On submit, the request gets its own copy of the steps, so later workflow changes don't affect it.
+  - Nobody approves their own request. A manager's own request, or one from a department without a manager, escalates to a Super Admin.
+  - Steps run in order; rejecting needs a reason; the requester can cancel while the request is pending.
+  - Approvers are notified when a step reaches them, and requesters when the request is approved or rejected.
+- **Announcements** (`/api/announcements`):
+  - Addressed to everyone (Super Admin only) or to one department, with an optional publish time, expiry and acknowledgement.
+  - Read and acknowledgement receipts are tracked per person. Managers see read counts.
+- **Knowledge base** (`/api/knowledge-base`, `KB_VIEW`; writing needs `KB_EDIT`):
+  - Markdown articles in the seeded categories, with tags and attachments. Raw HTML in an article is never rendered.
+  - Search combines the MySQL FULLTEXT index (prefix matching) with a title match.
+  - Drafts and archived articles are visible to editors only.
+- **Documents** (`/api/documents`, `DOCUMENT_VIEW`; uploads need `DOCUMENT_EDIT`):
+  - Every upload of a document becomes a new numbered version, and all versions stay downloadable.
+  - Visible company-wide, within the owning department, or to the uploader.
+- **Calendar** (`/my/calendar`): month, week and agenda views that combine events and leave, task deadlines, open project milestones and pending approval due dates. Events are added and edited in place (`CALENDAR_EDIT`).

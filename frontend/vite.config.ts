@@ -26,6 +26,12 @@ export default defineConfig({
               test: /node_modules[\\/](recharts|victory-vendor|d3-[^\\/]+|internmap|@reduxjs|react-redux|redux|redux-thunk|immer|reselect|es-toolkit|decimal\.js-light|eventemitter3|tiny-invariant)[\\/]/,
               priority: 20,
             },
+            // react-markdown and its unified/remark pipeline: only loaded by knowledge base pages.
+            {
+              name: 'markdown',
+              test: /node_modules[\\/](react-markdown|unified|bail|trough|devlop|vfile[^\\/]*|unist-[^\\/]+|mdast-[^\\/]+|hast-[^\\/]+|micromark[^\\/]*|remark-[^\\/]+|property-information|space-separated-tokens|comma-separated-tokens|html-url-attributes|decode-named-character-reference|character-entities[^\\/]*|zwitch|longest-streak|ccount|trim-lines|estree-util-[^\\/]+|style-to-js|style-to-object|inline-style-parser|is-plain-obj|extend|@ungap)[\\/]/,
+              priority: 20,
+            },
           ],
         },
       },

@@ -104,3 +104,46 @@
     font-feature-settings: 'cv11', 'ss01';
   }
 }
+
+/* Rendered Markdown (knowledge base articles). Typography scoped to .markdown so it never leaks into the app. */
+@layer components {
+  .markdown {
+    @apply text-sm leading-relaxed;
+  }
+  .markdown > * + * {
+    @apply mt-3;
+  }
+  .markdown h1 {
+    @apply mt-6 text-xl font-semibold tracking-tight;
+  }
+  .markdown h2 {
+    @apply mt-6 text-lg font-semibold tracking-tight;
+  }
+  .markdown h3 {
+    @apply mt-5 text-base font-semibold;
+  }
+  .markdown ul {
+    @apply list-disc space-y-1 pl-6;
+  }
+  .markdown ol {
+    @apply list-decimal space-y-1 pl-6;
+  }
+  .markdown a {
+    @apply font-medium text-primary underline underline-offset-2;
+  }
+  .markdown blockquote {
+    @apply border-l-4 border-border pl-4 text-muted-foreground;
+  }
+  .markdown code {
+    @apply rounded bg-muted px-1 py-0.5 font-mono text-[0.85em];
+  }
+  .markdown pre {
+    @apply overflow-x-auto rounded-lg bg-muted p-3;
+  }
+  .markdown pre code {
+    @apply bg-transparent p-0;
+  }
+  .markdown hr {
+    @apply my-6 border-border;
+  }
+}

@@ -13,6 +13,7 @@ import { formatBytes } from '@/features/tasks/task-meta';
 import { errorMessage } from '@/lib/api/errors';
 import { formatRelative } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { ACCEPTED_UPLOADS } from '@/lib/uploads';
 
 import { downloadTicketAttachment, useTicketAttachments, useTicketComments } from './api';
 import { ticketHistoryLabel, ticketHistoryValue } from './ticket-meta';
@@ -177,7 +178,7 @@ export function TicketFilesSection({ ticket }: { ticket: TicketDetail }) {
         ref={input}
         type="file"
         className="hidden"
-        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.md,.png,.jpg,.jpeg,.gif,.webp,.zip"
+        accept={ACCEPTED_UPLOADS}
         onChange={(event) => {
           const file = event.target.files?.[0];
           event.target.value = '';

@@ -123,13 +123,13 @@ export default function DashboardPage() {
                 <KpiCard label="In progress" value={data.kpis.inProgress} icon={CircleDot} tone="text-primary" />
                 <KpiCard label="Blocked" value={data.kpis.blocked} icon={OctagonX} tone="text-status-danger" />
                 <KpiCard label="My open tickets" value={data.kpis.openTickets} icon={LifeBuoy} to="/my/tickets" />
-                <KpiCard label="Pending approvals" value={data.kpis.pendingApprovals} icon={Workflow} hint="Available with approvals" />
+                <KpiCard label="Pending approvals" value={data.kpis.pendingApprovals} icon={Workflow} tone="text-status-warning" to={hasPermission(user, 'APPROVAL_VIEW') ? '/approvals' : undefined} />
               </>
             ) : (
               <>
                 <KpiCard label="Open tickets" value={data.kpis.openTickets} icon={LifeBuoy} to={hasPermission(user, 'TICKET_VIEW') ? '/tickets' : undefined} />
                 <KpiCard label="SLA breaches" value={data.kpis.slaBreaches} icon={Timer} tone="text-status-danger" alert={(data.kpis.slaBreaches ?? 0) > 0} to={hasPermission(user, 'TICKET_VIEW') ? '/sla' : undefined} />
-                <KpiCard label="Pending approvals" value={data.kpis.pendingApprovals} icon={Workflow} hint="Available with approvals" />
+                <KpiCard label="Pending approvals" value={data.kpis.pendingApprovals} icon={Workflow} tone="text-status-warning" to={hasPermission(user, 'APPROVAL_VIEW') ? '/approvals' : undefined} />
                 <KpiCard label="Team members" value={data.kpis.teamMembers} icon={Users} to={hasPermission(user, 'TEAM_VIEW') ? '/team' : undefined} />
               </>
             )}

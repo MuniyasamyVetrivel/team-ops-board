@@ -63,8 +63,8 @@ const calendar: CalendarResponse = {
   from: '2026-10-08',
   to: '2026-10-21',
   items: [
-    { key: 'EVENT-1', kind: 'EVENT', id: 1, title: 'Karthik Raj on leave', eventType: 'LEAVE', allDay: true, startDate: '2026-10-11', endDate: '2026-10-12', startAt: null, endAt: null, department: { id: 5, name: 'Web Development', code: 'WEBDEV' }, user: null, task: null },
-    { key: 'TASK-9', kind: 'TASK_DEADLINE', id: 9, title: 'A deadline', eventType: null, allDay: true, startDate: '2026-10-09', endDate: '2026-10-09', startAt: null, endAt: null, department: null, user: null, task: null },
+    { key: 'EVENT-1', kind: 'EVENT', id: 1, title: 'Karthik Raj on leave', eventType: 'LEAVE', allDay: true, startDate: '2026-10-11', endDate: '2026-10-12', startAt: null, endAt: null, department: { id: 5, name: 'Web Development', code: 'WEBDEV' }, user: null, task: null, reference: null, parentId: null },
+    { key: 'TASK-9', kind: 'TASK_DEADLINE', id: 9, title: 'A deadline', eventType: null, allDay: true, startDate: '2026-10-09', endDate: '2026-10-09', startAt: null, endAt: null, department: null, user: null, task: null, reference: null, parentId: null },
   ],
 };
 
@@ -73,7 +73,7 @@ describe('DashboardPage', () => {
     api.defaults.adapter = originalAdapter;
   });
 
-  it('shows company KPIs, with ticket figures linked and unbuilt modules as "—"', async () => {
+  it('shows company KPIs with ticket, SLA and approval figures linked', async () => {
     mockApi({ 'GET /dashboard': () => dashboard(), 'GET /calendar': () => calendar });
 
     renderPage(<DashboardPage />, superAdmin);
@@ -81,8 +81,7 @@ describe('DashboardPage', () => {
     const kpis = await screen.findByRole('region', { name: 'Key figures' });
     expect(within(kpis).getByText('142')).toBeInTheDocument();
     expect(within(kpis).getByText('17')).toHaveClass('text-status-danger');
-    const approvals = within(kpis).getByText('Pending approvals').closest('div');
-    expect(within(approvals!).getByText('—')).toBeInTheDocument();
+    expect(within(kpis).getByRole('link', { name: /Pending approvals/ })).toHaveAttribute('href', '/approvals');
     expect(within(kpis).getByRole('link', { name: /SLA breaches/ })).toHaveAttribute('href', '/sla');
     expect(within(kpis).getByRole('link', { name: /Open tickets/ })).toHaveTextContent('9');
     expect(screen.getByText(/Company-wide view/)).toBeInTheDocument();

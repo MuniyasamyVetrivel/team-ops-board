@@ -69,7 +69,7 @@ export function SlaCountdown({ status, className }: { status: SlaStatus; classNa
   return (
     <Badge tone={tone} className={cn('tabular-nums', className)} title={`${label}: ${slaText(status)}`}>
       <Icon aria-hidden />
-      <span className="sr-only">{label}: </span>
+      <span className="sr-only">{label}:</span>{' '}
       {slaText(status)}
     </Badge>
   );

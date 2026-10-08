@@ -23,6 +23,14 @@ const WorkloadPage = lazy(() => import('@/features/workload/WorkloadPage'));
 const TicketsPage = lazy(() => import('@/features/tickets/TicketsPage'));
 const MyTicketsPage = lazy(() => import('@/features/my-work/MyTicketsPage'));
 const SlaPage = lazy(() => import('@/features/sla/SlaPage'));
+const ProjectsPage = lazy(() => import('@/features/projects/ProjectsPage'));
+const ProjectDetailPage = lazy(() => import('@/features/projects/ProjectDetailPage'));
+const ApprovalsPage = lazy(() => import('@/features/approvals/ApprovalsPage'));
+const AnnouncementsPage = lazy(() => import('@/features/announcements/AnnouncementsPage'));
+const KnowledgeBasePage = lazy(() => import('@/features/knowledge/KnowledgeBasePage'));
+const ArticlePage = lazy(() => import('@/features/knowledge/ArticlePage'));
+const DocumentsPage = lazy(() => import('@/features/documents/DocumentsPage'));
+const CalendarPage = lazy(() => import('@/features/calendar/CalendarPage'));
 
 /** Pages that exist so far. Every other sidebar entry renders a placeholder naming the phase that builds it. */
 const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
@@ -36,6 +44,12 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
   '/tickets': TicketsPage,
   '/my/tickets': MyTicketsPage,
   '/sla': SlaPage,
+  '/projects': ProjectsPage,
+  '/approvals': ApprovalsPage,
+  '/announcements': AnnouncementsPage,
+  '/knowledge-base': KnowledgeBasePage,
+  '/documents': DocumentsPage,
+  '/my/calendar': CalendarPage,
 };
 
 /** Detail routes that are not sidebar entries. */
@@ -45,6 +59,22 @@ const detailRoutes: RouteObject[] = [
     element: (
       <RequirePermission permission="TEAM_VIEW">
         <TeamProfilePage />
+      </RequirePermission>
+    ),
+  },
+  {
+    path: '/projects/:id',
+    element: (
+      <RequirePermission permission="PROJECT_VIEW">
+        <ProjectDetailPage />
+      </RequirePermission>
+    ),
+  },
+  {
+    path: '/knowledge-base/:slug',
+    element: (
+      <RequirePermission permission="KB_VIEW">
+        <ArticlePage />
       </RequirePermission>
     ),
   },

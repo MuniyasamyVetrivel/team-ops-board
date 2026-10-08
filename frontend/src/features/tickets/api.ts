@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api } from '@/lib/api/client';
+import { downloadFile } from '@/lib/api/download';
 import { cleanParams, serializeParams, type PageResponse } from '@/lib/api/types';
 
 import type {
@@ -109,17 +110,8 @@ export function useTicketAttachments(id: number) {
   };
 }
 
-/** Downloads through the API client (plain links would not carry the bearer token) and saves the file. */
 export async function downloadTicketAttachment(ticketId: number, fileId: number, fileName: string): Promise<void> {
-  const response = await api.get<Blob>(`/tickets/${ticketId}/attachments/${fileId}`, { responseType: 'blob' });
-  const url = URL.createObjectURL(response.data);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  return downloadFile(`/tickets/${ticketId}/attachments/${fileId}`, fileName);
 }
 
 /** Full update payload from the current detail plus the changed fields. */

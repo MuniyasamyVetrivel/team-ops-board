@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api } from '@/lib/api/client';
+import { downloadFile } from '@/lib/api/download';
 import { cleanParams, serializeParams, type PageResponse } from '@/lib/api/types';
 
 import type {
@@ -135,17 +136,8 @@ export function useTaskAttachments(id: number) {
   };
 }
 
-/** Downloads through the API client (the bearer token is not sent by plain links) and saves the file. */
 export async function downloadAttachment(taskId: number, fileId: number, fileName: string): Promise<void> {
-  const response = await api.get<Blob>(`/tasks/${taskId}/attachments/${fileId}`, { responseType: 'blob' });
-  const url = URL.createObjectURL(response.data);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  return downloadFile(`/tasks/${taskId}/attachments/${fileId}`, fileName);
 }
 
 /** Builds the full update payload from the current detail plus the changed fields. */
