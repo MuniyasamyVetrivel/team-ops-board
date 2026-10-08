@@ -41,6 +41,15 @@ public record MarketingPeriod(int month, int year) {
 		return of(firstDay().minusMonths(1));
 	}
 
+	public MarketingPeriod next() {
+		return of(firstDay().plusMonths(1));
+	}
+
+	/** This month moved by {@code months} (negative for earlier months). */
+	public MarketingPeriod plusMonths(int months) {
+		return of(firstDay().plusMonths(months));
+	}
+
 	public LocalDate firstDay() {
 		return LocalDate.of(year, month, 1);
 	}

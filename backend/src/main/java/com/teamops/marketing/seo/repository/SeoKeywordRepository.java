@@ -1,5 +1,7 @@
 package com.teamops.marketing.seo.repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -13,6 +15,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.teamops.marketing.seo.entity.Device;
+import com.teamops.marketing.seo.entity.KeywordStatus;
 import com.teamops.marketing.seo.entity.SearchEngine;
 import com.teamops.marketing.seo.entity.SeoKeyword;
 
@@ -26,6 +29,16 @@ public interface SeoKeywordRepository extends JpaRepository<SeoKeyword, Long>, J
 	Optional<SeoKeyword> findDetailedById(Long id);
 
 	long countByPageId(Long pageId);
+
+	/** Rows of the ranking table, in any order; the caller restores the table order. */
+	@EntityGraph(attributePaths = { "page", "owner" })
+	List<SeoKeyword> findByIdIn(Collection<Long> ids);
+
+	List<SeoKeyword> findByPageIdAndStatusNotOrderByKeywordAscIdAsc(Long pageId, KeywordStatus status);
+
+	/** Every keyword with its page, for matching CSV rows without a query per row. */
+	@Query("select k from SeoKeyword k join fetch k.page")
+	List<SeoKeyword> findAllWithPage();
 
 	/** The keyword's identity: page + keyword + engine + location + device (case-insensitive, like the unique key). */
 	@Query("select count(k) > 0 from SeoKeyword k where k.page.id = :pageId and k.keyword = :keyword "

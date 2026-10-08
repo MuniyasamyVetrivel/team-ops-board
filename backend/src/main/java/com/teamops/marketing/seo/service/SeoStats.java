@@ -8,26 +8,37 @@ import com.teamops.marketing.common.MarketingMath;
 import com.teamops.marketing.common.RankingChange.Movement;
 
 /**
- * SEO figures for a set of keywords in one month (brief section 28), computed from their standings, never stored.
+ * SEO figures for a set of keywords in one month (brief sections 28 and 29), computed from their standings, never
+ * stored.
  *
  * @param top3 positions 1–3 (also counted in {@code top10})
  * @param top10 positions 1–10 (TOP 10, green)
- * @param ranking positions 11–100 (RANKING, orange)
+ * @param ranking positions 11–100 (RANKING, orange), split into the three bands below
+ * @param positions11to20 positions 11–20
+ * @param positions21to50 positions 21–50
+ * @param positions51to100 positions 51–100
  * @param notRanked no position: recorded as Not Ranked, or nothing recorded for the month (red)
  * @param notRecorded keywords without a row for the month (included in {@code notRanked})
  * @param averagePosition mean of the ranked positions to two decimals, {@code null} when none ranked ("—")
  */
-public record SeoStats(int totalKeywords, int top3, int top10, int ranking, int notRanked, int notRecorded,
-		int improved, int declined, int unchanged, BigDecimal averagePosition) {
+public record SeoStats(int totalKeywords, int top3, int top10, int ranking, int positions11to20, int positions21to50,
+		int positions51to100, int notRanked, int notRecorded, int improved, int declined, int unchanged,
+		BigDecimal averagePosition) {
 
 	public static final SeoStats EMPTY = of(List.of());
 
 	private static final int TOP_3 = 3;
 
+	private static final int BAND_20 = 20;
+
+	private static final int BAND_50 = 50;
+
 	public static SeoStats of(Collection<KeywordStanding> standings) {
 		int top3 = 0;
 		int top10 = 0;
-		int ranking = 0;
+		int to20 = 0;
+		int to50 = 0;
+		int to100 = 0;
 		int notRanked = 0;
 		int notRecorded = 0;
 		int improved = 0;
@@ -35,18 +46,27 @@ public record SeoStats(int totalKeywords, int top3, int top10, int ranking, int 
 		int unchanged = 0;
 		long positionSum = 0;
 		for (KeywordStanding standing : standings) {
-			switch (standing.status()) {
-				case TOP_10 -> {
-					top10++;
-					if (standing.position() <= TOP_3) {
-						top3++;
-					}
-				}
-				case RANKING -> ranking++;
-				case NOT_RANKED -> notRanked++;
+			Integer position = standing.position();
+			if (position == null) {
+				notRanked++;
 			}
-			if (standing.position() != null) {
-				positionSum += standing.position();
+			else {
+				positionSum += position;
+				if (position <= TOP_3) {
+					top3++;
+				}
+				if (position <= 10) {
+					top10++;
+				}
+				else if (position <= BAND_20) {
+					to20++;
+				}
+				else if (position <= BAND_50) {
+					to50++;
+				}
+				else {
+					to100++;
+				}
 			}
 			if (!standing.recorded()) {
 				notRecorded++;
@@ -64,8 +84,9 @@ public record SeoStats(int totalKeywords, int top3, int top10, int ranking, int 
 				}
 			}
 		}
-		return new SeoStats(standings.size(), top3, top10, ranking, notRanked, notRecorded, improved, declined,
-				unchanged, MarketingMath.perUnit(positionSum, top10 + ranking));
+		int ranking = to20 + to50 + to100;
+		return new SeoStats(standings.size(), top3, top10, ranking, to20, to50, to100, notRanked, notRecorded,
+				improved, declined, unchanged, MarketingMath.perUnit(positionSum, top10 + ranking));
 	}
 
 }

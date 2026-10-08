@@ -1,5 +1,8 @@
 package com.teamops.marketing.seo.repository;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -10,6 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import com.teamops.marketing.common.MarketingPeriod;
 import com.teamops.marketing.seo.entity.KeywordStatus;
+import com.teamops.marketing.seo.entity.RankingSource;
 import com.teamops.marketing.seo.service.KeywordStanding;
 
 import lombok.RequiredArgsConstructor;
@@ -24,7 +28,9 @@ public class SeoRankingQuery {
 
 	private static final String SQL = """
 			select k.id as keyword_id, k.page_id, k.status,
-			  cur.id as cur_id, cur.ranking_position as cur_position,
+			  cur.id as cur_id, cur.ranking_position as cur_position, cur.version as cur_version,
+			  cur.search_volume as cur_volume, cur.notes as cur_notes, cur.source as cur_source,
+			  cur.updated_at as cur_updated_at,
 			  prev.id as prev_id, prev.ranking_position as prev_position
 			from marketing_keywords k
 			left join keyword_ranking_history cur
@@ -36,33 +42,70 @@ public class SeoRankingQuery {
 
 	private final NamedParameterJdbcTemplate jdbc;
 
-	public record Row(Long keywordId, Long pageId, KeywordStatus status, KeywordStanding standing) {
+	/**
+	 * The month's history row, so it can be shown and corrected; {@code null} in {@link Row} when nothing was
+	 * recorded for the month.
+	 */
+	public record Entry(Long id, Integer version, Integer searchVolume, String notes, RankingSource source,
+			Instant updatedAt) {
+	}
+
+	public record Row(Long keywordId, Long pageId, KeywordStatus status, KeywordStanding standing, Entry entry) {
 	}
 
 	public List<Row> forKeywords(Collection<Long> keywordIds, MarketingPeriod period) {
-		return query("k.id in (:ids)", keywordIds, period);
+		if (keywordIds.isEmpty()) {
+			return List.of();
+		}
+		return query("k.id in (:ids)", params(period).addValue("ids", keywordIds));
 	}
 
 	public List<Row> forPages(Collection<Long> pageIds, MarketingPeriod period) {
-		return query("k.page_id in (:ids)", pageIds, period);
-	}
-
-	private List<Row> query(String where, Collection<Long> ids, MarketingPeriod period) {
-		if (ids.isEmpty()) {
+		if (pageIds.isEmpty()) {
 			return List.of();
 		}
+		return query("k.page_id in (:ids)", params(period).addValue("ids", pageIds));
+	}
+
+	/** Every keyword that is not archived, optionally for one page and/or owner (the monthly report). */
+	public List<Row> forReport(Long pageId, Long ownerId, MarketingPeriod period) {
+		MapSqlParameterSource params = params(period);
+		StringBuilder where = new StringBuilder("k.status <> 'ARCHIVED'");
+		if (pageId != null) {
+			where.append(" and k.page_id = :pageId");
+			params.addValue("pageId", pageId);
+		}
+		if (ownerId != null) {
+			where.append(" and k.owner_id = :ownerId");
+			params.addValue("ownerId", ownerId);
+		}
+		return query(where.toString(), params);
+	}
+
+	private static MapSqlParameterSource params(MarketingPeriod period) {
 		MarketingPeriod previous = period.previous();
-		MapSqlParameterSource params = new MapSqlParameterSource().addValue("ids", ids)
-			.addValue("year", period.year())
+		return new MapSqlParameterSource().addValue("year", period.year())
 			.addValue("month", period.month())
 			.addValue("previousYear", previous.year())
 			.addValue("previousMonth", previous.month());
+	}
+
+	private List<Row> query(String where, MapSqlParameterSource params) {
 		List<Row> rows = new ArrayList<>();
 		jdbc.query(SQL.formatted(where), params, rs -> {
+			Long currentId = rs.getObject("cur_id", Long.class);
+			// DATETIME columns hold UTC (the JDBC session time zone is UTC).
+			LocalDateTime updatedAt = rs.getObject("cur_updated_at", LocalDateTime.class);
+			Entry entry = currentId == null ? null
+					: new Entry(currentId, rs.getObject("cur_version", Integer.class),
+							rs.getObject("cur_volume", Integer.class), rs.getString("cur_notes"),
+							RankingSource.valueOf(rs.getString("cur_source")),
+							updatedAt == null ? null : updatedAt.toInstant(ZoneOffset.UTC));
 			rows.add(new Row(rs.getLong("keyword_id"), rs.getLong("page_id"),
 					KeywordStatus.valueOf(rs.getString("status")),
-					KeywordStanding.of(rs.getObject("cur_id") != null, rs.getObject("cur_position", Integer.class),
-							rs.getObject("prev_id") != null, rs.getObject("prev_position", Integer.class))));
+					KeywordStanding.of(currentId != null, rs.getObject("cur_position", Integer.class),
+							rs.getObject("prev_id") != null, rs.getObject("prev_position", Integer.class)),
+					entry));
 		});
 		return rows;
 	}

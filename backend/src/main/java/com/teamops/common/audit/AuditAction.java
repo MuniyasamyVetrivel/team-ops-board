@@ -42,6 +42,10 @@ public enum AuditAction {
 	SEO_PAGE_DELETED,
 	SEO_KEYWORD_CREATED,
 	SEO_KEYWORD_UPDATED,
-	SEO_KEYWORD_DELETED
+	SEO_KEYWORD_DELETED,
+	/** A month's position was recorded for a keyword (manual entry; CSV imports are covered by CSV_IMPORTED). */
+	SEO_RANKING_RECORDED,
+	/** An open month's position was corrected ({@code changes} holds from/to). */
+	SEO_RANKING_CORRECTED
 
 }

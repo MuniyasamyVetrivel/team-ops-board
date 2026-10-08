@@ -193,9 +193,9 @@ public class SeoService {
 			.and(SeoSpecifications.keywordStatusIn(statuses))
 			.and(SeoSpecifications.keywordDevice(device));
 		Page<SeoKeyword> page = keywordRepository.findAll(spec, pageable);
-		Map<Long, KeywordStanding> standings = standings(page.getContent().stream().map(SeoKeyword::getId).toList(),
+		Map<Long, SeoRankingQuery.Row> rows = rows(page.getContent().stream().map(SeoKeyword::getId).toList(),
 				period);
-		return PageResponse.of(page.map(k -> KeywordItem.of(k, standings.get(k.getId()))));
+		return PageResponse.of(page.map(k -> toItem(k, rows.get(k.getId()))));
 	}
 
 	public KeywordItem getKeyword(Long id, MarketingPeriod period) {
@@ -291,7 +291,13 @@ public class SeoService {
 	}
 
 	private KeywordItem toItem(SeoKeyword keyword, MarketingPeriod period) {
-		return KeywordItem.of(keyword, standings(List.of(keyword.getId()), period).get(keyword.getId()));
+		return toItem(keyword, rows(List.of(keyword.getId()), period).get(keyword.getId()));
+	}
+
+	/** A keyword with its row for the month ({@code row} is {@code null} only for a keyword not yet visible). */
+	public static KeywordItem toItem(SeoKeyword keyword, SeoRankingQuery.Row row) {
+		return row == null ? KeywordItem.of(keyword, KeywordStanding.unrecorded(), null)
+				: KeywordItem.of(keyword, row.standing(), row.entry());
 	}
 
 	/** Statistics per page over its keywords that are not archived. */
@@ -306,11 +312,10 @@ public class SeoService {
 		return stats;
 	}
 
-	private Map<Long, KeywordStanding> standings(List<Long> keywordIds, MarketingPeriod period) {
-		Map<Long, KeywordStanding> standings = new HashMap<>();
-		rankingQuery.forKeywords(keywordIds, period).forEach(row -> standings.put(row.keywordId(), row.standing()));
-		keywordIds.forEach(id -> standings.putIfAbsent(id, KeywordStanding.unrecorded()));
-		return standings;
+	private Map<Long, SeoRankingQuery.Row> rows(List<Long> keywordIds, MarketingPeriod period) {
+		Map<Long, SeoRankingQuery.Row> rows = new HashMap<>();
+		rankingQuery.forKeywords(keywordIds, period).forEach(row -> rows.put(row.keywordId(), row));
+		return rows;
 	}
 
 	private SeoPage loadPage(Long id) {

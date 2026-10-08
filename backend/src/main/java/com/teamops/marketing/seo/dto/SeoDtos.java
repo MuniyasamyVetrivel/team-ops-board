@@ -11,6 +11,7 @@ import com.teamops.marketing.seo.entity.PageType;
 import com.teamops.marketing.seo.entity.SearchEngine;
 import com.teamops.marketing.seo.entity.SeoKeyword;
 import com.teamops.marketing.seo.entity.SeoPage;
+import com.teamops.marketing.seo.repository.SeoRankingQuery.Entry;
 import com.teamops.marketing.seo.service.KeywordStanding;
 import com.teamops.marketing.seo.service.SeoStats;
 import com.teamops.user.dto.UserSummary;
@@ -90,17 +91,20 @@ public final class SeoDtos {
 
 	}
 
-	/** A keyword with its standing in the requested month. */
+	/**
+	 * A keyword with its standing in the requested month. {@code entry} is the month's history row (for showing and
+	 * correcting it), {@code null} when nothing was recorded.
+	 */
 	public record KeywordItem(Long id, String keyword, PageRef page, SearchEngine searchEngine, String location,
 			Device device, Integer targetPosition, Integer searchVolume, Integer keywordDifficulty, UserSummary owner,
-			KeywordStatus status, KeywordStanding ranking, Instant lastRankedAt, Integer version, Instant createdAt,
-			Instant updatedAt) {
+			KeywordStatus status, KeywordStanding ranking, Entry entry, Instant lastRankedAt, Integer version,
+			Instant createdAt, Instant updatedAt) {
 
-		public static KeywordItem of(SeoKeyword keyword, KeywordStanding ranking) {
+		public static KeywordItem of(SeoKeyword keyword, KeywordStanding ranking, Entry entry) {
 			return new KeywordItem(keyword.getId(), keyword.getKeyword(), PageRef.of(keyword.getPage()),
 					keyword.getSearchEngine(), keyword.getLocation(), keyword.getDevice(), keyword.getTargetPosition(),
 					keyword.getSearchVolume(), keyword.getKeywordDifficulty(), UserSummary.of(keyword.getOwner()),
-					keyword.getStatus(), ranking, keyword.getLastRankedAt(), keyword.getVersion(),
+					keyword.getStatus(), ranking, entry, keyword.getLastRankedAt(), keyword.getVersion(),
 					keyword.getCreatedAt(), keyword.getUpdatedAt());
 		}
 
