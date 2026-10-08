@@ -33,6 +33,8 @@ const ArticlePage = lazy(() => import('@/features/knowledge/ArticlePage'));
 const DocumentsPage = lazy(() => import('@/features/documents/DocumentsPage'));
 const CalendarPage = lazy(() => import('@/features/calendar/CalendarPage'));
 const MarketingHomePage = lazy(() => import('@/features/marketing/MarketingHomePage'));
+const SeoRankingsPage = lazy(() => import('@/features/marketing/seo/SeoRankingsPage'));
+const SeoPageDetailPage = lazy(() => import('@/features/marketing/seo/SeoPageDetailPage'));
 
 /** Pages that exist so far. Every other sidebar entry renders a placeholder naming the phase that builds it. */
 const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
@@ -54,6 +56,7 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
   '/my/calendar': CalendarPage,
   // The marketing home until the executive dashboard replaces it in Phase 19.
   '/digital-marketing': MarketingHomePage,
+  '/digital-marketing/seo': SeoRankingsPage,
 };
 
 /** Detail routes that are not sidebar entries. */
@@ -84,6 +87,18 @@ const detailRoutes: RouteObject[] = [
   },
 ];
 
+/** Marketing detail routes sit inside MarketingLayout too, so the selected month carries over. */
+const marketingDetailRoutes: RouteObject[] = [
+  {
+    path: '/digital-marketing/seo/pages/:id',
+    element: (
+      <RequirePermission permission={['MARKETING_VIEW', 'SEO_VIEW']}>
+        <SeoPageDetailPage />
+      </RequirePermission>
+    ),
+  },
+];
+
 function moduleRoute(item: RouteItem): RouteObject {
   const Page = IMPLEMENTED_PAGES[item.path];
   return {
@@ -99,7 +114,7 @@ function moduleRoute(item: RouteItem): RouteObject {
 /** Digital Marketing pages share one layout, which keeps the month/year/owner filters while moving between them. */
 const moduleRoutes: RouteObject[] = [
   ...NAV_ITEMS.filter((item) => item.sectionId !== 'digital-marketing').map(moduleRoute),
-  { element: <MarketingLayout />, children: NAV_ITEMS.filter((item) => item.sectionId === 'digital-marketing').map(moduleRoute) },
+  { element: <MarketingLayout />, children: [...NAV_ITEMS.filter((item) => item.sectionId === 'digital-marketing').map(moduleRoute), ...marketingDetailRoutes] },
 ];
 
 export const routes: RouteObject[] = [

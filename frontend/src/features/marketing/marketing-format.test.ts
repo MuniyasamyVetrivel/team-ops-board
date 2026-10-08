@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatCount, formatInr, formatMetric, formatPercent, percentChange, periodLabel, previousPeriod } from './marketing-format';
+import { formatCount, formatDecimal, formatInr, formatMetric, formatPercent, percentChange, periodLabel, previousPeriod } from './marketing-format';
 
 describe('marketing formats', () => {
   it('formats the reference values', () => {
@@ -24,6 +24,13 @@ describe('marketing formats', () => {
     expect(percentChange(225, 200)).toBe(12.5);
     expect(percentChange(18, 22)).toBe(-18.2);
     expect(percentChange(5, 5)).toBe(0);
+  });
+
+  it('formats average positions with one decimal', () => {
+    expect(formatDecimal(12.5)).toBe('12.5');
+    expect(formatDecimal(7)).toBe('7');
+    expect(formatDecimal(16.25)).toBe('16.3');
+    expect(formatMetric(null, 'decimal')).toBe('—');
   });
 
   it('names periods and steps back across years', () => {

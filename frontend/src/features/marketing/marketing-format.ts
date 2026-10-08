@@ -15,9 +15,10 @@ export const MONTH_NAMES = [
   'December',
 ] as const;
 
-export type MetricFormat = 'count' | 'percent' | 'currency';
+export type MetricFormat = 'count' | 'decimal' | 'percent' | 'currency';
 
 const countFormat = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
+const decimalFormat = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 1 });
 const percentFormat = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 const inrFormat = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, minimumFractionDigits: 0 });
 
@@ -35,6 +36,11 @@ export function formatCount(value: number | null | undefined): string {
   return value == null ? '—' : countFormat.format(value);
 }
 
+/** "12.5" (one decimal, e.g. an average position). */
+export function formatDecimal(value: number | null | undefined): string {
+  return value == null ? '—' : decimalFormat.format(value);
+}
+
 /** "35.42%". */
 export function formatPercent(value: number | null | undefined): string {
   return value == null ? '—' : `${percentFormat.format(value)}%`;
@@ -46,6 +52,7 @@ export function formatInr(value: number | null | undefined): string {
 }
 
 export function formatMetric(value: number | null | undefined, format: MetricFormat): string {
+  if (format === 'decimal') return formatDecimal(value);
   if (format === 'percent') return formatPercent(value);
   if (format === 'currency') return formatInr(value);
   return formatCount(value);
