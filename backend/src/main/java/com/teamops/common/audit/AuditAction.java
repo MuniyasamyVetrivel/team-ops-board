@@ -72,6 +72,12 @@ public enum AuditAction {
 	/** A month's results were added (by hand or CSV). */
 	PAID_RESULTS_RECORDED,
 	/** A recorded month was corrected; {@code closedMonth} marks a Super Admin correction of a closed month. */
-	PAID_RESULTS_CORRECTED
+	PAID_RESULTS_CORRECTED,
+	/** By hand or CSV ({@code source} in the details). */
+	LEAD_CREATED,
+	/** Details, source, date or link changed ({@code changes} holds from/to); {@code closedMonth} for a Super Admin. */
+	LEAD_UPDATED,
+	LEAD_STATUS_CHANGED,
+	LEAD_DELETED
 
 }

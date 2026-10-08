@@ -26,6 +26,8 @@ public class CodeGenerator {
 
 	public static final String APPROVAL = "APPROVAL";
 
+	public static final String LEAD = "LEAD";
+
 	private final JdbcTemplate jdbcTemplate;
 
 	@Transactional(propagation = Propagation.MANDATORY)
