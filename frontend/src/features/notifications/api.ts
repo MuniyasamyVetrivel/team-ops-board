@@ -28,6 +28,7 @@ export function notificationHref(notification: AppNotification): string | null {
   if (notification.entityType === 'TICKET') return `/tickets?ticket=${notification.entityId}`;
   if (notification.entityType === 'APPROVAL') return `/approvals?approval=${notification.entityId}`;
   if (notification.entityType === 'ANNOUNCEMENT') return '/announcements';
+  if (notification.entityType === 'MARKETING_ACTIVITY') return `/digital-marketing/activities/${notification.entityId}`;
   return null;
 }
 

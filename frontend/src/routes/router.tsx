@@ -36,6 +36,8 @@ const MarketingHomePage = lazy(() => import('@/features/marketing/MarketingHomeP
 const SeoRankingsPage = lazy(() => import('@/features/marketing/seo/SeoRankingsPage'));
 const SeoPageDetailPage = lazy(() => import('@/features/marketing/seo/SeoPageDetailPage'));
 const TargetsPage = lazy(() => import('@/features/marketing/targets/TargetsPage'));
+const ActivitiesPage = lazy(() => import('@/features/marketing/activities/ActivitiesPage'));
+const ActivityDetailPage = lazy(() => import('@/features/marketing/activities/ActivityDetailPage'));
 
 /** Pages that exist so far. Every other sidebar entry renders a placeholder naming the phase that builds it. */
 const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
@@ -59,6 +61,7 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
   '/digital-marketing': MarketingHomePage,
   '/digital-marketing/seo': SeoRankingsPage,
   '/digital-marketing/targets': TargetsPage,
+  '/digital-marketing/activities': ActivitiesPage,
 };
 
 /** Detail routes that are not sidebar entries. */
@@ -96,6 +99,14 @@ const marketingDetailRoutes: RouteObject[] = [
     element: (
       <RequirePermission permission={['MARKETING_VIEW', 'SEO_VIEW']}>
         <SeoPageDetailPage />
+      </RequirePermission>
+    ),
+  },
+  {
+    path: '/digital-marketing/activities/:id',
+    element: (
+      <RequirePermission permission="MARKETING_VIEW">
+        <ActivityDetailPage />
       </RequirePermission>
     ),
   },
