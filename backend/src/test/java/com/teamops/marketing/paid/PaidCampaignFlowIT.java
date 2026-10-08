@@ -169,7 +169,13 @@ class PaidCampaignFlowIT {
 			.andExpect(jsonPath("$.current.figures.rates.costPerLead").value(525.0))
 			.andExpect(jsonPath("$.comparison.campaigns").value(0))
 			.andExpect(jsonPath("$.comparison.figures.rates.costPerLead").isEmpty())
-			.andExpect(jsonPath("$.byPlatform[0].platform").value("LINKEDIN"));
+			.andExpect(jsonPath("$.byPlatform[0].platform").value("LINKEDIN"))
+			// The running (non-draft) campaign's budget against its spend to date: ₹47,000 of ₹50,000.
+			.andExpect(jsonPath("$.budget.campaigns").value(1))
+			.andExpect(jsonPath("$.budget.progress.budget").value(50000.0))
+			.andExpect(jsonPath("$.budget.progress.spent").value(47000.0))
+			.andExpect(jsonPath("$.budget.progress.remaining").value(3000.0))
+			.andExpect(jsonPath("$.budget.progress.usedPct").value(94.0));
 		as(viewerToken, get("/api/marketing/paid-campaigns/trend").param("ownerId", editorId.toString()).param("months", "4"))
 			.andExpect(jsonPath("$.months.length()").value(4))
 			.andExpect(jsonPath("$.months[0].figures.results.leads").value(10))

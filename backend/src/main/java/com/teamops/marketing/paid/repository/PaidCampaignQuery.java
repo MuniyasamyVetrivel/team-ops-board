@@ -38,6 +38,31 @@ public class PaidCampaignQuery {
 
 	}
 
+	/** Campaigns running in a month (not drafts): how many, their summed budgets and their spend to date. */
+	public record Budget(int campaigns, BigDecimal budget, BigDecimal spent) {
+	}
+
+	/** The budget of the non-draft campaigns whose dates overlap the month, with each one's lifetime spend. */
+	public Budget running(MarketingPeriod period, Long ownerId, AdPlatform platform) {
+		MapSqlParameterSource params = new MapSqlParameterSource().addValue("first", period.firstDay())
+			.addValue("last", period.lastDay());
+		String where = "c.status <> 'DRAFT' and c.start_date <= :last and (c.end_date is null or c.end_date >= :first)";
+		if (ownerId != null) {
+			where += " and c.owner_id = :ownerId";
+			params.addValue("ownerId", ownerId);
+		}
+		if (platform != null) {
+			where += " and c.platform = :platform";
+			params.addValue("platform", platform.name());
+		}
+		return jdbc.queryForObject("select count(*) as campaigns, coalesce(sum(c.budget), 0) as budget,"
+				+ " coalesce(sum(s.spent), 0) as spent from paid_campaigns c left join (select campaign_id,"
+				+ " sum(amount_spent) as spent from paid_campaign_metrics group by campaign_id) s on s.campaign_id = c.id"
+				+ " where " + where, params, (rs, i) -> new Budget(rs.getInt("campaigns"),
+						rs.getBigDecimal("budget").setScale(2, java.math.RoundingMode.HALF_UP),
+						rs.getBigDecimal("spent").setScale(2, java.math.RoundingMode.HALF_UP)));
+	}
+
 	/** Each campaign's results, lifetime when {@code period} is null, else for that month only. */
 	public Map<Long, PaidResults> byCampaign(Collection<Long> campaignIds, MarketingPeriod period) {
 		Map<Long, PaidResults> results = new HashMap<>();

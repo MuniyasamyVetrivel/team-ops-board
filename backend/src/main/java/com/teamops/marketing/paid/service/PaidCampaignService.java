@@ -40,6 +40,7 @@ import com.teamops.marketing.paid.dto.PaidCampaignDtos.MonthTotals;
 import com.teamops.marketing.paid.dto.PaidCampaignDtos.MonthlySummary;
 import com.teamops.marketing.paid.dto.PaidCampaignDtos.PaidTrend;
 import com.teamops.marketing.paid.dto.PaidCampaignDtos.PlatformTotals;
+import com.teamops.marketing.paid.dto.PaidCampaignDtos.RunningBudget;
 import com.teamops.marketing.paid.dto.PaidCampaignDtos.SaveCampaign;
 import com.teamops.marketing.paid.dto.PaidCampaignDtos.SaveMonth;
 import com.teamops.marketing.paid.entity.AdDataSource;
@@ -113,12 +114,14 @@ public class PaidCampaignService {
 		return toDetail(load(id), viewer);
 	}
 
-	/** The month across campaigns against a comparison month, plus the month per platform. */
+	/** The month across campaigns against a comparison month, the month per platform, and the running budget. */
 	public MonthlySummary summary(MarketingPeriod period, MarketingPeriod comparison, Long ownerId, AdPlatform platform) {
 		List<PlatformTotals> platforms = new ArrayList<>();
 		campaignQuery.byPlatform(period, ownerId)
 			.forEach((p, totals) -> platforms.add(new PlatformTotals(p, totals.campaigns(), Figures.of(totals.results()))));
-		return new MonthlySummary(monthTotals(period, ownerId, platform), monthTotals(comparison, ownerId, platform), platforms);
+		PaidCampaignQuery.Budget running = campaignQuery.running(period, ownerId, platform);
+		return new MonthlySummary(monthTotals(period, ownerId, platform), monthTotals(comparison, ownerId, platform), platforms,
+				new RunningBudget(running.campaigns(), BudgetProgress.of(running.budget(), running.spent())));
 	}
 
 	/** Spend, leads and rates per month for {@code months} months ending with {@code end}, oldest first. */

@@ -1,4 +1,5 @@
 import { ArrowDownRight, ArrowUpRight, Minus, type LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -15,14 +16,16 @@ interface MarketingKpiCardProps {
   previous?: number | null;
   /** Names the comparison, e.g. "September". */
   previousLabel?: string;
-  /** Whether a rise is good news (leads) or bad news (cost per lead). */
-  better?: 'higher' | 'lower';
+  /** Whether a rise is good news (leads), bad news (cost per lead), or neither (null: spend). */
+  better?: 'higher' | 'lower' | null;
   hint?: string;
   loading?: boolean;
+  /** Extra content under the value, e.g. a progress bar. */
+  children?: ReactNode;
 }
 
 /** A marketing KPI with an optional month-over-month change. Direction is shown by arrow and text, not colour alone. */
-export function MarketingKpiCard({ label, icon: Icon, value, format = 'count', previous, previousLabel = 'last month', better = 'higher', hint, loading }: MarketingKpiCardProps) {
+export function MarketingKpiCard({ label, icon: Icon, value, format = 'count', previous, previousLabel = 'last month', better = 'higher', hint, loading, children }: MarketingKpiCardProps) {
   return (
     <div className="rounded-xl border bg-card p-4 shadow-xs">
       <span className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -37,18 +40,19 @@ export function MarketingKpiCard({ label, icon: Icon, value, format = 'count', p
         </span>
       )}
       {!loading && previous !== undefined && <Change current={value} previous={previous} previousLabel={previousLabel} better={better} />}
+      {!loading && children}
       {hint && <span className="mt-0.5 block truncate text-xs text-muted-foreground">{hint}</span>}
     </div>
   );
 }
 
-function Change({ current, previous, previousLabel, better }: { current: number | null | undefined; previous: number | null; previousLabel: string; better: 'higher' | 'lower' }) {
+function Change({ current, previous, previousLabel, better }: { current: number | null | undefined; previous: number | null; previousLabel: string; better: 'higher' | 'lower' | null }) {
   const change = percentChange(current, previous);
   if (change === null) {
     return <span className="mt-1 block text-xs text-muted-foreground">No comparison with {previousLabel}</span>;
   }
   const Icon = change > 0 ? ArrowUpRight : change < 0 ? ArrowDownRight : Minus;
-  const good = change === 0 ? null : (change > 0) === (better === 'higher');
+  const good = change === 0 || better === null ? null : (change > 0) === (better === 'higher');
   const text = change === 0 ? `No change vs ${previousLabel}` : `${change > 0 ? 'Up' : 'Down'} ${Math.abs(change)}% vs ${previousLabel}`;
   return (
     <span className={cn('mt-1 flex items-center gap-1 text-xs font-medium', good === null ? 'text-muted-foreground' : good ? 'text-status-success' : 'text-status-danger')}>

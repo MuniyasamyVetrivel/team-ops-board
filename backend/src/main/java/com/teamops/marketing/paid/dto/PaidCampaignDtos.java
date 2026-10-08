@@ -114,8 +114,17 @@ public final class PaidCampaignDtos {
 
 	}
 
-	/** The month against a comparison month (the previous one by default), plus the month per platform. */
-	public record MonthlySummary(MonthTotals current, MonthTotals comparison, List<PlatformTotals> byPlatform) {
+	/** Budget of the campaigns running in the month (not drafts) against their spend to date. */
+	public record RunningBudget(int campaigns, BudgetProgress progress) {
+
+	}
+
+	/**
+	 * The month against a comparison month (the previous one by default), the month per platform, and the budget of
+	 * the campaigns running in the month.
+	 */
+	public record MonthlySummary(MonthTotals current, MonthTotals comparison, List<PlatformTotals> byPlatform,
+			RunningBudget budget) {
 
 	}
 
