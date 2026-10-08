@@ -97,6 +97,8 @@ public class DevDataSeeder implements ApplicationRunner {
 
 	private final DevCollaborationSeeder devCollaborationSeeder;
 
+	private final DevSeoSeeder devSeoSeeder;
+
 	@Override
 	public void run(ApplicationArguments args) {
 		if (properties.password() == null || properties.password().length() < 8) {
@@ -143,6 +145,10 @@ public class DevDataSeeder implements ApplicationRunner {
 			log.info("Development seed: {} help desk tickets created", tickets);
 		}
 		log.info("Development seed: {}", devCollaborationSeeder.seed());
+		int keywords = devSeoSeeder.seedIfEmpty();
+		if (keywords > 0) {
+			log.info("Development seed: SEO pages and {} keywords with three months of rankings created", keywords);
+		}
 	}
 
 	record SeedUser(String email, String firstName, String lastName, String jobTitle, String departmentCode,

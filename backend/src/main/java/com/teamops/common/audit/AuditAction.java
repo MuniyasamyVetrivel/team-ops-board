@@ -36,6 +36,12 @@ public enum AuditAction {
 	DOCUMENT_UPLOADED,
 	DOCUMENT_DELETED,
 	/** A validated CSV import was committed (type, file, imported and skipped counts). */
-	CSV_IMPORTED
+	CSV_IMPORTED,
+	SEO_PAGE_CREATED,
+	SEO_PAGE_UPDATED,
+	SEO_PAGE_DELETED,
+	SEO_KEYWORD_CREATED,
+	SEO_KEYWORD_UPDATED,
+	SEO_KEYWORD_DELETED
 
 }
