@@ -122,8 +122,9 @@ class TargetFlowIT {
 		as(readerToken, get("/api/marketing/target-types")).andExpect(status().isOk())
 			.andExpect(jsonPath("$[?(@.code == 'KEYWORDS_TOP10')].automatic").value(Matchers.contains(true)))
 			.andExpect(jsonPath("$[?(@.code == 'LANDING_PAGES_CREATED')].automatic").value(Matchers.contains(true)))
-			// Leads arrive in Phase 16; until then the actual is entered by hand.
-			.andExpect(jsonPath("$[?(@.code == 'WEBSITE_LEADS')].automatic").value(Matchers.contains(false)))
+			// Leads (Phase 16) count automatically; backlinks arrive in Phase 17, so their actual is still entered by hand.
+			.andExpect(jsonPath("$[?(@.code == 'WEBSITE_LEADS')].automatic").value(Matchers.contains(true)))
+			.andExpect(jsonPath("$[?(@.code == 'BACKLINKS')].automatic").value(Matchers.contains(false)))
 			.andExpect(jsonPath("$[?(@.code == 'ORGANIC_LEADS')].leadSourceFilter").value(Matchers.contains("ORGANIC")))
 			.andExpect(jsonPath("$[?(@.code == 'MARKETING_PROSPECTS')].actualSource").value(Matchers.contains("MANUAL")));
 

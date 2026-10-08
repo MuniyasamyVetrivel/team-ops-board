@@ -40,6 +40,7 @@ import com.teamops.marketing.email.entity.EmailCampaignType;
 import com.teamops.marketing.email.repository.EmailCampaignQuery;
 import com.teamops.marketing.email.repository.EmailCampaignQuery.Totals;
 import com.teamops.marketing.email.repository.EmailCampaignRepository;
+import com.teamops.marketing.lead.repository.MarketingLeadRepository;
 import com.teamops.marketing.service.MarketingContextService;
 import com.teamops.user.entity.User;
 import com.teamops.user.entity.UserStatus;
@@ -68,6 +69,8 @@ public class EmailCampaignService {
 	private final EmailCampaignRepository campaignRepository;
 
 	private final EmailCampaignQuery campaignQuery;
+
+	private final MarketingLeadRepository leadRepository;
 
 	private final UserRepository userRepository;
 
@@ -168,6 +171,7 @@ public class EmailCampaignService {
 		}
 		EmailCounts counts = request.counts();
 		validate(request.status(), request.campaignDate(), counts);
+		requireLeadsStillFit(id, request.status(), request.campaignDate());
 		User owner = Objects.equals(userId(campaign.getOwner()), request.ownerId()) ? campaign.getOwner()
 				: resolveOwner(request.ownerId());
 		AuditChanges changes = new AuditChanges().track("name", campaign.getName(), request.name().trim())
@@ -198,6 +202,9 @@ public class EmailCampaignService {
 		if (campaign.getStatus() == EmailCampaignStatus.SENT) {
 			throw ApiException.conflict("CAMPAIGN_SENT", "A sent campaign is part of the monthly figures and cannot be deleted");
 		}
+		if (leadRepository.existsByEmailCampaignId(id)) {
+			throw ApiException.conflict("CAMPAIGN_HAS_LEADS", "Leads name this campaign, so it cannot be deleted");
+		}
 		campaignRepository.delete(campaign);
 		auditService.record(AuditAction.EMAIL_CAMPAIGN_DELETED, actor.id(), ENTITY, id, Map.of("name", campaign.getName()),
 				client);
@@ -217,6 +224,21 @@ public class EmailCampaignService {
 		}
 		if (status == EmailCampaignStatus.SENT && campaignDate.isAfter(calendar.today())) {
 			throw ApiException.badRequest("FUTURE_SEND_DATE", "A sent campaign cannot be dated in the future");
+		}
+	}
+
+	/** Leads that name this campaign need it to stay sent, dated no later than the first of them. */
+	private void requireLeadsStillFit(Long id, EmailCampaignStatus status, LocalDate campaignDate) {
+		LocalDate firstLead = leadRepository.findFirstLeadDateForEmailCampaign(id);
+		if (firstLead == null) {
+			return;
+		}
+		if (status != EmailCampaignStatus.SENT) {
+			throw ApiException.conflict("CAMPAIGN_HAS_LEADS", "Leads name this campaign, so it must stay sent");
+		}
+		if (campaignDate.isAfter(firstLead)) {
+			throw ApiException.conflict("CAMPAIGN_HAS_LEADS",
+					"Leads name this campaign from " + firstLead + "; it cannot be dated after that");
 		}
 	}
 

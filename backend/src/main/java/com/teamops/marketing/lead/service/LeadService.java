@@ -135,7 +135,7 @@ public class LeadService {
 	}
 
 	/** The campaign or content a lead names, resolved and checked against its source and date. */
-	record Links(EmailCampaign email, PaidCampaign paid, ContentItem content) {
+	public record Links(EmailCampaign email, PaidCampaign paid, ContentItem content) {
 
 		static final Links NONE = new Links(null, null, null);
 
@@ -356,8 +356,12 @@ public class LeadService {
 
 	// --- shared with the CSV importer -------------------------------------------------------------------------
 
-	/** A lead date must not be in the future, and its month must be open for the actor. */
-	void requireCountable(LocalDate leadDate, AuthenticatedUser actor) {
+	/**
+	 * A lead date must not be in the future, and its month must be open for the actor. The CSV importer catches the
+	 * ApiException to report the row, so it must not mark the import's transaction rollback-only.
+	 */
+	@Transactional(noRollbackFor = ApiException.class)
+	public void requireCountable(LocalDate leadDate, AuthenticatedUser actor) {
 		if (leadDate.isAfter(calendar.today())) {
 			throw ApiException.badRequest("FUTURE_LEAD_DATE", "A lead cannot be dated in the future");
 		}
@@ -366,9 +370,10 @@ public class LeadService {
 
 	/**
 	 * Resolves the named campaign or content and checks it: one link at most, of the kind the source takes, live,
-	 * and not after the lead date.
+	 * and not after the lead date. Like {@link #requireCountable}, a rejection leaves the caller's transaction intact.
 	 */
-	Links resolveLinks(LeadSource source, Long emailCampaignId, Long paidCampaignId, Long contentItemId,
+	@Transactional(noRollbackFor = ApiException.class)
+	public Links resolveLinks(LeadSource source, Long emailCampaignId, Long paidCampaignId, Long contentItemId,
 			LocalDate leadDate) {
 		int named = (emailCampaignId == null ? 0 : 1) + (paidCampaignId == null ? 0 : 1) + (contentItemId == null ? 0 : 1);
 		if (named == 0) {

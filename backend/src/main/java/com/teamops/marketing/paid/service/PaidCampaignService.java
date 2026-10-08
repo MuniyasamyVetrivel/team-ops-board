@@ -28,9 +28,11 @@ import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.web.ClientInfo;
 import com.teamops.common.web.PageResponse;
+import com.teamops.marketing.common.LeadSource;
 import com.teamops.marketing.common.MarketingMonths;
 import com.teamops.marketing.common.MarketingPeriod;
 import com.teamops.marketing.dto.MarketingDtos.Period;
+import com.teamops.marketing.lead.repository.MarketingLeadRepository;
 import com.teamops.marketing.paid.dto.PaidCampaignDtos.CampaignDetail;
 import com.teamops.marketing.paid.dto.PaidCampaignDtos.CampaignItem;
 import com.teamops.marketing.paid.dto.PaidCampaignDtos.CampaignPermissions;
@@ -86,6 +88,8 @@ public class PaidCampaignService {
 	private final PaidCampaignMonthRepository monthRepository;
 
 	private final PaidCampaignQuery campaignQuery;
+
+	private final MarketingLeadRepository leadRepository;
 
 	private final UserRepository userRepository;
 
@@ -189,6 +193,18 @@ public class PaidCampaignService {
 		if (hasResults) {
 			requireDatesCoverResults(id, request.startDate(), request.endDate());
 		}
+		LocalDate firstLead = leadRepository.findFirstLeadDateForPaidCampaign(id);
+		if (firstLead != null && request.status() == PaidCampaignStatus.DRAFT) {
+			throw ApiException.conflict("CAMPAIGN_HAS_LEADS", "Leads name this campaign, so it cannot go back to draft");
+		}
+		if (firstLead != null && request.startDate().isAfter(firstLead)) {
+			throw ApiException.conflict("CAMPAIGN_HAS_LEADS",
+					"Leads name this campaign from " + firstLead + "; it cannot start after that");
+		}
+		if (firstLead != null && campaign.getPlatform() == AdPlatform.LINKEDIN && platformOf(request) != AdPlatform.LINKEDIN
+				&& leadRepository.existsByPaidCampaignIdAndSource(id, LeadSource.LINKEDIN)) {
+			throw ApiException.conflict("CAMPAIGN_HAS_LEADS", "LinkedIn leads name this campaign, so it stays on LinkedIn");
+		}
 		User owner = Objects.equals(userId(campaign.getOwner()), request.ownerId()) ? campaign.getOwner()
 				: resolveOwner(request.ownerId());
 		AuditChanges changes = new AuditChanges().track("name", campaign.getName(), request.name().trim())
@@ -213,6 +229,9 @@ public class PaidCampaignService {
 		PaidCampaign campaign = load(id);
 		if (monthRepository.existsByCampaignId(id)) {
 			throw ApiException.conflict("CAMPAIGN_HAS_RESULTS", "This campaign has recorded results and cannot be deleted");
+		}
+		if (leadRepository.existsByPaidCampaignId(id)) {
+			throw ApiException.conflict("CAMPAIGN_HAS_LEADS", "Leads name this campaign, so it cannot be deleted");
 		}
 		campaignRepository.delete(campaign);
 		auditService.record(AuditAction.PAID_CAMPAIGN_DELETED, actor.id(), ENTITY, id, Map.of("name", campaign.getName()), client);
