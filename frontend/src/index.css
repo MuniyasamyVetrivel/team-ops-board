@@ -34,6 +34,14 @@
   --status-danger: oklch(0.577 0.245 27.33);
   --status-neutral: oklch(0.551 0.027 264.36);
 
+  /* Categorical series (e.g. one line per keyword). Never used for status, which has its own tokens. */
+  --chart-1: oklch(0.546 0.215 262.88);
+  --chart-2: oklch(0.6 0.118 184.71);
+  --chart-3: oklch(0.558 0.288 302.32);
+  --chart-4: oklch(0.646 0.176 41.12);
+  --chart-5: oklch(0.592 0.249 0.58);
+  --chart-6: oklch(0.488 0.03 256.8);
+
   --radius: 0.625rem;
 }
 
@@ -58,6 +66,12 @@
   --ring: oklch(0.585 0.233 277.12);
   --sidebar: oklch(0.17 0.017 264.7);
   --sidebar-foreground: oklch(0.872 0.01 258.34);
+  --chart-1: oklch(0.707 0.165 254.62);
+  --chart-2: oklch(0.777 0.152 181.91);
+  --chart-3: oklch(0.714 0.203 305.5);
+  --chart-4: oklch(0.75 0.155 55.93);
+  --chart-5: oklch(0.718 0.202 349.76);
+  --chart-6: oklch(0.711 0.035 256.79);
 }
 
 @theme inline {

@@ -1,4 +1,4 @@
-import { Monitor, Pencil, Smartphone } from 'lucide-react';
+import { History, Monitor, Pencil, Smartphone } from 'lucide-react';
 import { Link } from 'react-router';
 
 import { UserCell } from '@/components/common/UserAvatar';
@@ -19,11 +19,13 @@ interface KeywordTableProps {
   showPage?: boolean;
   /** Shown when the viewer may edit keywords. */
   onEdit?: (keyword: KeywordItem) => void;
+  /** Opens the keyword's ranking history. */
+  onHistory?: (keywordId: number) => void;
   dimmed?: boolean;
 }
 
 /** Keywords with their position, previous position and movement for the selected month. */
-export function KeywordTable({ keywords, month, year, showPage = true, onEdit, dimmed }: KeywordTableProps) {
+export function KeywordTable({ keywords, month, year, showPage = true, onEdit, onHistory, dimmed }: KeywordTableProps) {
   return (
     <Table>
       <TableHeader>
@@ -38,7 +40,7 @@ export function KeywordTable({ keywords, month, year, showPage = true, onEdit, d
           <TableHead className="text-right">Difficulty</TableHead>
           <TableHead>Owner</TableHead>
           <TableHead>Status</TableHead>
-          {onEdit && (
+          {(onEdit || onHistory) && (
             <TableHead>
               <span className="sr-only">Actions</span>
             </TableHead>
@@ -81,11 +83,20 @@ export function KeywordTable({ keywords, month, year, showPage = true, onEdit, d
               <TableCell>
                 <KeywordStatusBadge status={keyword.status} />
               </TableCell>
-              {onEdit && (
+              {(onEdit || onHistory) && (
                 <TableCell>
-                  <Button variant="ghost" size="icon" aria-label={`Edit ${keyword.keyword}`} onClick={() => onEdit(keyword)}>
-                    <Pencil aria-hidden />
-                  </Button>
+                  <div className="flex">
+                    {onHistory && (
+                      <Button variant="ghost" size="icon" aria-label={`Ranking history for ${keyword.keyword}`} onClick={() => onHistory(keyword.id)}>
+                        <History aria-hidden />
+                      </Button>
+                    )}
+                    {onEdit && (
+                      <Button variant="ghost" size="icon" aria-label={`Edit ${keyword.keyword}`} onClick={() => onEdit(keyword)}>
+                        <Pencil aria-hidden />
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
               )}
             </TableRow>

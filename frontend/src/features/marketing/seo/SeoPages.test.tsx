@@ -34,6 +34,9 @@ const stats = (overrides: Partial<SeoStats> = {}): SeoStats => ({
   top3: 0,
   top10: 2,
   ranking: 1,
+  positions11to20: 1,
+  positions21to50: 0,
+  positions51to100: 0,
   notRanked: 1,
   notRecorded: 0,
   improved: 3,
@@ -80,6 +83,7 @@ function keyword(overrides: Partial<KeywordItem>): KeywordItem {
     owner: arun,
     status: 'ACTIVE',
     ranking: standing({}),
+    entry: null,
     lastRankedAt: '2026-10-05T05:00:00Z',
     version: 0,
     createdAt: '2026-08-01T05:00:00Z',
@@ -123,6 +127,7 @@ describe('SeoRankingsPage', () => {
       },
       'GET /marketing/pages/options': () => [keywords[0]!.page],
       'GET /marketing/keywords': () => page(keywords),
+      'GET /marketing/imports': () => [],
       'GET /departments': () => [],
     };
   }
@@ -130,7 +135,7 @@ describe('SeoRankingsPage', () => {
   it('lists pages with their figures for the business month', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
     mockApi(routes(requests));
-    renderPage(<SeoRankingsPage />, seoExecutive);
+    renderPage(<SeoRankingsPage />, seoExecutive, '/?tab=pages');
 
     const row = (await screen.findByText('/services/sap-testing')).closest('tr')!;
     expect(within(row).getByText('Service')).toBeInTheDocument();
@@ -138,7 +143,7 @@ describe('SeoRankingsPage', () => {
     expect(within(row).getByText('improved', { exact: false })).toBeInTheDocument();
     expect(within(row).getByText('Active')).toBeInTheDocument();
     expect(requests.at(-1)?.params).toMatchObject({ month: 10, year: 2026, status: ['ACTIVE', 'INACTIVE'] });
-    expect(screen.getByText(/positions for October 2026/)).toBeInTheDocument();
+    expect(screen.getByText(/October 2026/, { selector: 'p' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add page' })).toBeInTheDocument();
   });
 
@@ -170,7 +175,7 @@ describe('SeoRankingsPage', () => {
   it('validates the page URL before calling the server', async () => {
     const user = userEvent.setup();
     mockApi(routes());
-    renderPage(<SeoRankingsPage />, seoExecutive);
+    renderPage(<SeoRankingsPage />, seoExecutive, '/?tab=pages');
 
     await user.click(await screen.findByRole('button', { name: 'Add page' }));
     await user.type(screen.getByLabelText(/Page URL/), 'services page');
@@ -191,6 +196,7 @@ describe('SeoPageDetailPage', () => {
     mockApi({
       'GET /marketing/context': () => context,
       'GET /marketing/pages/1': () => pageDetail,
+      'GET /marketing/pages/1/rankings': () => ({ periods: [], series: [], averages: [] }),
       'GET /marketing/keywords': (config) => {
         keywordRequests.push(config);
         return page(keywords.slice(0, 2));

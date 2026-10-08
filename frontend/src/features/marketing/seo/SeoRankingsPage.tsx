@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, FileText, KeyRound, Plus } from 'lucide-react';
+import { ArrowDown, ArrowUp, ClipboardPen, FileText, FileUp, KeyRound, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
@@ -19,18 +19,25 @@ import { useAuth } from '@/features/auth/use-auth';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { cn } from '@/lib/utils';
 
+import { useImportDefinitions } from '../api';
+import { CsvImportDialog } from '../components/CsvImportDialog';
 import { MarketingFilterBar } from '../components/MarketingFilterBar';
 import { formatCount, formatDecimal, periodLabel } from '../marketing-format';
 import type { MarketingFilters } from '../filter-memory';
 import { useMarketingFilters } from '../use-marketing-filters';
-import { DEVICES, KEYWORD_STATUSES, PAGE_STATUSES, PAGE_TYPES, useSeoKeywords, useSeoPageOptions, useSeoPages, type Device, type KeywordItem, type KeywordStatus, type PageStatus, type PageType } from './api';
+import { DEVICES, KEYWORD_STATUSES, PAGE_STATUSES, PAGE_TYPES, RANKING_IMPORT_TYPE, useSeoKeywords, useSeoPageOptions, useSeoPages, type Device, type KeywordItem, type KeywordStatus, type PageStatus, type PageType } from './api';
 import { KeywordFormDialog } from './KeywordFormDialog';
+import { KeywordHistorySheet } from './KeywordHistorySheet';
 import { KeywordTable } from './KeywordTable';
+import { MonthlyRecordSheet } from './MonthlyRecordSheet';
+import { MonthlySummary } from './MonthlySummary';
 import { PageFormDialog } from './PageFormDialog';
+import { RankingsTab } from './RankingsTab';
 import { PageStatusBadge } from './SeoBadges';
 import { DEVICE_LABELS, KEYWORD_STATUS_LABELS, PAGE_STATUS_LABELS, PAGE_TYPE_LABELS } from './seo-meta';
 
-type Tab = 'pages' | 'keywords';
+const TABS = ['rankings', 'summary', 'pages', 'keywords'] as const;
+type Tab = (typeof TABS)[number];
 
 /** "Not archived" is the default view for both pages and keywords. */
 const OPEN_PAGE_STATUSES: PageStatus[] = ['ACTIVE', 'INACTIVE'];
@@ -50,23 +57,28 @@ const KEYWORD_SORTS = [
   { value: 'updated,desc', label: 'Recently updated' },
 ];
 
-/** SEO Rankings: website pages and their keywords, with positions for the selected month. */
+/**
+ * SEO Rankings: the monthly ranking table, the monthly summary, and the pages and keywords being tracked, all for the
+ * selected month. The rankings table is the default tab (?tab=summary|pages|keywords for the others).
+ */
 export default function SeoRankingsPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const { filters } = useMarketingFilters();
   const [params, setParams] = useSearchParams();
-  const tab: Tab = params.get('tab') === 'keywords' ? 'keywords' : 'pages';
-  const [addingPage, setAddingPage] = useState(false);
-  const [addingKeyword, setAddingKeyword] = useState(false);
+  const requested = params.get('tab');
+  const tab: Tab = TABS.find((t) => t === requested) ?? 'rankings';
+  const [recording, setRecording] = useState(false);
+  const [importing, setImporting] = useState(false);
   const canEdit = hasPermission(user, 'SEO_EDIT');
+  // Offered by the server only to users who may run it (SEO_EDIT).
+  const rankingImport = useImportDefinitions().data?.find((d) => d.type === RANKING_IMPORT_TYPE);
 
   function selectTab(next: string) {
     setParams(
       (existing) => {
         const updated = new URLSearchParams(existing);
-        if (next === 'keywords') updated.set('tab', 'keywords');
-        else updated.delete('tab');
+        if (next === 'rankings') updated.delete('tab');
+        else updated.set('tab', next);
         return updated;
       },
       { replace: true },
@@ -77,17 +89,19 @@ export default function SeoRankingsPage() {
     <div className="space-y-6">
       <PageHeader
         title="SEO Rankings"
-        description={filters ? `Website pages and keywords · positions for ${periodLabel(filters.month, filters.year)}` : 'Website pages and keywords'}
+        description={filters ? `Monthly keyword positions · ${periodLabel(filters.month, filters.year)}` : 'Monthly keyword positions'}
         actions={
           canEdit && (
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setAddingKeyword(true)}>
-                <KeyRound aria-hidden />
-                Add keyword
-              </Button>
-              <Button onClick={() => setAddingPage(true)}>
-                <Plus aria-hidden />
-                Add page
+            <div className="flex flex-wrap gap-2">
+              {rankingImport && (
+                <Button variant="outline" onClick={() => setImporting(true)}>
+                  <FileUp aria-hidden />
+                  Import CSV
+                </Button>
+              )}
+              <Button disabled={!filters} onClick={() => setRecording(true)}>
+                <ClipboardPen aria-hidden />
+                Record rankings
               </Button>
             </div>
           )
@@ -96,16 +110,20 @@ export default function SeoRankingsPage() {
       <MarketingFilterBar />
       <Card>
         <Tabs value={tab} onValueChange={selectTab}>
-          <TabsList>
+          <TabsList className="overflow-x-auto">
+            <TabsTrigger value="rankings">Rankings</TabsTrigger>
+            <TabsTrigger value="summary">Monthly summary</TabsTrigger>
             <TabsTrigger value="pages">Pages</TabsTrigger>
             <TabsTrigger value="keywords">Keywords</TabsTrigger>
           </TabsList>
-          <TabsContent value="pages">{filters ? <PagesTab filters={filters} /> : <ListSkeleton label="Loading pages" />}</TabsContent>
+          <TabsContent value="rankings">{filters ? <RankingsTab filters={filters} canEdit={canEdit} /> : <ListSkeleton label="Loading rankings" />}</TabsContent>
+          <TabsContent value="summary">{filters ? <MonthlySummary filters={filters} /> : <ListSkeleton label="Loading the monthly summary" />}</TabsContent>
+          <TabsContent value="pages">{filters ? <PagesTab filters={filters} canEdit={canEdit} /> : <ListSkeleton label="Loading pages" />}</TabsContent>
           <TabsContent value="keywords">{filters ? <KeywordsTab filters={filters} canEdit={canEdit} /> : <ListSkeleton label="Loading keywords" />}</TabsContent>
         </Tabs>
       </Card>
-      <PageFormDialog open={addingPage} onOpenChange={setAddingPage} onSaved={(page) => void navigate(`/digital-marketing/seo/pages/${page.id}`)} />
-      <KeywordFormDialog open={addingKeyword} onOpenChange={setAddingKeyword} />
+      {filters && <MonthlyRecordSheet open={recording} onOpenChange={setRecording} month={filters.month} year={filters.year} />}
+      {rankingImport && <CsvImportDialog definition={rankingImport} open={importing} onOpenChange={setImporting} />}
     </div>
   );
 }
@@ -120,8 +138,9 @@ function ListSkeleton({ label }: { label: string }) {
   );
 }
 
-function PagesTab({ filters }: { filters: MarketingFilters }) {
+function PagesTab({ filters, canEdit }: { filters: MarketingFilters; canEdit: boolean }) {
   const navigate = useNavigate();
+  const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState('');
   const [type, setType] = useState('');
   const [status, setStatus] = useState('open');
@@ -153,7 +172,7 @@ function PagesTab({ filters }: { filters: MarketingFilters }) {
 
   return (
     <>
-      <div className="grid gap-3 border-b p-4 sm:grid-cols-2 lg:grid-cols-[1fr_repeat(3,minmax(0,11rem))]">
+      <div className="grid gap-3 border-b p-4 sm:grid-cols-2 lg:grid-cols-[1fr_repeat(3,minmax(0,11rem))_auto]">
         <SearchInput placeholder="Search title, URL or primary keyword" aria-label="Search pages" value={search} onChange={(e) => filter(setSearch)(e.target.value)} />
         <Select aria-label="Page type" value={type} onChange={(e) => filter(setType)(e.target.value)}>
           <option value="">All page types</option>
@@ -179,6 +198,12 @@ function PagesTab({ filters }: { filters: MarketingFilters }) {
             </option>
           ))}
         </Select>
+        {canEdit && (
+          <Button onClick={() => setAdding(true)}>
+            <Plus aria-hidden />
+            Add page
+          </Button>
+        )}
       </div>
       {pages.isPending ? (
         <ListSkeleton label="Loading pages" />
@@ -252,6 +277,7 @@ function PagesTab({ filters }: { filters: MarketingFilters }) {
           <Pagination {...pages.data} onPageChange={setPage} />
         </>
       )}
+      <PageFormDialog open={adding} onOpenChange={setAdding} onSaved={(saved) => void navigate(`/digital-marketing/seo/pages/${saved.id}`)} />
     </>
   );
 }
@@ -265,6 +291,8 @@ function KeywordsTab({ filters, canEdit }: { filters: MarketingFilters; canEdit:
   const [sort, setSort] = useState(KEYWORD_SORTS[0]!.value);
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<KeywordItem | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [historyOf, setHistoryOf] = useState<number | null>(null);
   const debounced = useDebouncedValue(search.trim());
 
   const keywords = useSeoKeywords({
@@ -291,7 +319,7 @@ function KeywordsTab({ filters, canEdit }: { filters: MarketingFilters; canEdit:
 
   return (
     <>
-      <div className="grid gap-3 border-b p-4 sm:grid-cols-2 lg:grid-cols-[1fr_repeat(4,minmax(0,10rem))]">
+      <div className="grid gap-3 border-b p-4 sm:grid-cols-2 lg:grid-cols-[1fr_repeat(4,minmax(0,10rem))_auto]">
         <SearchInput placeholder="Search keywords" aria-label="Search keywords" value={search} onChange={(e) => filter(setSearch)(e.target.value)} />
         <Select aria-label="Page" value={pageId} onChange={(e) => filter(setPageId)(e.target.value)}>
           <option value="">All pages</option>
@@ -325,6 +353,12 @@ function KeywordsTab({ filters, canEdit }: { filters: MarketingFilters; canEdit:
             </option>
           ))}
         </Select>
+        {canEdit && (
+          <Button onClick={() => setAdding(true)}>
+            <KeyRound aria-hidden />
+            Add keyword
+          </Button>
+        )}
       </div>
       {keywords.isPending ? (
         <ListSkeleton label="Loading keywords" />
@@ -338,11 +372,13 @@ function KeywordsTab({ filters, canEdit }: { filters: MarketingFilters; canEdit:
         />
       ) : (
         <>
-          <KeywordTable keywords={keywords.data.content} month={filters.month} year={filters.year} onEdit={canEdit ? setEditing : undefined} dimmed={keywords.isPlaceholderData} />
+          <KeywordTable keywords={keywords.data.content} month={filters.month} year={filters.year} onEdit={canEdit ? setEditing : undefined} onHistory={setHistoryOf} dimmed={keywords.isPlaceholderData} />
           <Pagination {...keywords.data} onPageChange={setPage} />
         </>
       )}
       <KeywordFormDialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)} keyword={editing ?? undefined} />
+      <KeywordFormDialog open={adding} onOpenChange={setAdding} />
+      <KeywordHistorySheet keywordId={historyOf} onOpenChange={(open) => !open && setHistoryOf(null)} month={filters.month} year={filters.year} canEdit={canEdit} />
     </>
   );
 }
