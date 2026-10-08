@@ -85,6 +85,8 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
 - Integration seams are interfaces with manual implementations for now: `FileStorageService`, `SeoRankingProvider`, `EmailCampaignProvider`, `PaidCampaignProvider`, `AnalyticsProvider`, `LeadProvider`, `ReportExporter`.
 - File uploads must validate type, size and filename, and go through `FileStorageService`. Local storage for now.
 - "Today" always comes from `BusinessCalendar` (`APP_TIME_ZONE`, default Asia/Kolkata). Never use the server clock or the browser for due-today or overdue. The server sends `dueState`; the UI only renders it, and parses dates with `parseLocalDate`.
+- CSV imports: implement `CsvImporter` (columns, permission, `ImportSession.parse` with `RowReader`, `key`, `commit`) and register it as a bean. `CsvImportService` handles upload checks, preview, duplicates and the checksum-bound commit. Don't write another import flow. On the frontend, reuse `CsvImportDialog`.
+- Marketing figures: use `MarketingMath`, `RankingStatus`, `RankingChange`, `TargetProgress` and `MarketingPeriod` (in `com.teamops.marketing.common`). Marketing pages read the filters with `useMarketingFilters()` and render with `MarketingKpiCard`, `RankingBadge`, `RankingChangeIndicator` and `TargetProgress`.
 - Human-readable codes come from `CodeGenerator.next(...)`, which must run inside the caller's transaction.
 - Uploads go through `FileService` (validation in `UploadPolicy`, bytes stored by `FileStorageService`), and downloads are always served as attachments with `nosniff`.
 - Task authorization lives in `TaskAccess`; reuse it and don't re-implement the checks. Return 404 (not 403) for tasks the user can't see.

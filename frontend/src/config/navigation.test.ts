@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { NAVIGATION, visibleNavigation } from '@/config/navigation';
+import { NAV_ITEMS, NAVIGATION, visibleNavigation } from '@/config/navigation';
 import { seoExecutive, superAdmin, webEmployee } from '@/test/fixtures';
 
 function labels(viewer: Parameters<typeof visibleNavigation>[0]) {
@@ -40,5 +40,12 @@ describe('visibleNavigation', () => {
     for (const section of visibleNavigation(webEmployee)) {
       expect(section.items.length).toBeGreaterThan(0);
     }
+  });
+
+  it('makes every marketing route require MARKETING_VIEW as well as its own permission', () => {
+    const seo = NAV_ITEMS.find((item) => item.path === '/digital-marketing/seo');
+    expect(seo?.requires).toEqual(['MARKETING_VIEW', 'SEO_VIEW']);
+    expect(NAV_ITEMS.find((item) => item.path === '/digital-marketing')?.requires).toEqual(['MARKETING_VIEW']);
+    expect(NAV_ITEMS.find((item) => item.path === '/tasks')?.requires).toEqual(['TASK_VIEW']);
   });
 });

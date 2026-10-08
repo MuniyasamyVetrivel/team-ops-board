@@ -193,3 +193,18 @@ npm run build
   - Every upload of a document becomes a new numbered version, and all versions stay downloadable.
   - Visible company-wide, within the owning department, or to the uploader.
 - **Calendar** (`/my/calendar`): month, week and agenda views that combine events and leave, task deadlines, open project milestones and pending approval due dates. Events are added and edited in place (`CALENDAR_EDIT`).
+
+## Digital Marketing foundation (Phase 9)
+
+- **Access**: every `/api/marketing/**` endpoint requires `MARKETING_VIEW` (a URL rule in `SecurityConfig`, plus `@PreAuthorize` on each controller). The sidebar section and every `/digital-marketing/*` route require `MARKETING_VIEW` and the page's own permission (e.g. `SEO_VIEW`).
+- **Consistent grants**: user administration rejects marketing permissions without `MARKETING_VIEW` (`MARKETING_VIEW_REQUIRED`) and an edit permission without its view permission (`VIEW_PERMISSION_REQUIRED`). The access editor ticks and unticks these dependencies for you.
+- **Context** (`GET /api/marketing/context`): the business "today", the default month, selectable years, the people who can own marketing work (active holders of `MARKETING_VIEW`) and the target "behind" threshold.
+- **Filters**: month, year and owner live in the URL (`?month=10&year=2026&owner=7`) and are kept when moving between marketing pages.
+- **Business rules** (`com.teamops.marketing.common`): `MarketingMath` (email and paid rates; division by zero gives `null`), `RankingStatus`, `RankingChange`, `TargetProgress` and `MarketingPeriod`. The modules in Phases 10–19 compute every figure with these.
+- **Data sources** (`GET /api/marketing/integrations`): `SeoRankingProvider`, `EmailCampaignProvider`, `PaidCampaignProvider`, `AnalyticsProvider` and `LeadProvider`, all manual for now. An integration replaces one by registering a `@Primary` bean.
+- **CSV imports** (`/api/marketing/imports`):
+  - Flow: `GET` lists the imports you may run, `GET /{type}/template` downloads a template, `POST /{type}/preview` validates the file, and `POST /{type}/commit` imports it.
+  - The preview saves nothing. It returns the valid rows, the invalid rows and each row's errors (including duplicate rows).
+  - The commit must send the preview's `checksum`, so only the file that was previewed can be imported. It re-validates the file in one transaction and never saves an invalid row. If any row is invalid, it is refused unless `skipInvalid=true`.
+  - Limits: UTF-8 CSV, 2 MB, 5,000 rows.
+  - Each module adds its importer by implementing `CsvImporter`, starting with keywords in Phase 10. Until then the list is empty.

@@ -154,6 +154,17 @@ export function visibleNavigation(viewer: Viewer): NavSection[] {
     .filter((section) => section.items.length > 0);
 }
 
-export const NAV_ITEMS: NavItem[] = NAVIGATION.flatMap((section) =>
-  section.items.map((item) => ({ ...item, permission: item.permission ?? section.permission })),
+export interface RouteItem extends NavItem {
+  sectionId: string;
+  /** Every permission needed to open the route: the section's and the item's own. */
+  requires: PermissionCode[];
+}
+
+/** Flat list of sidebar routes. A route needs both its section's permission and its own, as the sidebar shows it. */
+export const NAV_ITEMS: RouteItem[] = NAVIGATION.flatMap((section) =>
+  section.items.map((item) => ({
+    ...item,
+    sectionId: section.id,
+    requires: [...new Set([section.permission, item.permission].filter((p): p is PermissionCode => p !== undefined))],
+  })),
 );

@@ -11,7 +11,7 @@ import { hasPermission, isSuperAdmin, ROLE_LABELS, type PermissionCode, type Rol
 import { useAuth } from '@/features/auth/use-auth';
 import { errorMessage } from '@/lib/api/errors';
 
-import { effectiveGrants, groupByModule, inheritedPermissions, MODULE_LABELS } from './access';
+import { effectiveGrants, groupByModule, inheritedPermissions, MODULE_LABELS, toggleGrant } from './access';
 import { usePermissions, useRoles, useUpdateAccess, type UserDetail } from './api';
 
 /**
@@ -52,7 +52,7 @@ export function AccessEditor({ user }: { user: UserDetail }) {
   const dirty = role !== (user.roles[0] ?? 'EMPLOYEE') || nextGrants.join() !== [...user.directPermissions].sort().join();
 
   function toggle(code: PermissionCode, checked: boolean) {
-    setGrants((current) => (checked ? [...current, code] : current.filter((c) => c !== code)));
+    setGrants((current) => toggleGrant(current, code, checked));
   }
 
   async function save() {
@@ -105,6 +105,11 @@ export function AccessEditor({ user }: { user: UserDetail }) {
               <p className="border-b bg-muted/40 px-3 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 {MODULE_LABELS[module] ?? module}
               </p>
+              {module === 'MARKETING' && (
+                <p className="px-3 pt-2.5 text-xs text-muted-foreground">
+                  The Digital Marketing menu needs View Digital Marketing. Edit permissions include their view permission.
+                </p>
+              )}
               <ul className="grid gap-x-4 gap-y-2 p-3 sm:grid-cols-2">
                 {permissions.map((permission) => {
                   const fromRole = inherited.has(permission.code);
