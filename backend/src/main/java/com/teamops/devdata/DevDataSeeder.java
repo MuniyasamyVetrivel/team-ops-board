@@ -99,6 +99,8 @@ public class DevDataSeeder implements ApplicationRunner {
 
 	private final DevSeoSeeder devSeoSeeder;
 
+	private final DevTargetSeeder devTargetSeeder;
+
 	@Override
 	public void run(ApplicationArguments args) {
 		if (properties.password() == null || properties.password().length() < 8) {
@@ -148,6 +150,10 @@ public class DevDataSeeder implements ApplicationRunner {
 		int keywords = devSeoSeeder.seedIfEmpty();
 		if (keywords > 0) {
 			log.info("Development seed: SEO pages and {} keywords with three months of rankings created", keywords);
+		}
+		int targets = devTargetSeeder.seedIfEmpty();
+		if (targets > 0) {
+			log.info("Development seed: {} monthly marketing targets created", targets);
 		}
 	}
 

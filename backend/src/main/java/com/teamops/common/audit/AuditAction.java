@@ -46,6 +46,13 @@ public enum AuditAction {
 	/** A month's position was recorded for a keyword (manual entry; CSV imports are covered by CSV_IMPORTED). */
 	SEO_RANKING_RECORDED,
 	/** An open month's position was corrected ({@code changes} holds from/to). */
-	SEO_RANKING_CORRECTED
+	SEO_RANKING_CORRECTED,
+	TARGET_TYPE_CREATED,
+	TARGET_TYPE_UPDATED,
+	TARGET_TYPE_DELETED,
+	TARGET_CREATED,
+	/** A month's target, actual, owner or notes changed ({@code changes} holds from/to). */
+	TARGET_UPDATED,
+	TARGET_DELETED
 
 }
