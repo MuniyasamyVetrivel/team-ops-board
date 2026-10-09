@@ -85,6 +85,12 @@ public enum AuditAction {
 	BACKLINK_UPDATED,
 	/** Moved to another status, with the stage dates it set or cleared. */
 	BACKLINK_STATUS_CHANGED,
-	BACKLINK_DELETED
+	BACKLINK_DELETED,
+	CONTENT_CREATED,
+	/** Details, status or dates changed ({@code changes} holds from/to); {@code closedMonth} for a Super Admin. */
+	CONTENT_UPDATED,
+	/** Moved to another status, with the publication or refresh date it set or cleared. */
+	CONTENT_STATUS_CHANGED,
+	CONTENT_DELETED
 
 }

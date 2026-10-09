@@ -41,6 +41,10 @@ public interface MarketingLeadRepository extends JpaRepository<MarketingLead, Lo
 	@Query("select min(l.leadDate) from MarketingLead l where l.emailCampaign.id = :id")
 	LocalDate findFirstLeadDateForEmailCampaign(@Param("id") Long emailCampaignId);
 
+	/** The earliest lead date naming this content item; null when none. */
+	@Query("select min(l.leadDate) from MarketingLead l where l.contentItem.id = :id")
+	LocalDate findFirstLeadDateForContent(@Param("id") Long contentItemId);
+
 	/** The earliest lead date naming this paid campaign; null when none. */
 	@Query("select min(l.leadDate) from MarketingLead l where l.paidCampaign.id = :id")
 	LocalDate findFirstLeadDateForPaidCampaign(@Param("id") Long paidCampaignId);

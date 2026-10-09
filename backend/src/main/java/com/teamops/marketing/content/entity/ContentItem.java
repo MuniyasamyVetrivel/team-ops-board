@@ -23,8 +23,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * A piece of marketing content (brief section 45). Leads link to the content that brought them in; the content
- * module itself (CRUD and monthly figures) arrives in Phase 18.
+ * A piece of marketing content (brief section 47). While it is live (PUBLISHED or UPDATED) it counts in the month of
+ * its publication date; a blog counts towards the monthly blog target. Leads link to the content that brought them in.
  */
 @Getter
 @Setter
@@ -51,8 +51,16 @@ public class ContentItem extends BaseEntity {
 	@JoinColumn(name = "owner_id")
 	private User owner;
 
+	/** The month it is planned for (any status); may be in the future. */
+	@Column(name = "planned_date")
+	private LocalDate plannedDate;
+
 	@Column(name = "publication_date")
 	private LocalDate publicationDate;
+
+	/** When an UPDATED item was last refreshed. */
+	@Column(name = "refreshed_date")
+	private LocalDate refreshedDate;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "target_keyword_id")
@@ -78,6 +86,10 @@ public class ContentItem extends BaseEntity {
 
 	@Column(name = "notes", length = 2000)
 	private String notes;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "created_by", updatable = false)
+	private User createdBy;
 
 	@Version
 	@Column(name = "version", nullable = false)

@@ -143,7 +143,7 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
   - Conversion rate = conversions ÷ leads × 100.
   - Remaining budget = budget − spent.
 - **Backlinks**: track target, submitted, approved, live and remaining separately for each month. Each stage counts in the month of its own date; remaining = max(target − submitted, 0) (brief §46: 50 − 35 = 15), while the Backlinks target's achievement counts live links. Stage rules live in `BacklinkRules`.
-- **Content**: track target, published, remaining and leads for each month.
+- **Content**: track target, published, remaining and leads for each month. Live content (PUBLISHED/UPDATED) counts in the month of its publication date; the blog target counts BLOG items only; remaining = max(target − published, 0) (12 − 9 = 3). Publishing rules live in `ContentRules`.
 - **Recurring activities** (DAILY/WEEKLY/MONTHLY/QUARTERLY/YEARLY): completing an occurrence (or its generated task) creates the next occurrence and its task. Past occurrences stay in history. Unique key: activity + period_start.
 - **CSV import**: validate first and show valid records, invalid records and errors. Never silently insert bad data.
 - Division by zero gives `null`, which the UI shows as "—".

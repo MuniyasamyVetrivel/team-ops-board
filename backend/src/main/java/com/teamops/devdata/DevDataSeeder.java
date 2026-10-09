@@ -111,6 +111,8 @@ public class DevDataSeeder implements ApplicationRunner {
 
 	private final DevBacklinkSeeder devBacklinkSeeder;
 
+	private final DevContentSeeder devContentSeeder;
+
 	@Override
 	public void run(ApplicationArguments args) {
 		if (properties.password() == null || properties.password().length() < 8) {
@@ -176,6 +178,11 @@ public class DevDataSeeder implements ApplicationRunner {
 		int paidCampaigns = devPaidCampaignSeeder.seedIfEmpty();
 		if (paidCampaigns > 0) {
 			log.info("Development seed: {} paid campaigns created", paidCampaigns);
+		}
+		// Content before leads, so blog leads can name the posts live on their date.
+		int content = devContentSeeder.seed();
+		if (content > 0) {
+			log.info("Development seed: {} content items created", content);
 		}
 		int leads = devLeadSeeder.seedIfEmpty();
 		if (leads > 0) {

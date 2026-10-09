@@ -122,11 +122,11 @@ class TargetFlowIT {
 		as(readerToken, get("/api/marketing/target-types")).andExpect(status().isOk())
 			.andExpect(jsonPath("$[?(@.code == 'KEYWORDS_TOP10')].automatic").value(Matchers.contains(true)))
 			.andExpect(jsonPath("$[?(@.code == 'LANDING_PAGES_CREATED')].automatic").value(Matchers.contains(true)))
-			// Leads (Phase 16) and backlinks (Phase 17) count automatically; blogs arrive in Phase 18, so their actual is
-			// still entered by hand.
+			// Leads (Phase 16), backlinks (Phase 17) and blogs (Phase 18) count automatically; a MANUAL type does not.
 			.andExpect(jsonPath("$[?(@.code == 'WEBSITE_LEADS')].automatic").value(Matchers.contains(true)))
 			.andExpect(jsonPath("$[?(@.code == 'BACKLINKS')].automatic").value(Matchers.contains(true)))
-			.andExpect(jsonPath("$[?(@.code == 'BLOGS_PUBLISHED')].automatic").value(Matchers.contains(false)))
+			.andExpect(jsonPath("$[?(@.code == 'BLOGS_PUBLISHED')].automatic").value(Matchers.contains(true)))
+			.andExpect(jsonPath("$[?(@.code == 'MARKETING_PROSPECTS')].automatic").value(Matchers.contains(false)))
 			.andExpect(jsonPath("$[?(@.code == 'ORGANIC_LEADS')].leadSourceFilter").value(Matchers.contains("ORGANIC")))
 			.andExpect(jsonPath("$[?(@.code == 'MARKETING_PROSPECTS')].actualSource").value(Matchers.contains("MANUAL")));
 
