@@ -1,6 +1,8 @@
 package com.teamops.marketing.target.service;
 
 import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.teamops.marketing.common.MarketingPeriod;
@@ -21,5 +23,16 @@ public interface TargetActualSource {
 	 * there is no data for it, as opposed to a measured zero.
 	 */
 	Map<MarketingPeriod, BigDecimal> actuals(TargetType type, MarketingPeriod from, MarketingPeriod to);
+
+	/**
+	 * Actuals for several types of this source at once, by type id. Sources whose types share one aggregation (e.g.
+	 * leads by source) override this to run it once.
+	 */
+	default Map<Long, Map<MarketingPeriod, BigDecimal>> actualsFor(Collection<TargetType> types, MarketingPeriod from,
+			MarketingPeriod to) {
+		Map<Long, Map<MarketingPeriod, BigDecimal>> byType = new HashMap<>();
+		types.forEach(type -> byType.put(type.getId(), actuals(type, from, to)));
+		return byType;
+	}
 
 }

@@ -22,6 +22,11 @@ public interface SeoPageRepository extends JpaRepository<SeoPage, Long>, JpaSpec
 	@EntityGraph(attributePaths = { "department", "owner" })
 	Optional<SeoPage> findDetailedById(Long id);
 
+	/** Pages that are not archived (the dashboard's total pages). */
+	long countByStatusNot(PageStatus status);
+
+	long countByStatusNotAndOwner_Id(PageStatus status, Long ownerId);
+
 	/** Page pickers: everything not archived, by title. */
 	List<SeoPage> findByStatusNotOrderByTitleAsc(PageStatus status);
 

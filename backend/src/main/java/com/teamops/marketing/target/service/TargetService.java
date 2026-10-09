@@ -289,15 +289,9 @@ public class TargetService {
 		boolean future = TargetRules.isFuture(period, today);
 		boolean canEdit = viewer.hasPermission(TARGET_EDIT)
 				&& TargetRules.canChange(period, today, viewer.isSuperAdmin());
-		// One aggregation per automatic type in the month (at most one query each).
-		Map<Long, BigDecimal> computed = new HashMap<>();
-		if (!future) {
-			targets.stream()
-				.map(MarketingTarget::getType)
-				.filter(actuals::isAutomatic)
-				.distinct()
-				.forEach(type -> computed.put(type.getId(), actuals.computed(type, period, period).get(period)));
-		}
+		// One aggregation per actual source in the month (types sharing a source share its query).
+		Map<Long, BigDecimal> computed = future ? Map.of()
+				: actuals.computedFor(targets.stream().map(MarketingTarget::getType).toList(), period);
 		return targets.stream().map(target -> {
 			TargetType type = target.getType();
 			boolean automatic = actuals.isAutomatic(type);

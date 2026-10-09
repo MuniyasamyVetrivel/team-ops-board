@@ -5,7 +5,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -80,6 +82,32 @@ public class SeoRankingQuery {
 			params.addValue("ownerId", ownerId);
 		}
 		return query(where.toString(), params);
+	}
+
+	/**
+	 * Keywords (not archived) recorded at positions 1–10 per month from {@code from} to {@code to}, optionally for one
+	 * owner: the Keywords in Top 10 target and the dashboard trend. Months with no rankings recorded are missing.
+	 */
+	public Map<MarketingPeriod, Long> top10ByMonth(MarketingPeriod from, MarketingPeriod to, Long ownerId) {
+		MapSqlParameterSource params = new MapSqlParameterSource().addValue("from", from.year() * 12 + from.month())
+			.addValue("to", to.year() * 12 + to.month());
+		String owner = "";
+		if (ownerId != null) {
+			owner = " and k.owner_id = :ownerId";
+			params.addValue("ownerId", ownerId);
+		}
+		Map<MarketingPeriod, Long> counts = new HashMap<>();
+		jdbc.query("""
+				select h.ranking_year as y, h.ranking_month as m,
+				  sum(case when h.ranking_position between 1 and 10 then 1 else 0 end) as top10
+				from keyword_ranking_history h
+				join marketing_keywords k on k.id = h.keyword_id
+				where k.status <> 'ARCHIVED' and h.ranking_year * 12 + h.ranking_month between :from and :to%s
+				group by h.ranking_year, h.ranking_month
+				""".formatted(owner), params, rs -> {
+			counts.put(new MarketingPeriod(rs.getInt("m"), rs.getInt("y")), rs.getLong("top10"));
+		});
+		return counts;
 	}
 
 	private static MapSqlParameterSource params(MarketingPeriod period) {
