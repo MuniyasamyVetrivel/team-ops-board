@@ -35,6 +35,7 @@ import { useTaskParam } from '@/features/tasks/use-task-param';
 import { WorkloadMeter } from '@/features/workload/WorkloadMeter';
 
 import { useDashboard, type DashboardResponse } from './api';
+import { MarketingSummaryPanel } from './MarketingSummaryPanel';
 import { DepartmentWorkloadChart, StatusDonut, WeeklyCompletionChart } from './charts';
 import { DepartmentPerformanceTable, EmployeeWorkloadTable, RecentActivity, TaskList, UpcomingEvents } from './sections';
 
@@ -191,6 +192,9 @@ export default function DashboardPage() {
               <DepartmentPerformanceTable departments={data.departments} completedWindowDays={data.completedWindowDays} />
             </Panel>
           )}
+
+          {/* Brief section 8.9: the company-wide (Super Admin) view adds the Digital Marketing summary. */}
+          {data.scope === 'ALL' && hasPermission(user, 'MARKETING_VIEW') && <MarketingSummaryPanel />}
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Panel title="Recent activity" icon={History}>

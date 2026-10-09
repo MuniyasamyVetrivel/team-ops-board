@@ -1,10 +1,12 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { InternalAxiosRequestConfig } from 'axios';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { CalendarResponse } from '@/features/calendar/api';
 import { api } from '@/lib/api/client';
 import { superAdmin, webEmployee } from '@/test/fixtures';
+import { marketingDashboard } from '@/test/marketing-fixtures';
 import { mockApi, renderPage } from '@/test/render';
 import { taskDetail, taskItem } from '@/test/task-fixtures';
 
@@ -151,5 +153,37 @@ describe('DashboardPage', () => {
 
     expect(await screen.findByText("Couldn't load the dashboard")).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
+
+  it('adds the Digital Marketing summary to the company-wide dashboard (brief section 8.9)', async () => {
+    const requests: InternalAxiosRequestConfig[] = [];
+    mockApi({ 'GET /dashboard': () => dashboard(), 'GET /calendar': () => calendar, 'GET /marketing/dashboard': (config) => (requests.push(config), marketingDashboard) });
+    renderPage(<DashboardPage />, superAdmin);
+
+    const summary = await screen.findByLabelText('Marketing summary');
+    const figure = (label: string) => within(summary).getByText(label).parentElement!;
+    expect(figure('SEO average ranking')).toHaveTextContent('9.4');
+    expect(figure('Keywords in Top 10')).toHaveTextContent('42');
+    expect(figure('Keywords improved')).toHaveTextContent('18');
+    expect(figure('Keywords declined')).toHaveTextContent('7');
+    expect(figure('Marketing target achievement')).toHaveTextContent('0 of 3');
+    expect(figure('Email leads')).toHaveTextContent('45');
+    expect(figure('Paid campaign leads')).toHaveTextContent('55');
+    expect(figure('Backlinks gone live')).toHaveTextContent('22');
+    expect(figure('Blog/content leads')).toHaveTextContent('45');
+    expect(screen.getByRole('link', { name: 'Marketing dashboard' })).toHaveAttribute('href', '/digital-marketing');
+    expect(requests[0]?.params).toEqual({ months: 2 });
+  });
+
+  it('leaves the marketing summary off a personal dashboard', async () => {
+    const adapter = mockApi({
+      'GET /dashboard': () => dashboard({ scope: 'OWN', departments: [], kpis: { ...dashboard().kpis, teamMembers: null }, workload: { ...dashboard().workload, people: 1 } }),
+      'GET /calendar': () => calendar,
+    });
+    renderPage(<DashboardPage />, webEmployee);
+
+    expect(await screen.findByText('My open tasks')).toBeInTheDocument();
+    expect(screen.queryByText('Digital Marketing performance')).not.toBeInTheDocument();
+    expect(adapter.mock.calls.some(([config]) => config.url === '/marketing/dashboard')).toBe(false);
   });
 });

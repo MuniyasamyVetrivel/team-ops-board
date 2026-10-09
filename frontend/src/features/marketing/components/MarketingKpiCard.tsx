@@ -39,23 +39,36 @@ export function MarketingKpiCard({ label, icon: Icon, value, format = 'count', p
           {formatMetric(value, format)}
         </span>
       )}
-      {!loading && previous !== undefined && <Change current={value} previous={previous} previousLabel={previousLabel} better={better} />}
+      {!loading && previous !== undefined && <ChangeText current={value} previous={previous} previousLabel={previousLabel} better={better} />}
       {!loading && children}
       {hint && <span className="mt-0.5 block truncate text-xs text-muted-foreground">{hint}</span>}
     </div>
   );
 }
 
-function Change({ current, previous, previousLabel, better }: { current: number | null | undefined; previous: number | null; previousLabel: string; better: 'higher' | 'lower' | null }) {
+/** "Up 11.1% vs September" with an arrow; green or red only when the direction is clearly good or bad. */
+export function ChangeText({
+  current,
+  previous,
+  previousLabel,
+  better,
+  className = 'mt-1',
+}: {
+  current: number | null | undefined;
+  previous: number | null;
+  previousLabel: string;
+  better: 'higher' | 'lower' | null;
+  className?: string;
+}) {
   const change = percentChange(current, previous);
   if (change === null) {
-    return <span className="mt-1 block text-xs text-muted-foreground">No comparison with {previousLabel}</span>;
+    return <span className={cn('block text-xs text-muted-foreground', className)}>No comparison with {previousLabel}</span>;
   }
   const Icon = change > 0 ? ArrowUpRight : change < 0 ? ArrowDownRight : Minus;
   const good = change === 0 || better === null ? null : (change > 0) === (better === 'higher');
   const text = change === 0 ? `No change vs ${previousLabel}` : `${change > 0 ? 'Up' : 'Down'} ${Math.abs(change)}% vs ${previousLabel}`;
   return (
-    <span className={cn('mt-1 flex items-center gap-1 text-xs font-medium', good === null ? 'text-muted-foreground' : good ? 'text-status-success' : 'text-status-danger')}>
+    <span className={cn('flex items-center gap-1 text-xs font-medium', className, good === null ? 'text-muted-foreground' : good ? 'text-status-success' : 'text-status-danger')}>
       <Icon className="size-3.5" aria-hidden />
       {text}
     </span>

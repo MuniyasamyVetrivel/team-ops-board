@@ -32,7 +32,7 @@ const KnowledgeBasePage = lazy(() => import('@/features/knowledge/KnowledgeBaseP
 const ArticlePage = lazy(() => import('@/features/knowledge/ArticlePage'));
 const DocumentsPage = lazy(() => import('@/features/documents/DocumentsPage'));
 const CalendarPage = lazy(() => import('@/features/calendar/CalendarPage'));
-const MarketingHomePage = lazy(() => import('@/features/marketing/MarketingHomePage'));
+const MarketingDashboardPage = lazy(() => import('@/features/marketing/dashboard/MarketingDashboardPage'));
 const SeoRankingsPage = lazy(() => import('@/features/marketing/seo/SeoRankingsPage'));
 const SeoPageDetailPage = lazy(() => import('@/features/marketing/seo/SeoPageDetailPage'));
 const TargetsPage = lazy(() => import('@/features/marketing/targets/TargetsPage'));
@@ -63,7 +63,7 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
   '/documents': DocumentsPage,
   '/my/calendar': CalendarPage,
   // The marketing home until the executive dashboard replaces it in Phase 19.
-  '/digital-marketing': MarketingHomePage,
+  '/digital-marketing': MarketingDashboardPage,
   '/digital-marketing/seo': SeoRankingsPage,
   '/digital-marketing/targets': TargetsPage,
   '/digital-marketing/activities': ActivitiesPage,
