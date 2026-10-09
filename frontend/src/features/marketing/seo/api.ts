@@ -321,8 +321,8 @@ export function useSeoPages(query: SeoPageQuery, enabled = true) {
 }
 
 /** Pages that can take keywords (not archived), for pickers and filters. */
-export function useSeoPageOptions() {
-  return useQuery({ queryKey: seoKeys.pageOptions(), queryFn: () => get<PageRef[]>('/marketing/pages/options'), staleTime: 60_000 });
+export function useSeoPageOptions(enabled = true) {
+  return useQuery({ queryKey: seoKeys.pageOptions(), queryFn: () => get<PageRef[]>('/marketing/pages/options'), staleTime: 60_000, enabled });
 }
 
 export function useSeoPage(id: number, period: PeriodQuery | null) {

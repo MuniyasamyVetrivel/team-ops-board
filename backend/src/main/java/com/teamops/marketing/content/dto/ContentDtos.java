@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.teamops.marketing.content.entity.ContentAttachment;
 import com.teamops.marketing.content.entity.ContentStatus;
 import com.teamops.marketing.content.entity.ContentType;
 import com.teamops.marketing.dto.MarketingDtos.Period;
@@ -32,15 +33,27 @@ public final class ContentDtos {
 	}
 
 	/**
-	 * A content item. {@code leads}: all-time leads naming it. {@code publicationLocked}: it is live and its
+	 * A content item. {@code leads}: all-time leads naming it; {@code attachments}: how many files are attached. {@code publicationLocked}: it is live and its
 	 * publication month is closed for the viewer, so it stays published in that month (no new publication date, type
 	 * or unpublishing). {@code refreshLocked} likewise for an UPDATED item's refreshed date.
 	 */
 	public record ContentItemDto(Long id, String title, String url, ContentType contentType, ContentStatus status,
 			UserSummary author, UserSummary owner, LocalDate plannedDate, LocalDate publicationDate,
 			LocalDate refreshedDate, KeywordRef targetKeyword, String targetKeywordText, PageRef targetPage,
-			Integer organicTraffic, Integer ctaClicks, String notes, long leads, boolean publicationLocked,
+			Integer organicTraffic, Integer ctaClicks, String notes, long leads, long attachments, boolean publicationLocked,
 			boolean refreshLocked, UserSummary createdBy, Integer version, Instant createdAt, Instant updatedAt) {
+
+	}
+
+	/** A file attached to a content item (brief section 64), always downloaded as an attachment. */
+	public record Attachment(Long fileId, String fileName, String contentType, long sizeBytes, UserSummary addedBy,
+			Instant addedAt) {
+
+		public static Attachment of(ContentAttachment attachment) {
+			return new Attachment(attachment.getFile().getId(), attachment.getFile().getOriginalName(),
+					attachment.getFile().getContentType(), attachment.getFile().getSizeBytes(),
+					UserSummary.of(attachment.getAddedBy()), attachment.getAddedAt());
+		}
 
 	}
 

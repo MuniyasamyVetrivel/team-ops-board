@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +21,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.teamops.common.audit.AuditAction;
 import com.teamops.common.audit.AuditChanges;
@@ -28,12 +30,15 @@ import com.teamops.common.config.BusinessCalendar;
 import com.teamops.common.csv.CsvWriter;
 import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AuthenticatedUser;
+import com.teamops.common.storage.FileService;
+import com.teamops.common.storage.StoredFile;
 import com.teamops.common.web.ClientInfo;
 import com.teamops.common.web.PageResponse;
 import com.teamops.marketing.common.LeadSource;
 import com.teamops.marketing.common.MarketingMath;
 import com.teamops.marketing.common.MarketingMonths;
 import com.teamops.marketing.common.MarketingPeriod;
+import com.teamops.marketing.content.dto.ContentDtos.Attachment;
 import com.teamops.marketing.content.dto.ContentDtos.BlogTarget;
 import com.teamops.marketing.content.dto.ContentDtos.ChangeStatus;
 import com.teamops.marketing.content.dto.ContentDtos.ContentItemDto;
@@ -47,9 +52,11 @@ import com.teamops.marketing.content.dto.ContentDtos.StatusCount;
 import com.teamops.marketing.content.dto.ContentDtos.TopContent;
 import com.teamops.marketing.content.dto.ContentDtos.TrendMonth;
 import com.teamops.marketing.content.dto.ContentDtos.TypeCount;
+import com.teamops.marketing.content.entity.ContentAttachment;
 import com.teamops.marketing.content.entity.ContentItem;
 import com.teamops.marketing.content.entity.ContentStatus;
 import com.teamops.marketing.content.entity.ContentType;
+import com.teamops.marketing.content.repository.ContentAttachmentRepository;
 import com.teamops.marketing.content.repository.ContentItemRepository;
 import com.teamops.marketing.content.repository.ContentQuery;
 import com.teamops.marketing.content.service.ContentRules.Dates;
@@ -102,6 +109,10 @@ public class ContentService {
 
 	private final ContentQuery contentQuery;
 
+	private final ContentAttachmentRepository attachmentRepository;
+
+	private final FileService fileService;
+
 	private final MarketingLeadRepository leadRepository;
 
 	private final SeoKeywordRepository keywordRepository;
@@ -141,9 +152,12 @@ public class ContentService {
 
 	public PageResponse<ContentItemDto> search(ContentFilter filter, Pageable pageable, AuthenticatedUser viewer) {
 		Page<ContentItem> page = contentRepository.findAll(spec(filter), pageable);
-		Map<Long, Long> leads = contentQuery.leadCounts(page.getContent().stream().map(ContentItem::getId).toList());
+		List<Long> ids = page.getContent().stream().map(ContentItem::getId).toList();
+		Map<Long, Long> leads = contentQuery.leadCounts(ids);
+		Map<Long, Long> files = attachmentCounts(ids);
 		LocalDate today = calendar.today();
-		return PageResponse.of(page.map(c -> toDto(c, leads.getOrDefault(c.getId(), 0L), today, viewer)));
+		return PageResponse.of(page.map(c -> toDto(c, leads.getOrDefault(c.getId(), 0L), files.getOrDefault(c.getId(), 0L),
+				today, viewer)));
 	}
 
 	public ContentItemDto get(Long id, AuthenticatedUser viewer) {
@@ -353,11 +367,67 @@ public class ContentService {
 		}
 		requireCountable(item.getStatus(), item.getContentType(), new Dates(item.getPublicationDate(), item.getRefreshedDate()),
 				ContentStatus.IDEA, item.getContentType(), Dates.NONE, actor);
+		// The attachment rows cascade; their stored files go with them.
+		for (ContentAttachment attachment : attachmentRepository.findByContentItemIdOrderByAddedAtAsc(id)) {
+			attachmentRepository.delete(attachment);
+			fileService.delete(attachment.getFile());
+		}
 		contentRepository.delete(item);
 		Map<String, Object> details = new HashMap<>();
 		details.put("title", item.getTitle());
 		details.put("status", item.getStatus());
 		auditService.record(AuditAction.CONTENT_DELETED, actor.id(), ENTITY, id, details, client);
+	}
+
+	// --- attachments (brief section 64) ---------------------------------------------------------------------
+
+	public List<Attachment> attachments(Long id) {
+		load(id);
+		return attachmentList(id);
+	}
+
+	/** Checked (type, size, name) and stored by {@link FileService}; any CONTENT_EDIT holder may attach files. */
+	@Transactional
+	public List<Attachment> addAttachment(Long id, MultipartFile upload, AuthenticatedUser actor) {
+		ContentItem item = load(id);
+		StoredFile file = fileService.store(upload, actor.id());
+		attachmentRepository.save(ContentAttachment.of(item, file, userRepository.getReferenceById(actor.id())));
+		return attachmentList(id);
+	}
+
+	public Download download(Long id, Long fileId) {
+		StoredFile file = loadAttachment(id, fileId).getFile();
+		return new Download(file.getOriginalName(), file.getContentType(), file.getSizeBytes(), fileService.content(file));
+	}
+
+	@Transactional
+	public List<Attachment> deleteAttachment(Long id, Long fileId) {
+		ContentAttachment attachment = loadAttachment(id, fileId);
+		attachmentRepository.delete(attachment);
+		fileService.delete(attachment.getFile());
+		return attachmentList(id);
+	}
+
+	public record Download(String fileName, String contentType, long sizeBytes, Resource content) {
+	}
+
+	private List<Attachment> attachmentList(Long id) {
+		return attachmentRepository.findByContentItemIdOrderByAddedAtAsc(id).stream().map(Attachment::of).toList();
+	}
+
+	private ContentAttachment loadAttachment(Long id, Long fileId) {
+		return attachmentRepository.findById(new ContentAttachment.Id(id, fileId))
+			.orElseThrow(() -> ApiException.notFound("ATTACHMENT_NOT_FOUND", "Attachment not found"));
+	}
+
+	private Map<Long, Long> attachmentCounts(List<Long> ids) {
+		Map<Long, Long> counts = new HashMap<>();
+		if (!ids.isEmpty()) {
+			for (Object[] row : attachmentRepository.countByContentItemIds(ids)) {
+				counts.put((Long) row[0], (Long) row[1]);
+			}
+		}
+		return counts;
 	}
 
 	// --- helpers --------------------------------------------------------------------------------------------
@@ -415,10 +485,12 @@ public class ContentService {
 
 	private ContentItemDto toDto(ContentItem item, AuthenticatedUser viewer) {
 		long leads = contentQuery.leadCounts(List.of(item.getId())).getOrDefault(item.getId(), 0L);
-		return toDto(item, leads, calendar.today(), viewer);
+		long files = attachmentCounts(List.of(item.getId())).getOrDefault(item.getId(), 0L);
+		return toDto(item, leads, files, calendar.today(), viewer);
 	}
 
-	private static ContentItemDto toDto(ContentItem c, long leads, LocalDate today, AuthenticatedUser viewer) {
+	private static ContentItemDto toDto(ContentItem c, long leads, long attachments, LocalDate today,
+			AuthenticatedUser viewer) {
 		boolean publicationLocked = c.getStatus().isLive() && c.getPublicationDate() != null
 				&& !MarketingMonths.canCorrect(MarketingPeriod.of(c.getPublicationDate()), today, viewer.isSuperAdmin());
 		boolean refreshLocked = c.getRefreshedDate() != null
@@ -429,7 +501,7 @@ public class ContentService {
 				UserSummary.of(c.getAuthor()), UserSummary.of(c.getOwner()), c.getPlannedDate(), c.getPublicationDate(),
 				c.getRefreshedDate(), keyword == null ? null : new KeywordRef(keyword.getId(), keyword.getKeyword()),
 				c.getTargetKeywordText(), page == null ? null : new PageRef(page.getId(), page.getTitle(), page.getUrl()),
-				c.getOrganicTraffic(), c.getCtaClicks(), c.getNotes(), leads, publicationLocked, refreshLocked,
+				c.getOrganicTraffic(), c.getCtaClicks(), c.getNotes(), leads, attachments, publicationLocked, refreshLocked,
 				UserSummary.of(c.getCreatedBy()), c.getVersion(), c.getCreatedAt(), c.getUpdatedAt());
 	}
 

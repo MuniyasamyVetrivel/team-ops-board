@@ -3,8 +3,11 @@ package com.teamops.marketing.content;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -22,6 +25,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -110,6 +114,7 @@ class ContentFlowIT {
 	void cleanUp() {
 		jdbc.update("DELETE FROM marketing_leads WHERE owner_id = ? OR created_by IN (?, ?)", editorId, editorId, adminId);
 		jdbc.update("DELETE FROM content_items WHERE owner_id = ? OR created_by IN (?, ?)", editorId, editorId, adminId);
+		jdbc.update("DELETE FROM files WHERE uploaded_by IN (?, ?)", editorId, adminId);
 		jdbc.update("""
 				DELETE FROM audit_logs WHERE actor_id IN (?, ?) AND (action LIKE 'CONTENT_%' OR action LIKE 'LEAD_%')
 				""", editorId, adminId);
@@ -274,6 +279,49 @@ class ContentFlowIT {
 
 		as(adminToken, delete("/api/marketing/content/" + item)).andExpect(status().isNoContent());
 		assertThat(actual("BLOGS_PUBLISHED", old)).isEqualByComparingTo(oldBlogs);
+	}
+
+	@Test
+	void attachmentsAreCheckedStoredAndRemovedWithTheItem() throws Exception {
+		Long item = id(create(json("Brief", "BLOG", "IN_PROGRESS", null, "\"plannedDate\":\"" + today + "\""))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.attachments").value(0)), "$.id");
+		String path = "/api/marketing/content/" + item + "/attachments";
+
+		// Checked and stored like every other upload: the type comes from the name, not the browser.
+		String list = as(editorToken, multipart(path).file(file("outline.txt", "text/html", "Outline")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$[0].fileName").value("outline.txt"))
+			.andExpect(jsonPath("$[0].contentType").value("text/plain"))
+			.andReturn().getResponse().getContentAsString();
+		Long fileId = ((Number) JsonPath.read(list, "$[0].fileId")).longValue();
+		as(editorToken, multipart(path).file(file("run.exe", "application/octet-stream", "x")))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("FILE_TYPE_NOT_ALLOWED"));
+		as(viewerToken, multipart(path).file(file("notes.txt", "text/plain", "x"))).andExpect(status().isForbidden());
+		as(editorToken, multipart(path).file(file("images.zip", "application/zip", "PK"))).andExpect(status().isOk())
+			.andExpect(jsonPath("$.length()").value(2));
+		as(viewerToken, get("/api/marketing/content/" + item)).andExpect(jsonPath("$.attachments").value(2));
+
+		// Viewers download, always as an attachment.
+		as(viewerToken, get(path + "/" + fileId)).andExpect(status().isOk())
+			.andExpect(content().string("Outline"))
+			.andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, Matchers.startsWith("attachment")))
+			.andExpect(header().string("X-Content-Type-Options", "nosniff"));
+		as(viewerToken, delete(path + "/" + fileId)).andExpect(status().isForbidden());
+		as(editorToken, delete(path + "/" + fileId)).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
+		as(viewerToken, get(path + "/" + fileId)).andExpect(status().isNotFound());
+
+		// Deleting the item removes its files too.
+		Long other = ((Number) JsonPath.read(as(viewerToken, get(path)).andReturn().getResponse().getContentAsString(),
+				"$[0].fileId")).longValue();
+		as(editorToken, delete("/api/marketing/content/" + item)).andExpect(status().isNoContent());
+		assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM files WHERE id IN (?, ?)", Integer.class, fileId, other))
+			.isZero();
+	}
+
+	private static MockMultipartFile file(String name, String type, String text) {
+		return new MockMultipartFile("file", name, type, text.getBytes(StandardCharsets.UTF_8));
 	}
 
 	private BigDecimal actual(String typeCode, MarketingPeriod period) {

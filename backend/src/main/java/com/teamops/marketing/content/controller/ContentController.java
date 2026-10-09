@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -20,13 +21,16 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.web.ClientInfo;
 import com.teamops.common.web.PageRequests;
 import com.teamops.common.web.PageResponse;
 import com.teamops.marketing.common.MarketingPeriod;
+import com.teamops.marketing.content.dto.ContentDtos.Attachment;
 import com.teamops.marketing.content.dto.ContentDtos.ChangeStatus;
 import com.teamops.marketing.content.dto.ContentDtos.ContentItemDto;
 import com.teamops.marketing.content.dto.ContentDtos.ContentSummary;
@@ -151,6 +155,39 @@ public class ContentController {
 			HttpServletRequest http) {
 		contentService.delete(id, actor, ClientInfo.from(http));
 		return ResponseEntity.noContent().build();
+	}
+
+	@GetMapping("/{id}/attachments")
+	@PreAuthorize("hasAuthority('CONTENT_VIEW')")
+	public List<Attachment> attachments(@PathVariable Long id) {
+		return contentService.attachments(id);
+	}
+
+	@PostMapping(path = "/{id}/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@PreAuthorize("hasAuthority('CONTENT_EDIT')")
+	public List<Attachment> addAttachment(@PathVariable Long id, @RequestPart("file") MultipartFile file,
+			@AuthenticationPrincipal AuthenticatedUser actor) {
+		return contentService.addAttachment(id, file, actor);
+	}
+
+	/** Always served as a download. */
+	@GetMapping("/{id}/attachments/{fileId}")
+	@PreAuthorize("hasAuthority('CONTENT_VIEW')")
+	public ResponseEntity<Resource> download(@PathVariable Long id, @PathVariable Long fileId) {
+		ContentService.Download download = contentService.download(id, fileId);
+		return ResponseEntity.ok()
+			.contentType(MediaType.parseMediaType(download.contentType()))
+			.contentLength(download.sizeBytes())
+			.header(HttpHeaders.CONTENT_DISPOSITION,
+					ContentDisposition.attachment().filename(download.fileName(), StandardCharsets.UTF_8).build().toString())
+			.header("X-Content-Type-Options", "nosniff")
+			.body(download.content());
+	}
+
+	@DeleteMapping("/{id}/attachments/{fileId}")
+	@PreAuthorize("hasAuthority('CONTENT_EDIT')")
+	public List<Attachment> deleteAttachment(@PathVariable Long id, @PathVariable Long fileId) {
+		return contentService.deleteAttachment(id, fileId);
 	}
 
 	/** Month filter only when given (a year alone is not a month). */

@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -24,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -151,6 +153,28 @@ class ContentApiSecurityTest {
 				&& f.types().equals(Set.of(ContentType.BLOG))), any(), eq(VIEWER));
 		mvc.perform(get("/api/marketing/content").param("sort", "leads,desc")
 			.header(HttpHeaders.AUTHORIZATION, bearer(VIEWER))).andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void attachmentsFollowTheContentPermissions() throws Exception {
+		MockMultipartFile file = new MockMultipartFile("file", "outline.txt", "text/plain", "Outline".getBytes());
+		for (AuthenticatedUser user : List.of(SliceAuth.EMPLOYEE, SEO_ONLY)) {
+			mvc.perform(get("/api/marketing/content/1/attachments").header(HttpHeaders.AUTHORIZATION, bearer(user)))
+				.andExpect(status().isForbidden());
+			mvc.perform(get("/api/marketing/content/1/attachments/9").header(HttpHeaders.AUTHORIZATION, bearer(user)))
+				.andExpect(status().isForbidden());
+		}
+		mvc.perform(multipart("/api/marketing/content/1/attachments").file(file)
+			.header(HttpHeaders.AUTHORIZATION, bearer(VIEWER))).andExpect(status().isForbidden());
+		mvc.perform(delete("/api/marketing/content/1/attachments/9").header(HttpHeaders.AUTHORIZATION, bearer(VIEWER)))
+			.andExpect(status().isForbidden());
+		verifyNoInteractions(contentService);
+
+		mvc.perform(get("/api/marketing/content/1/attachments").header(HttpHeaders.AUTHORIZATION, bearer(VIEWER)))
+			.andExpect(status().isOk());
+		mvc.perform(multipart("/api/marketing/content/1/attachments").file(file)
+			.header(HttpHeaders.AUTHORIZATION, bearer(EDITOR))).andExpect(status().isOk());
+		verify(contentService).addAttachment(eq(1L), any(), eq(EDITOR));
 	}
 
 	@Test

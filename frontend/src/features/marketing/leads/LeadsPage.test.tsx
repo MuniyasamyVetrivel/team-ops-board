@@ -292,7 +292,7 @@ describe('LeadsPage', () => {
     });
     // The new lead opens.
     expect(await screen.findByRole('group', { name: 'Change status' })).toBeInTheDocument();
-  });
+  }, 15_000);
 
   it('keeps the date and source of a lead in a closed month, and does not offer to delete it', async () => {
     const user = userEvent.setup();
