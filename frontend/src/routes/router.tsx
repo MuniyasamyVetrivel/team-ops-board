@@ -41,6 +41,8 @@ const ActivityDetailPage = lazy(() => import('@/features/marketing/activities/Ac
 const EmailCampaignsPage = lazy(() => import('@/features/marketing/email/EmailCampaignsPage'));
 const PaidCampaignsPage = lazy(() => import('@/features/marketing/paid/PaidCampaignsPage'));
 const LeadsPage = lazy(() => import('@/features/marketing/leads/LeadsPage'));
+const MarketingReportPage = lazy(() => import('@/features/marketing/reports/MarketingReportPage'));
+const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'));
 const BacklinksPage = lazy(() => import('@/features/marketing/backlinks/BacklinksPage'));
 const ContentPage = lazy(() => import('@/features/marketing/content/ContentPage'));
 
@@ -70,6 +72,8 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
   '/digital-marketing/email-campaigns': EmailCampaignsPage,
   '/digital-marketing/paid-campaigns': PaidCampaignsPage,
   '/digital-marketing/leads': LeadsPage,
+  '/digital-marketing/reports': MarketingReportPage,
+  '/reports': ReportsPage,
   '/digital-marketing/backlinks': BacklinksPage,
   '/digital-marketing/content': ContentPage,
 };

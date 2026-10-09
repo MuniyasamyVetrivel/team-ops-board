@@ -117,6 +117,7 @@ export const NAVIGATION: NavSection[] = [
       { label: 'Backlinks', path: '/digital-marketing/backlinks', icon: Link2, permission: 'BACKLINK_VIEW', description: 'Monthly backlink submissions and live links.', phase: 17 },
       { label: 'Content & Blog', path: '/digital-marketing/content', icon: SquarePen, permission: 'CONTENT_VIEW', description: 'Blog pipeline, publishing targets and leads.', phase: 18 },
       { label: 'Marketing Activities', path: '/digital-marketing/activities', icon: Repeat, permission: 'MARKETING_VIEW', description: 'Recurring marketing processes and their occurrences.', phase: 13 },
+      { label: 'Monthly Report', path: '/digital-marketing/reports', icon: FileText, permission: 'MARKETING_VIEW', description: 'Every module against the month before, with CSV export.', phase: 20 },
     ],
   },
   {
