@@ -70,13 +70,20 @@ const calendar: CalendarResponse = {
   ],
 };
 
+type Handler = (config: InternalAxiosRequestConfig) => unknown;
+
+/** The company-wide (Super Admin) dashboard also loads the Digital Marketing summary. */
+function companyRoutes(extra: Record<string, Handler> = {}): Record<string, Handler> {
+  return { 'GET /dashboard': () => dashboard(), 'GET /calendar': () => calendar, 'GET /marketing/dashboard': () => marketingDashboard, ...extra };
+}
+
 describe('DashboardPage', () => {
   afterEach(() => {
     api.defaults.adapter = originalAdapter;
   });
 
   it('shows company KPIs with ticket, SLA and approval figures linked', async () => {
-    mockApi({ 'GET /dashboard': () => dashboard(), 'GET /calendar': () => calendar });
+    mockApi(companyRoutes());
 
     renderPage(<DashboardPage />, superAdmin);
 
@@ -90,7 +97,7 @@ describe('DashboardPage', () => {
   });
 
   it('lists department performance with "—" for missing rates and labelled workload levels', async () => {
-    mockApi({ 'GET /dashboard': () => dashboard(), 'GET /calendar': () => calendar });
+    mockApi(companyRoutes());
 
     renderPage(<DashboardPage />, superAdmin);
 
@@ -103,7 +110,7 @@ describe('DashboardPage', () => {
   });
 
   it('shows the employee workload table, recent activity and only calendar events (not deadlines)', async () => {
-    mockApi({ 'GET /dashboard': () => dashboard(), 'GET /calendar': () => calendar });
+    mockApi(companyRoutes());
 
     renderPage(<DashboardPage />, superAdmin);
 
@@ -116,7 +123,7 @@ describe('DashboardPage', () => {
   });
 
   it('opens a task from the overdue list in the drawer', async () => {
-    mockApi({ 'GET /dashboard': () => dashboard(), 'GET /calendar': () => calendar, 'GET /tasks/42': () => taskDetail() });
+    mockApi(companyRoutes({ 'GET /tasks/42': () => taskDetail() }));
 
     renderPage(<DashboardPage />, superAdmin);
 
