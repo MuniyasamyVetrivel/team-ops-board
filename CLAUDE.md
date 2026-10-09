@@ -76,7 +76,7 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
   - `TEXT`, `MEDIUMTEXT` and `JSON` columns need `@Column(columnDefinition = "text" | "mediumtext" | "json")`.
   - Extend `common.persistence.BaseEntity` (id, created_at, updated_at) when the table has both timestamps.
 - **Do not store derived values** (rates, remaining, achievement %, statuses, workload %, SLA state, project progress). Compute them in services.
-- Human-readable codes (`TSK-`, `TKT-`, `PRJ-`, `APR-`, `LEAD-`) come from the `code_sequences` table, read with `SELECT … FOR UPDATE`.
+- Human-readable codes (`TSK-`, `TKT-`, `PRJ-`, `APR-`, `LEAD-`, `BLK-`) come from the `code_sequences` table, read with `SELECT … FOR UPDATE`.
 - Performance:
   - Paginate lists.
   - Avoid N+1 queries; use `@EntityGraph` or batch fetching.
@@ -142,7 +142,7 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
   - CPL = spend ÷ leads.
   - Conversion rate = conversions ÷ leads × 100.
   - Remaining budget = budget − spent.
-- **Backlinks**: track target, submitted, approved, live and remaining separately for each month.
+- **Backlinks**: track target, submitted, approved, live and remaining separately for each month. Each stage counts in the month of its own date; remaining = max(target − submitted, 0) (brief §46: 50 − 35 = 15), while the Backlinks target's achievement counts live links. Stage rules live in `BacklinkRules`.
 - **Content**: track target, published, remaining and leads for each month.
 - **Recurring activities** (DAILY/WEEKLY/MONTHLY/QUARTERLY/YEARLY): completing an occurrence (or its generated task) creates the next occurrence and its task. Past occurrences stay in history. Unique key: activity + period_start.
 - **CSV import**: validate first and show valid records, invalid records and errors. Never silently insert bad data.

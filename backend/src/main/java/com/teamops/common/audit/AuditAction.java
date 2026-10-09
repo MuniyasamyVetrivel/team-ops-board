@@ -78,6 +78,13 @@ public enum AuditAction {
 	/** Details, source, date or link changed ({@code changes} holds from/to); {@code closedMonth} for a Super Admin. */
 	LEAD_UPDATED,
 	LEAD_STATUS_CHANGED,
-	LEAD_DELETED
+	LEAD_DELETED,
+	/** By hand or CSV ({@code origin} in the details). */
+	BACKLINK_CREATED,
+	/** Details or stage dates changed ({@code changes} holds from/to); {@code closedMonth} for a Super Admin. */
+	BACKLINK_UPDATED,
+	/** Moved to another status, with the stage dates it set or cleared. */
+	BACKLINK_STATUS_CHANGED,
+	BACKLINK_DELETED
 
 }

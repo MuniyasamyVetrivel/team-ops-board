@@ -109,6 +109,8 @@ public class DevDataSeeder implements ApplicationRunner {
 
 	private final DevLeadSeeder devLeadSeeder;
 
+	private final DevBacklinkSeeder devBacklinkSeeder;
+
 	@Override
 	public void run(ApplicationArguments args) {
 		if (properties.password() == null || properties.password().length() < 8) {
@@ -178,6 +180,10 @@ public class DevDataSeeder implements ApplicationRunner {
 		int leads = devLeadSeeder.seedIfEmpty();
 		if (leads > 0) {
 			log.info("Development seed: {} marketing leads created", leads);
+		}
+		int backlinks = devBacklinkSeeder.seedIfEmpty();
+		if (backlinks > 0) {
+			log.info("Development seed: {} backlinks created", backlinks);
 		}
 	}
 

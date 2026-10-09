@@ -28,6 +28,8 @@ public class CodeGenerator {
 
 	public static final String LEAD = "LEAD";
 
+	public static final String BACKLINK = "BACKLINK";
+
 	private final JdbcTemplate jdbcTemplate;
 
 	@Transactional(propagation = Propagation.MANDATORY)
