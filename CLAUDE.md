@@ -88,6 +88,7 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
 - CSV imports: implement `CsvImporter` (columns, permission, `ImportSession.parse` with `RowReader`, `key`, `commit`) and register it as a bean. `CsvImportService` handles upload checks, preview, duplicates and the checksum-bound commit. Don't write another import flow. On the frontend, reuse `CsvImportDialog`.
 - Marketing figures: use `MarketingMath`, `RankingStatus`, `RankingChange`, `TargetProgress` and `MarketingPeriod` (in `com.teamops.marketing.common`). Marketing pages read the filters with `useMarketingFilters()` and render with `MarketingKpiCard`, `RankingBadge`, `RankingChangeIndicator` and `TargetProgress`.
 - Human-readable codes come from `CodeGenerator.next(...)`, which must run inside the caller's transaction.
+- Reports: build a `ReportDocument` and return `ReportExporters.download(document, format)`. CSV is the only exporter for now; a PDF exporter just implements `ReportExporter`. Count tasks with `TaskWorkScope` (the dashboard rule), not a new scope query.
 - Uploads go through `FileService` (validation in `UploadPolicy`, bytes stored by `FileStorageService`), and downloads are always served as attachments with `nosniff`.
 - Task authorization lives in `TaskAccess`; reuse it and don't re-implement the checks. Return 404 (not 403) for tasks the user can't see.
 - Editable records carry `@Version`. Clients send `version` and get 409 `STALE_UPDATE` on a conflict.

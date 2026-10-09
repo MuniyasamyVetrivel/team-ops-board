@@ -91,6 +91,8 @@ public enum AuditAction {
 	CONTENT_UPDATED,
 	/** Moved to another status, with the publication or refresh date it set or cleared. */
 	CONTENT_STATUS_CHANGED,
-	CONTENT_DELETED
+	CONTENT_DELETED,
+	/** An ended month's Digital Marketing report was frozen (kept as it stood). */
+	MARKETING_REPORT_FROZEN
 
 }

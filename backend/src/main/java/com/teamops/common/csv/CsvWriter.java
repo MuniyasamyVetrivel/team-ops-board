@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -24,11 +25,18 @@ public final class CsvWriter {
 	}
 
 	public static byte[] write(List<String> header, List<List<String>> rows) {
+		List<List<String>> records = new ArrayList<>(rows.size() + 1);
+		records.add(header);
+		records.addAll(rows);
+		return writeRecords(records);
+	}
+
+	/** Records of any length (e.g. several titled tables one after another, separated by empty records). */
+	public static byte[] writeRecords(List<List<String>> records) {
 		StringWriter out = new StringWriter();
 		try (CSVPrinter printer = new CSVPrinter(out, CSVFormat.RFC4180)) {
-			printer.printRecord(header.stream().map(CsvWriter::safe).toList());
-			for (List<String> row : rows) {
-				printer.printRecord(row.stream().map(CsvWriter::safe).toList());
+			for (List<String> record : records) {
+				printer.printRecord(record.stream().map(CsvWriter::safe).toList());
 			}
 		}
 		catch (IOException ex) {

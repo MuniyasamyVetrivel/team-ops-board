@@ -14,6 +14,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import com.teamops.common.security.AccessScope;
+import com.teamops.task.repository.TaskWorkScope;
 import com.teamops.dashboard.DashboardDtos.ActivityItem;
 import com.teamops.dashboard.DashboardMath.WeekCounts;
 import com.teamops.task.entity.TaskStatus;
@@ -33,7 +34,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class DashboardQuery {
 
-	private static final List<String> ACTIVE = TaskStatus.ACTIVE.stream().map(Enum::name).toList();
+	private static final List<String> ACTIVE = TaskWorkScope.ACTIVE;
 
 	private final NamedParameterJdbcTemplate jdbc;
 
@@ -157,22 +158,12 @@ public class DashboardQuery {
 	}
 
 	private static MapSqlParameterSource params(AccessScope scope) {
-		MapSqlParameterSource params = new MapSqlParameterSource().addValue("active", ACTIVE)
-			.addValue("me", scope.userId());
-		if (scope.kind() == AccessScope.Kind.DEPARTMENTS && !scope.departmentIds().isEmpty()) {
-			params.addValue("scopeDepartments", scope.departmentIds());
-		}
-		return params;
+		return TaskWorkScope.params(scope);
 	}
 
 	/** SQL condition on alias {@code t} matching {@code TaskSpecifications.workOf}. */
 	static String scopeClause(AccessScope scope) {
-		return switch (scope.kind()) {
-			case ALL -> "1 = 1";
-			case DEPARTMENTS -> scope.departmentIds().isEmpty() ? "t.assignee_id = :me"
-					: "(t.department_id in (:scopeDepartments) or t.assignee_id = :me)";
-			case OWN -> "t.assignee_id = :me";
-		};
+		return TaskWorkScope.clause(scope);
 	}
 
 }
