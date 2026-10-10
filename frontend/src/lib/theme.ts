@@ -8,19 +8,19 @@ export const THEME_STORAGE_KEY = 'teamops.theme';
 
 const DARK_QUERY = '(prefers-color-scheme: dark)';
 
-/** A display preference only; storage can be missing or blocked, in which case the theme follows the system. */
+/** A display preference only. Light is the default, also when storage is missing or blocked. */
 export function readThemePreference(): ThemePreference {
   try {
     const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-    return stored === 'light' || stored === 'dark' ? stored : 'system';
+    return stored === 'dark' || stored === 'system' ? stored : 'light';
   } catch {
-    return 'system';
+    return 'light';
   }
 }
 
 export function writeThemePreference(preference: ThemePreference) {
   try {
-    if (preference === 'system') window.localStorage.removeItem(THEME_STORAGE_KEY);
+    if (preference === 'light') window.localStorage.removeItem(THEME_STORAGE_KEY);
     else window.localStorage.setItem(THEME_STORAGE_KEY, preference);
   } catch {
     // Storage unavailable: the choice lasts for this page view only.

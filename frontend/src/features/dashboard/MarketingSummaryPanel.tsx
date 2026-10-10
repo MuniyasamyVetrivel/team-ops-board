@@ -59,7 +59,7 @@ export function MarketingSummaryPanel() {
       {dashboard.isError ? (
         <ErrorState error={dashboard.error} title="Couldn't load the marketing summary" onRetry={() => void dashboard.refetch()} />
       ) : !data ? (
-        <div className="grid grid-cols-2 gap-3 p-5 md:grid-cols-5" role="status" aria-label="Loading the marketing summary">
+        <div className="grid grid-cols-2 gap-4 p-6 md:grid-cols-5" role="status" aria-label="Loading the marketing summary">
           {Array.from({ length: 5 }, (_, i) => (
             <Skeleton key={i} className="h-16" />
           ))}
@@ -67,10 +67,10 @@ export function MarketingSummaryPanel() {
       ) : (
         <dl className="grid grid-cols-2 gap-px bg-border md:grid-cols-5" aria-label="Marketing summary">
           {figures(data).map((f) => (
-            <div key={f.label} className="bg-card px-4 py-3">
-              <dt className="text-xs text-muted-foreground">{f.label}</dt>
-              <dd className="mt-0.5 text-lg font-semibold tabular-nums">{f.value}</dd>
-              {f.hint && <p className="text-xs text-muted-foreground">{f.hint}</p>}
+            <div key={f.label} className="bg-card px-6 py-4">
+              <dt className="text-label font-medium text-muted-foreground">{f.label}</dt>
+              <dd className="mt-1 text-xl font-semibold tracking-tight tabular-nums">{f.value}</dd>
+              {f.hint && <p className="mt-0.5 text-xs text-muted-foreground">{f.hint}</p>}
             </div>
           ))}
         </dl>

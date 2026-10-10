@@ -3,89 +3,186 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Design tokens (shadcn/ui convention). .dark on <html> switches theme: set by ThemeProvider (light / dark / system)
- * and, before first paint, by the inline script in index.html.
- * Semantic status colours follow brief section 62: green = healthy/achieved, orange = warning/in progress,
- * red = critical/overdue, gray = inactive/no data. Never use colour alone - always pair with a label or icon.
+ * Brand scales (UI revamp brief): navy #00024D (navy-900), blue #304EE4 (blue-600), amber #FFBF00 (amber-500).
+ * Declared with @theme so each step is both a Tailwind utility (bg-navy-900, text-blue-600) and a CSS variable
+ * (--color-navy-900). The grey scale replaces Tailwind's greys with cool greys tinted slightly towards navy.
+ * Amber is an accent only: fills and indicators, never text on white; text on amber is navy.
+ */
+@theme {
+  --color-navy-50: #eef0fb;
+  --color-navy-100: #dce0f6;
+  --color-navy-200: #b9c0ec;
+  --color-navy-300: #8c96dc;
+  --color-navy-400: #5a66c4;
+  --color-navy-500: #3540a6;
+  --color-navy-600: #1f2888;
+  --color-navy-700: #12196c;
+  --color-navy-800: #080e5a;
+  --color-navy-900: #00024d;
+  --color-navy-950: #00012e;
+
+  --color-blue-50: #eef2fe;
+  --color-blue-100: #dfe5fd;
+  --color-blue-200: #c3cefb;
+  --color-blue-300: #9badf7;
+  --color-blue-400: #6d84f0;
+  --color-blue-500: #4a63ea;
+  --color-blue-600: #304ee4;
+  --color-blue-700: #233bc4;
+  --color-blue-800: #1f329e;
+  --color-blue-900: #1e2e7d;
+  --color-blue-950: #151c4b;
+
+  --color-amber-50: #fffaeb;
+  --color-amber-100: #fff2c6;
+  --color-amber-200: #ffe488;
+  --color-amber-300: #ffd34a;
+  --color-amber-400: #ffc720;
+  --color-amber-500: #ffbf00;
+  --color-amber-600: #e09a00;
+  --color-amber-700: #b87100;
+  --color-amber-800: #8f5304;
+  --color-amber-900: #75430a;
+  --color-amber-950: #432200;
+
+  --color-gray-50: #f6f7fb;
+  --color-gray-100: #eef0f6;
+  --color-gray-200: #e1e4ee;
+  --color-gray-300: #c9cedd;
+  --color-gray-400: #a1a7bf;
+  --color-gray-500: #7a819e;
+  --color-gray-600: #5b6382;
+  --color-gray-700: #444b68;
+  --color-gray-800: #2d3350;
+  --color-gray-900: #1a1f3a;
+  --color-gray-950: #0e1228;
+
+  /* Inter for body, tables and numbers; Plus Jakarta Sans for headings. Loaded from Google Fonts in index.html. */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* Type scale: page title 28px, KPI value 32px, card title 16px, labels 13px. */
+  --text-page-title: 1.75rem;
+  --text-page-title--line-height: 2.25rem;
+  --text-kpi: 2rem;
+  --text-kpi--line-height: 2.5rem;
+  --text-card-title: 1rem;
+  --text-card-title--line-height: 1.5rem;
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1.25rem;
+}
+
+/*
+ * Semantic tokens (shadcn/ui convention). .dark on <html> switches theme: set by ThemeProvider (light / dark / system)
+ * and, before first paint, by the inline script in index.html. Light is the default.
+ * Status colours follow brief section 62 and stay separate from the brand: green = good, orange = warning,
+ * red = critical, grey = inactive. Warning is a red-orange so it never reads as brand amber.
+ * Never use colour alone - always pair with a label or icon.
  */
 :root {
-  --background: oklch(0.985 0.002 247.84);
-  --foreground: oklch(0.21 0.034 264.67);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.034 264.67);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.034 264.67);
-  --primary: oklch(0.511 0.23 276.97);
-  --primary-foreground: oklch(0.985 0.002 247.84);
-  --secondary: oklch(0.967 0.003 264.54);
-  --secondary-foreground: oklch(0.21 0.034 264.67);
-  --muted: oklch(0.967 0.003 264.54);
-  --muted-foreground: oklch(0.551 0.027 264.36);
-  --accent: oklch(0.962 0.018 272.31);
-  --accent-foreground: oklch(0.398 0.195 277.37);
-  --destructive: oklch(0.577 0.245 27.33);
-  --border: oklch(0.928 0.006 264.53);
-  --input: oklch(0.928 0.006 264.53);
-  --ring: oklch(0.585 0.233 277.12);
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.373 0.034 259.73);
+  --background: #f5f6fa;
+  --foreground: var(--color-navy-900);
+  --card: #ffffff;
+  --card-foreground: var(--color-navy-900);
+  --popover: #ffffff;
+  --popover-foreground: var(--color-navy-900);
+  --primary: var(--color-blue-600);
+  --primary-foreground: #ffffff;
+  --secondary: var(--color-gray-100);
+  --secondary-foreground: var(--color-navy-900);
+  --muted: var(--color-gray-100);
+  --muted-foreground: var(--color-gray-600);
+  --accent: var(--color-blue-50);
+  --accent-foreground: var(--color-blue-700);
+  --highlight: var(--color-amber-500);
+  --highlight-foreground: var(--color-navy-900);
+  --destructive: #c92a2a;
+  --border: #e4e7f0;
+  --input: #d6dae8;
+  --ring: var(--color-blue-600);
+
+  --sidebar: var(--color-navy-900);
+  --sidebar-foreground: #c9cdea;
+  --sidebar-muted: #8f93c2;
+  --sidebar-hover: rgb(255 255 255 / 0.07);
+  --sidebar-active: var(--color-blue-600);
+  --sidebar-border: rgb(255 255 255 / 0.08);
+
+  --card-shadow: 0 1px 2px rgb(0 2 77 / 0.04), 0 6px 20px rgb(0 2 77 / 0.06);
+  --popover-shadow: 0 4px 12px rgb(0 2 77 / 0.08), 0 16px 40px rgb(0 2 77 / 0.12);
 
   /* Dark enough for 4.5:1 text contrast on white and on the 10% tinted badge backgrounds. */
-  --status-success: oklch(0.527 0.154 150.07);
-  --status-warning: oklch(0.54 0.16 50);
-  --status-danger: oklch(0.577 0.245 27.33);
-  --status-neutral: oklch(0.551 0.027 264.36);
+  --status-success: #15803d;
+  --status-warning: #c2410c;
+  --status-danger: #c92a2a;
+  --status-neutral: var(--color-gray-600);
 
-  /* Categorical series (e.g. one line per keyword). Never used for status, which has its own tokens. */
-  --chart-1: oklch(0.546 0.215 262.88);
-  --chart-2: oklch(0.6 0.118 184.71);
-  --chart-3: oklch(0.558 0.288 302.32);
-  --chart-4: oklch(0.646 0.176 41.12);
-  --chart-5: oklch(0.592 0.249 0.58);
-  --chart-6: oklch(0.488 0.03 256.8);
+  /* One chart palette built from the brand colours. Never used for status, which has its own tokens. */
+  --chart-1: var(--color-blue-600);
+  --chart-2: var(--color-amber-500);
+  --chart-3: var(--color-navy-600);
+  --chart-4: #0f9488;
+  --chart-5: var(--color-blue-300);
+  --chart-6: var(--color-gray-500);
+  --chart-highlight: var(--color-amber-500);
+  --chart-grid: #eceef5;
+  --chart-axis: var(--color-gray-600);
 
   --radius: 0.625rem;
 }
 
+/* Deep navy surfaces derived from #00024D (never pure black); borders and lighter surfaces instead of shadows. */
 .dark {
-  --background: oklch(0.145 0.015 264.7);
-  --foreground: oklch(0.967 0.003 264.54);
-  --card: oklch(0.19 0.02 264.7);
-  --card-foreground: oklch(0.967 0.003 264.54);
-  --popover: oklch(0.19 0.02 264.7);
-  --popover-foreground: oklch(0.967 0.003 264.54);
-  --primary: oklch(0.673 0.182 276.94);
-  --primary-foreground: oklch(0.145 0.015 264.7);
-  --secondary: oklch(0.25 0.02 264.7);
-  --secondary-foreground: oklch(0.967 0.003 264.54);
-  --muted: oklch(0.25 0.02 264.7);
-  --muted-foreground: oklch(0.707 0.022 261.33);
-  --accent: oklch(0.27 0.06 277);
-  --accent-foreground: oklch(0.87 0.065 274.04);
-  --destructive: oklch(0.637 0.237 25.33);
-  --border: oklch(0.3 0.02 264.7);
-  --input: oklch(0.3 0.02 264.7);
-  --ring: oklch(0.585 0.233 277.12);
-  --sidebar: oklch(0.17 0.017 264.7);
-  --sidebar-foreground: oklch(0.872 0.01 258.34);
+  --background: #03052b;
+  --foreground: #e8eaf6;
+  --card: #0a0e3a;
+  --card-foreground: #e8eaf6;
+  --popover: #0e1344;
+  --popover-foreground: #e8eaf6;
+  /* A lighter blue keeps links at 4.5:1 on navy; button text turns navy to keep its own contrast. */
+  --primary: #7b91f3;
+  --primary-foreground: var(--color-navy-900);
+  --secondary: #141a4b;
+  --secondary-foreground: #e8eaf6;
+  --muted: #141a4b;
+  --muted-foreground: #a0a6cc;
+  --accent: #1a2260;
+  --accent-foreground: #c3cefb;
+  --highlight: var(--color-amber-400);
+  --highlight-foreground: var(--color-navy-900);
+  --destructive: #f87171;
+  --border: #1f2659;
+  --input: #2a3270;
+  --ring: #7b91f3;
+
+  --sidebar: #01031f;
+  --sidebar-foreground: #c9cdea;
+  --sidebar-muted: #8f93c2;
+  --sidebar-hover: rgb(255 255 255 / 0.06);
+  --sidebar-active: var(--color-blue-600);
+  --sidebar-border: #1a2055;
+
+  --card-shadow: none;
+  --popover-shadow: 0 16px 40px rgb(0 1 20 / 0.5);
 
   /* Lighter in dark mode so status text keeps WCAG AA contrast on tinted badge backgrounds. */
-  --status-success: oklch(0.765 0.177 152.2);
-  --status-warning: oklch(0.78 0.16 60.5);
-  --status-danger: oklch(0.704 0.191 22.22);
-  --status-neutral: oklch(0.707 0.022 261.33);
+  --status-success: #4ade80;
+  --status-warning: #fb923c;
+  --status-danger: #f87171;
+  --status-neutral: #a0a6cc;
 
-  --chart-1: oklch(0.707 0.165 254.62);
-  --chart-2: oklch(0.777 0.152 181.91);
-  --chart-3: oklch(0.714 0.203 305.5);
-  --chart-4: oklch(0.75 0.155 55.93);
-  --chart-5: oklch(0.718 0.202 349.76);
-  --chart-6: oklch(0.711 0.035 256.79);
+  --chart-1: #7b91f3;
+  --chart-2: var(--color-amber-400);
+  --chart-3: #c3cefb;
+  --chart-4: #2dd4bf;
+  --chart-5: #3d55c9;
+  --chart-6: #7c84a8;
+  --chart-highlight: var(--color-amber-400);
+  --chart-grid: #1a2055;
+  --chart-axis: #a0a6cc;
 }
 
 @theme inline {
-  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
-
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -100,20 +197,30 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-border: var(--sidebar-border);
   --color-status-success: var(--status-success);
   --color-status-warning: var(--status-warning);
   --color-status-danger: var(--status-danger);
   --color-status-neutral: var(--status-neutral);
 
+  --shadow-card: var(--card-shadow);
+  --shadow-popover: var(--popover-shadow);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
+  /* 14px: cards and panels. */
   --radius-xl: calc(var(--radius) + 4px);
 }
 
@@ -123,8 +230,16 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: 'cv11', 'ss01';
+    @apply bg-background font-sans text-foreground antialiased;
+    /* Tabular figures everywhere, so numbers line up in columns and KPI tiles. */
+    font-feature-settings: 'cv11', 'tnum';
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
   }
 }
 

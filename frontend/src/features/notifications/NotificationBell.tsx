@@ -50,10 +50,10 @@ export function NotificationBell() {
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative" aria-label={count > 0 ? `Notifications, ${count} unread` : 'Notifications'}>
+        <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground" aria-label={count > 0 ? `Notifications, ${count} unread` : 'Notifications'}>
           <Bell />
           {count > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-status-danger px-1 text-[10px] font-semibold text-white tabular-nums" aria-hidden>
+            <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-status-danger px-1 text-[10px] ring-2 ring-card font-semibold text-white tabular-nums" aria-hidden>
               {count > 99 ? '99+' : count}
             </span>
           )}
@@ -94,7 +94,7 @@ export function NotificationBell() {
                 <DropdownMenuItem
                   key={notification.id}
                   onSelect={() => openNotification(notification)}
-                  className={cn('items-start gap-3 rounded-none px-3 py-2.5', !notification.read && 'bg-accent/40')}
+                  className={cn('items-start gap-3 rounded-none px-3 py-2.5', !notification.read && 'bg-accent/50')}
                 >
                   <meta.icon className={cn('mt-0.5 size-4 shrink-0', meta.tone)} aria-label={meta.label} />
                   <div className="min-w-0 flex-1">

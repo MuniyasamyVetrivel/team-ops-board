@@ -22,7 +22,7 @@ export function AvatarFallback({ className, ...props }: ComponentProps<typeof Av
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
       className={cn(
-        'flex size-full items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground',
+        'flex size-full items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-800 dark:bg-accent dark:text-accent-foreground',
         className,
       )}
       {...props}

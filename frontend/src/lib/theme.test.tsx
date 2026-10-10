@@ -21,13 +21,16 @@ describe('theme', () => {
     expect(resolveTheme('dark', false)).toBe('dark');
   });
 
-  it('falls back to the system theme when storage is blocked or holds junk', () => {
-    localStorage.setItem(THEME_STORAGE_KEY, 'purple');
+  it('defaults to light, also when storage is blocked or holds junk', () => {
+    expect(readThemePreference()).toBe('light');
+    localStorage.setItem(THEME_STORAGE_KEY, 'system');
     expect(readThemePreference()).toBe('system');
+    localStorage.setItem(THEME_STORAGE_KEY, 'purple');
+    expect(readThemePreference()).toBe('light');
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('blocked');
     });
-    expect(readThemePreference()).toBe('system');
+    expect(readThemePreference()).toBe('light');
   });
 
   it('switches the document to dark mode and remembers the choice', async () => {

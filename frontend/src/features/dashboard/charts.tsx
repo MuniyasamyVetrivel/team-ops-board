@@ -1,115 +1,60 @@
-import type { ReactNode } from 'react';
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-
-import { TaskStatusBadge } from '@/features/tasks/TaskBadges';
-import { parseLocalDate } from '@/features/tasks/task-meta';
+import { BarGraph } from '@/components/charts/BarGraph';
+import { ChartTooltip, ChartTooltipRow } from '@/components/charts/ChartTooltip';
+import { CHART_HIGHLIGHT } from '@/components/charts/chart-theme';
+import { DonutChart } from '@/components/charts/DonutChart';
+import { TrendLineChart } from '@/components/charts/TrendLineChart';
+import { parseLocalDate, STATUS_LABELS } from '@/features/tasks/task-meta';
 import type { TaskStatus } from '@/features/tasks/types';
 
 import type { DepartmentRow, StatusSlice, WeekPoint } from './api';
 
-/** Status colours reuse the semantic tokens of TaskStatusBadge; the legend always shows icon + label + count. */
+/** Status colours reuse the semantic tokens of TaskStatusBadge; the legend always names each status. */
 const STATUS_COLOR: Record<TaskStatus, string> = {
-  TODO: 'var(--status-neutral)',
-  IN_PROGRESS: 'var(--primary)',
+  TODO: 'var(--color-gray-400)',
+  IN_PROGRESS: 'var(--chart-1)',
   BLOCKED: 'var(--status-danger)',
   IN_REVIEW: 'var(--status-warning)',
   COMPLETED: 'var(--status-success)',
-  CANCELLED: 'var(--status-neutral)',
+  CANCELLED: 'var(--color-gray-300)',
 };
 
-const AXIS = { fontSize: 12, fill: 'var(--muted-foreground)' };
 const weekFormat = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' });
 
-/** Initial size so the chart renders before (and without) a measured container, e.g. in tests. */
-const INITIAL = { width: 480, height: 240 };
-
-function TooltipBox({ title, children }: { title: ReactNode; children: ReactNode }) {
+export function StatusDonut({ slices }: { slices: StatusSlice[] }) {
   return (
-    <div className="rounded-lg border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md">
-      <p className="mb-1 font-medium">{title}</p>
-      {children}
-    </div>
+    <DonutChart
+      ariaLabel="Tasks by status"
+      centerLabel="tasks"
+      segments={slices.map((slice) => ({ key: slice.status, label: STATUS_LABELS[slice.status], value: slice.count, color: STATUS_COLOR[slice.status] }))}
+    />
   );
 }
 
-export function StatusDonut({ slices, completedWindowDays }: { slices: StatusSlice[]; completedWindowDays: number }) {
-  const total = slices.reduce((sum, slice) => sum + slice.count, 0);
-  const data = slices.filter((slice) => slice.count > 0);
-  return (
-    <div className="flex flex-col items-center gap-4 sm:flex-row lg:flex-col xl:flex-row">
-      <div className="relative size-44 shrink-0">
-        <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 176, height: 176 }}>
-          <PieChart>
-            <Pie data={data} dataKey="count" nameKey="status" innerRadius="68%" outerRadius="100%" paddingAngle={data.length > 1 ? 2 : 0} stroke="var(--card)" strokeWidth={2} isAnimationActive={false}>
-              {data.map((slice) => (
-                <Cell key={slice.status} fill={STATUS_COLOR[slice.status]} />
-              ))}
-            </Pie>
-            <Tooltip
-              content={({ active, payload }) => {
-                const slice = payload?.[0]?.payload as StatusSlice | undefined;
-                if (!active || !slice) return null;
-                return (
-                  <TooltipBox title={<TaskStatusBadge status={slice.status} />}>
-                    <span className="tabular-nums">
-                      {slice.count} task{slice.count === 1 ? '' : 's'} · {total ? Math.round((slice.count / total) * 100) : 0}%
-                    </span>
-                  </TooltipBox>
-                );
-              }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-semibold tabular-nums">{total}</span>
-          <span className="text-xs text-muted-foreground">tasks</span>
-        </div>
-      </div>
-      <ul className="w-full space-y-1.5 text-sm" aria-label="Tasks by status">
-        {slices.map((slice) => (
-          <li key={slice.status} className="flex items-center justify-between gap-3">
-            <span className="flex items-center gap-2">
-              <span className="size-2.5 rounded-sm" style={{ background: STATUS_COLOR[slice.status] }} aria-hidden />
-              <TaskStatusBadge status={slice.status} />
-              {slice.status === 'COMPLETED' && <span className="text-xs text-muted-foreground">last {completedWindowDays} days</span>}
-            </span>
-            <span className="font-medium tabular-nums">{slice.count}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+type WeekDatum = WeekPoint & { label: string; value: number; highlight: boolean };
+
+function weekData(weeks: WeekPoint[], currentWeekStart: string): WeekDatum[] {
+  return weeks.map((week) => ({ ...week, label: weekFormat.format(parseLocalDate(week.weekStart)), value: week.completed, highlight: week.weekStart === currentWeekStart }));
 }
 
-export function WeeklyCompletionChart({ weeks }: { weeks: WeekPoint[] }) {
-  const data = weeks.map((week) => ({ ...week, label: weekFormat.format(parseLocalDate(week.weekStart)) }));
+function percentText(value: number | null): string {
+  return value === null ? '—' : `${value}%`;
+}
+
+/** Completions per week; the current (partial) week is the amber bar. */
+export function WeeklyCompletionChart({ weeks, currentWeekStart }: { weeks: WeekPoint[]; currentWeekStart: string }) {
+  const data = weekData(weeks, currentWeekStart);
   return (
     <>
-      <div className="h-60">
-        <ResponsiveContainer width="100%" height="100%" initialDimension={INITIAL}>
-          <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-            <CartesianGrid vertical={false} stroke="var(--border)" />
-            <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={false} />
-            <YAxis allowDecimals={false} tick={AXIS} tickLine={false} axisLine={false} />
-            <Tooltip
-              cursor={{ fill: 'var(--muted)' }}
-              content={({ active, payload }) => {
-                const week = payload?.[0]?.payload as (WeekPoint & { label: string }) | undefined;
-                if (!active || !week) return null;
-                return (
-                  <TooltipBox title={`Week of ${week.label}`}>
-                    <p className="tabular-nums">{week.completed} completed</p>
-                    <p className="text-muted-foreground tabular-nums">
-                      On time: {week.onTimePercent === null ? '—' : `${week.onTimePercent}%`}
-                    </p>
-                  </TooltipBox>
-                );
-              }}
-            />
-            <Bar dataKey="completed" name="Completed" fill="var(--primary)" radius={[4, 4, 0, 0]} maxBarSize={36} isAnimationActive={false} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      <BarGraph
+        data={data}
+        height={256}
+        renderTooltip={(week) => (
+          <ChartTooltip title={week.highlight ? `This week (from ${week.label})` : `Week of ${week.label}`}>
+            <ChartTooltipRow color={week.highlight ? CHART_HIGHLIGHT : 'var(--chart-1)'} label="Completed" value={week.completed} />
+            <ChartTooltipRow label="On time" value={percentText(week.onTimePercent)} />
+          </ChartTooltip>
+        )}
+      />
       <table className="sr-only">
         <caption>Tasks completed per week</caption>
         <thead>
@@ -124,7 +69,7 @@ export function WeeklyCompletionChart({ weeks }: { weeks: WeekPoint[] }) {
             <tr key={week.weekStart}>
               <td>{week.label}</td>
               <td>{week.completed}</td>
-              <td>{week.onTimePercent === null ? '—' : `${week.onTimePercent}%`}</td>
+              <td>{percentText(week.onTimePercent)}</td>
             </tr>
           ))}
         </tbody>
@@ -133,39 +78,46 @@ export function WeeklyCompletionChart({ weeks }: { weeks: WeekPoint[] }) {
   );
 }
 
+/** On-time share of each week's completions as a smooth trend; weeks without completions leave a gap. */
+export function OnTimeTrendChart({ weeks }: { weeks: WeekPoint[] }) {
+  const data = weeks.map((week) => ({ label: weekFormat.format(parseLocalDate(week.weekStart)), onTime: week.onTimePercent, week }));
+  return (
+    <TrendLineChart
+      data={data}
+      series={[{ key: 'onTime', label: 'On time' }]}
+      height={200}
+      valueDomain={[0, 100]}
+      formatValue={(v) => `${v}%`}
+      yAxisWidth={44}
+      renderTooltip={(d) => (
+        <ChartTooltip title={`Week of ${d.label}`}>
+          <ChartTooltipRow color="var(--chart-1)" label="On time" value={percentText(d.onTime)} />
+          <ChartTooltipRow label="Completed" value={`${d.week.onTime} of ${d.week.completed}`} />
+        </ChartTooltip>
+      )}
+    />
+  );
+}
+
 /** Horizontal bars of department workload %, with a marker at 100% capacity. Departments without people are skipped. */
 export function DepartmentWorkloadChart({ departments }: { departments: DepartmentRow[] }) {
   const data = departments
     .filter((d) => d.workloadPercent !== null)
-    .map((d) => ({ name: d.department.name, percent: d.workloadPercent ?? 0, row: d }));
-  const height = Math.max(160, data.length * 34 + 32);
+    .map((d) => ({ label: d.department.name, value: d.workloadPercent ?? 0, row: d }));
   return (
-    <div style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: INITIAL.width, height }}>
-        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, bottom: 0, left: 8 }}>
-          <CartesianGrid horizontal={false} stroke="var(--border)" />
-          <XAxis type="number" tick={AXIS} tickLine={false} axisLine={false} unit="%" domain={[0, (max: number) => Math.max(100, Math.ceil(max / 20) * 20)]} />
-          <YAxis type="category" dataKey="name" tick={AXIS} tickLine={false} axisLine={false} width={120} />
-          <ReferenceLine x={100} stroke="var(--status-danger)" strokeDasharray="4 4" label={{ value: 'Capacity', position: 'top', fontSize: 11, fill: 'var(--muted-foreground)' }} />
-          <Tooltip
-            cursor={{ fill: 'var(--muted)' }}
-            content={({ active, payload }) => {
-              const item = payload?.[0]?.payload as { row: DepartmentRow } | undefined;
-              if (!active || !item) return null;
-              const { row } = item;
-              return (
-                <TooltipBox title={row.department.name}>
-                  <p className="tabular-nums">Workload {row.workloadPercent}%</p>
-                  <p className="text-muted-foreground tabular-nums">
-                    {row.people} people · {row.openTasks} open · {row.overdue} overdue
-                  </p>
-                </TooltipBox>
-              );
-            }}
-          />
-          <Bar dataKey="percent" name="Workload %" fill="var(--primary)" radius={[0, 4, 4, 0]} maxBarSize={20} isAnimationActive={false} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
+    <BarGraph
+      data={data}
+      layout="rows"
+      formatValue={(v) => `${v}%`}
+      valueDomain={[0, (max: number) => Math.max(100, Math.ceil(max / 20) * 20)]}
+      referenceLine={{ value: 100, label: 'Capacity' }}
+      renderTooltip={({ row }) => (
+        <ChartTooltip title={row.department.name}>
+          <ChartTooltipRow color="var(--chart-1)" label="Workload" value={`${row.workloadPercent}%`} />
+          <ChartTooltipRow label="People" value={row.people} />
+          <ChartTooltipRow label="Open · overdue" value={`${row.openTasks} · ${row.overdue}`} />
+        </ChartTooltip>
+      )}
+    />
   );
 }

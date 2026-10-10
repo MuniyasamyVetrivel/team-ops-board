@@ -21,10 +21,10 @@ import type { ActivityItem, DepartmentRow } from './api';
 export function TaskList({ tasks, empty, emptyIcon, onOpen, showAssignee }: { tasks: TaskListItem[]; empty: string; emptyIcon: LucideIcon; onOpen: (task: TaskListItem) => void; showAssignee: boolean }) {
   if (tasks.length === 0) return <EmptyState icon={emptyIcon} title={empty} className="py-10" />;
   return (
-    <ul className="divide-y">
+    <ul className="divide-y divide-border/70">
       {tasks.map((task) => (
         <li key={task.id}>
-          <button type="button" onClick={() => onOpen(task)} className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none">
+          <button type="button" onClick={() => onOpen(task)} className="flex min-h-16 w-full items-center gap-3 px-6 py-3 text-left transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{task.title}</p>
               <p className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
@@ -53,8 +53,8 @@ export function EmployeeWorkloadTable({ rows, onOpenPerson }: { rows: WorkloadRo
       <TableHeader>
         <TableRow>
           <TableHead>Employee</TableHead>
-          <TableHead className="text-right">Active</TableHead>
-          <TableHead className="text-right">Overdue</TableHead>
+          <TableHead numeric>Active</TableHead>
+          <TableHead numeric>Overdue</TableHead>
           <TableHead>Workload</TableHead>
         </TableRow>
       </TableHeader>
@@ -64,8 +64,8 @@ export function EmployeeWorkloadTable({ rows, onOpenPerson }: { rows: WorkloadRo
             <TableCell className="max-w-56">
               <UserCell name={row.user.fullName} detail={row.department.name} />
             </TableCell>
-            <TableCell className="text-right tabular-nums">{row.activeTasks}</TableCell>
-            <TableCell className={cn('text-right tabular-nums', row.overdue > 0 && 'font-semibold text-status-danger')}>{row.overdue}</TableCell>
+            <TableCell numeric>{row.activeTasks}</TableCell>
+            <TableCell numeric className={cn(row.overdue > 0 && 'font-semibold text-status-danger')}>{row.overdue}</TableCell>
             <TableCell>
               <WorkloadMeter percent={row.workloadPercent} level={row.level} className="min-w-52" />
             </TableCell>
@@ -86,31 +86,31 @@ export function DepartmentPerformanceTable({ departments, completedWindowDays }:
       <TableHeader>
         <TableRow>
           <TableHead>Department</TableHead>
-          <TableHead className="text-right">People</TableHead>
-          <TableHead className="text-right">Open</TableHead>
-          <TableHead className="text-right">Overdue</TableHead>
-          <TableHead className="text-right" title={`Completed in the last ${completedWindowDays} days`}>
+          <TableHead numeric>People</TableHead>
+          <TableHead numeric>Open</TableHead>
+          <TableHead numeric>Overdue</TableHead>
+          <TableHead numeric title={`Completed in the last ${completedWindowDays} days`}>
             Completed ({completedWindowDays}d)
           </TableHead>
-          <TableHead className="text-right">On time</TableHead>
+          <TableHead numeric>On time</TableHead>
           <TableHead>Workload</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {departments.map((row) => (
           <TableRow key={row.department.id}>
-            <TableCell className="font-medium">{row.department.name}</TableCell>
-            <TableCell className="text-right tabular-nums">{row.people}</TableCell>
-            <TableCell className="text-right tabular-nums">{row.openTasks}</TableCell>
-            <TableCell className={cn('text-right tabular-nums', row.overdue > 0 && 'font-semibold text-status-danger')}>{row.overdue}</TableCell>
-            <TableCell className="text-right tabular-nums">{row.completed}</TableCell>
-            <TableCell className="text-right tabular-nums">{percentText(row.onTimePercent)}</TableCell>
+            <TableCell className="font-medium whitespace-nowrap">{row.department.name}</TableCell>
+            <TableCell numeric>{row.people}</TableCell>
+            <TableCell numeric>{row.openTasks}</TableCell>
+            <TableCell numeric className={cn(row.overdue > 0 && 'font-semibold text-status-danger')}>{row.overdue}</TableCell>
+            <TableCell numeric>{row.completed}</TableCell>
+            <TableCell numeric>{percentText(row.onTimePercent)}</TableCell>
             <TableCell>
               {row.workloadPercent === null || row.level === null ? (
                 <span className="text-muted-foreground">—</span>
               ) : (
                 <span className="flex items-center gap-2">
-                  <span className="w-11 text-right tabular-nums">{row.workloadPercent}%</span>
+                  <span className="w-12 text-right font-medium tabular-nums">{row.workloadPercent}%</span>
                   <WorkloadLevelBadge level={row.level} />
                 </span>
               )}
@@ -145,9 +145,9 @@ function activityText(item: ActivityItem): ReactNode {
 export function RecentActivity({ items, onOpenTask }: { items: ActivityItem[]; onOpenTask: (taskId: number) => void }) {
   if (items.length === 0) return <EmptyState icon={History} title="No activity yet" description="Task changes from your team appear here." className="py-10" />;
   return (
-    <ol className="divide-y">
+    <ol className="divide-y divide-border/70">
       {items.map((item) => (
-        <li key={item.id} className="flex items-start gap-3 px-5 py-3">
+        <li key={item.id} className="flex items-start gap-3 px-6 py-3.5">
           <UserAvatar name={item.actorName ?? 'System'} size="sm" />
           <div className="min-w-0 flex-1 text-sm">
             <p className="text-muted-foreground">
@@ -181,9 +181,9 @@ export function UpcomingEvents({ items }: { items: CalendarItem[] }) {
   const events = items.filter((item) => item.kind === 'EVENT');
   if (events.length === 0) return <EmptyState icon={CalendarDays} title="Nothing scheduled" description="Team events, meetings and leave for the next two weeks appear here." className="py-10" />;
   return (
-    <ul className="divide-y">
+    <ul className="divide-y divide-border/70">
       {events.map((item) => (
-        <li key={item.key} className="flex items-center gap-3 px-5 py-3">
+        <li key={item.key} className="flex min-h-16 items-center gap-3 px-6 py-3">
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{item.title}</p>
             <p className="mt-0.5 text-xs text-muted-foreground">

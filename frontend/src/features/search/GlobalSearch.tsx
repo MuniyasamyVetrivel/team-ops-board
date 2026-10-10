@@ -99,8 +99,8 @@ export function GlobalSearch() {
   const optionId = (index: number) => `${listId}-option-${index}`;
 
   return (
-    <div className="relative w-full max-w-md">
-      <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+    <div className="relative w-full max-w-xl">
+      <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
       <input
         ref={inputRef}
         type="search"
@@ -111,7 +111,7 @@ export function GlobalSearch() {
         aria-autocomplete="list"
         aria-activedescendant={showPanel && hits.length > 0 ? optionId(Math.min(active, hits.length - 1)) : undefined}
         placeholder="Search tasks, tickets, people, leads…"
-        className="h-9 w-full rounded-md border border-input bg-card pr-14 pl-9 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30"
+        className="h-10 w-full rounded-lg border border-transparent bg-muted pr-16 pl-10 text-sm outline-none transition-[background-color,border-color,box-shadow] placeholder:text-muted-foreground hover:border-input focus-visible:border-ring focus-visible:bg-card focus-visible:ring-[3px] focus-visible:ring-ring/25"
         value={query}
         onChange={(event) => {
           setQuery(event.target.value);
@@ -122,13 +122,13 @@ export function GlobalSearch() {
         onBlur={() => setOpen(false)}
         onKeyDown={onKeyDown}
       />
-      <kbd className="pointer-events-none absolute top-1/2 right-2 hidden -translate-y-1/2 rounded border bg-muted px-1.5 font-mono text-[10px] text-muted-foreground sm:block" aria-hidden>
+      <kbd className="pointer-events-none absolute top-1/2 right-2.5 hidden -translate-y-1/2 rounded-md border bg-card px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:block" aria-hidden>
         Ctrl K
       </kbd>
 
       {showPanel && (
         <div
-          className="absolute top-full right-0 left-0 z-50 mt-1.5 max-h-[70vh] overflow-y-auto rounded-lg border bg-card shadow-lg sm:min-w-[28rem]"
+          className="absolute top-full right-0 left-0 z-50 mt-2 max-h-[70vh] overflow-y-auto rounded-xl border bg-popover shadow-popover sm:min-w-[28rem]"
           // Keep focus in the input while clicking a result.
           onMouseDown={(event) => event.preventDefault()}
         >
@@ -183,7 +183,7 @@ function ResultOption({ hit, id, active, onHover, onSelect }: { hit: SearchHit; 
       id={id}
       role="option"
       aria-selected={active}
-      className={cn('mx-1 flex cursor-pointer items-center gap-3 rounded-md px-3 py-2', active && 'bg-accent text-accent-foreground')}
+      className={cn('mx-1.5 flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2', active && 'bg-muted')}
       onMouseEnter={onHover}
       onClick={onSelect}
     >

@@ -19,12 +19,12 @@ export function UserMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-left outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50">
+      <DropdownMenuTrigger className="flex items-center gap-2.5 rounded-lg py-1 pr-2 pl-1 text-left outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40">
         <Avatar>
           <AvatarFallback>{initials(user.fullName)}</AvatarFallback>
         </Avatar>
         <div className="hidden leading-tight sm:block">
-          <p className="text-sm font-medium">{user.fullName}</p>
+          <p className="text-sm font-semibold">{user.fullName}</p>
           <p className="text-xs text-muted-foreground">{primaryRoleLabel(user)}</p>
         </div>
         <ChevronDown className="size-4 text-muted-foreground" aria-hidden />

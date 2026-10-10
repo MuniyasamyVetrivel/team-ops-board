@@ -59,12 +59,12 @@ export default function LoginPage() {
 
   return (
     <div className="grid min-h-svh lg:grid-cols-[1.05fr_1fr]">
-      <section className="relative hidden flex-col justify-between overflow-hidden bg-slate-950 p-10 text-white lg:flex">
+      <section className="relative hidden flex-col justify-between overflow-hidden bg-navy-900 p-10 text-white lg:flex">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.15]"
           style={{
             backgroundImage:
-              'linear-gradient(to right, rgb(148 163 184 / 0.4) 1px, transparent 1px), linear-gradient(to bottom, rgb(148 163 184 / 0.4) 1px, transparent 1px)',
+              'linear-gradient(to right, rgb(185 192 236 / 0.35) 1px, transparent 1px), linear-gradient(to bottom, rgb(185 192 236 / 0.35) 1px, transparent 1px)',
             backgroundSize: '44px 44px',
           }}
           aria-hidden
@@ -78,23 +78,23 @@ export default function LoginPage() {
             {HIGHLIGHTS.map(({ icon: Icon, title, text }) => (
               <li key={title} className="flex gap-3">
                 <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/10">
-                  <Icon className="size-4 text-indigo-200" aria-hidden />
+                  <Icon className="size-4 text-highlight" aria-hidden />
                 </span>
                 <span>
                   <span className="block text-sm font-medium">{title}</span>
-                  <span className="block text-sm text-slate-400">{text}</span>
+                  <span className="block text-sm text-sidebar-foreground">{text}</span>
                 </span>
               </li>
             ))}
           </ul>
         </div>
-        <p className="relative text-xs text-slate-500">Internal use only. Access is monitored and audited.</p>
+        <p className="relative text-xs text-sidebar-muted">Internal use only. Access is monitored and audited.</p>
       </section>
 
       <section className="flex items-center justify-center px-4 py-12 sm:px-8">
         <div className="w-full max-w-sm">
           <BrandMark className="mb-10 lg:hidden" />
-          <h2 className="text-2xl font-semibold tracking-tight">Sign in</h2>
+          <h2 className="text-page-title font-bold tracking-tight">Sign in</h2>
           <p className="mt-1.5 text-sm text-muted-foreground">Use your company email and password.</p>
 
           {sessionExpired && (

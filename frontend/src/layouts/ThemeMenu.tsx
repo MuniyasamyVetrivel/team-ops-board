@@ -17,7 +17,7 @@ export function ThemeMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Change theme">
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" aria-label="Change theme">
           <Current aria-hidden />
         </Button>
       </DropdownMenuTrigger>

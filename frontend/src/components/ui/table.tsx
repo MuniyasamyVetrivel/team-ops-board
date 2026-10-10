@@ -2,16 +2,21 @@ import type { ComponentProps } from 'react';
 
 import { cn } from '@/lib/utils';
 
-export function Table({ className, ...props }: ComponentProps<'table'>) {
+/**
+ * Data table: 52px rows, hairline dividers, muted uppercase headers that stick to the top of a scrolling container
+ * (pass a max height through {@code containerClassName}). Mark number columns {@code numeric} on both the header and
+ * the cells: they right-align, use tabular figures and never wrap.
+ */
+export function Table({ className, containerClassName, ...props }: ComponentProps<'table'> & { containerClassName?: string }) {
   return (
-    <div className="w-full overflow-x-auto">
+    <div className={cn('relative w-full overflow-x-auto', containerClassName)}>
       <table className={cn('w-full caption-bottom text-sm', className)} {...props} />
     </div>
   );
 }
 
 export function TableHeader({ className, ...props }: ComponentProps<'thead'>) {
-  return <thead className={cn('bg-muted/50 [&_tr]:border-b', className)} {...props} />;
+  return <thead className={cn('[&_tr]:border-b', className)} {...props} />;
 }
 
 export function TableBody({ className, ...props }: ComponentProps<'tbody'>) {
@@ -19,18 +24,37 @@ export function TableBody({ className, ...props }: ComponentProps<'tbody'>) {
 }
 
 export function TableRow({ className, ...props }: ComponentProps<'tr'>) {
-  return <tr className={cn('border-b transition-colors data-[clickable=true]:cursor-pointer data-[clickable=true]:hover:bg-muted/40', className)} {...props} />;
-}
-
-export function TableHead({ className, ...props }: ComponentProps<'th'>) {
   return (
-    <th
-      className={cn('h-10 px-4 text-left align-middle text-xs font-medium tracking-wide whitespace-nowrap text-muted-foreground uppercase', className)}
+    <tr
+      className={cn(
+        'border-b border-border/70 transition-colors hover:bg-muted/40 data-[clickable=true]:cursor-pointer data-[clickable=true]:hover:bg-accent/50',
+        className,
+      )}
       {...props}
     />
   );
 }
 
-export function TableCell({ className, ...props }: ComponentProps<'td'>) {
-  return <td className={cn('px-4 py-3 align-middle', className)} {...props} />;
+type CellProps = { numeric?: boolean };
+
+export function TableHead({ className, numeric, ...props }: ComponentProps<'th'> & CellProps) {
+  return (
+    <th
+      className={cn(
+        'sticky top-0 z-10 h-11 bg-card px-4 text-left align-middle text-[11px] font-semibold tracking-[0.06em] whitespace-nowrap text-muted-foreground uppercase first:pl-6 last:pr-6',
+        numeric && 'text-right',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export function TableCell({ className, numeric, ...props }: ComponentProps<'td'> & CellProps) {
+  return (
+    <td
+      className={cn('h-13 px-4 py-2 align-middle first:pl-6 last:pr-6', numeric && 'text-right whitespace-nowrap tabular-nums', className)}
+      {...props}
+    />
+  );
 }
