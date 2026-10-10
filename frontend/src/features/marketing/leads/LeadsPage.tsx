@@ -20,6 +20,7 @@ import { parseLocalDate } from '@/features/tasks/task-meta';
 import { errorMessage } from '@/lib/api/errors';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { cn } from '@/lib/utils';
+import { useIdParam } from '@/lib/use-id-param';
 
 import { useImportDefinitions } from '../api';
 import { CsvImportDialog } from '../components/CsvImportDialog';
@@ -53,7 +54,7 @@ export default function LeadsPage() {
   const { filters } = useMarketingFilters();
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [openId, setOpenId] = useState<number | null>(null);
+  const [openId, setOpenId] = useIdParam('lead');
   // Shared with the summary: choosing a source there narrows the table.
   const [source, setSource] = useState('');
   const canEdit = hasPermission(user, 'LEAD_EDIT');

@@ -45,6 +45,8 @@ const MarketingReportPage = lazy(() => import('@/features/marketing/reports/Mark
 const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'));
 const BacklinksPage = lazy(() => import('@/features/marketing/backlinks/BacklinksPage'));
 const ContentPage = lazy(() => import('@/features/marketing/content/ContentPage'));
+const SettingsPage = lazy(() => import('@/features/admin/settings/SettingsPage'));
+const AuditLogsPage = lazy(() => import('@/features/admin/audit/AuditLogsPage'));
 
 /** Pages that exist so far. Every other sidebar entry renders a placeholder naming the phase that builds it. */
 const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
@@ -76,6 +78,8 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
   '/reports': ReportsPage,
   '/digital-marketing/backlinks': BacklinksPage,
   '/digital-marketing/content': ContentPage,
+  '/admin/settings': SettingsPage,
+  '/admin/audit-logs': AuditLogsPage,
 };
 
 /** Detail routes that are not sidebar entries. */

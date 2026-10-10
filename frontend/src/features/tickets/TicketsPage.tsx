@@ -16,6 +16,7 @@ import { useDepartments } from '@/features/departments/api';
 import { PRIORITY_LABELS } from '@/features/tasks/task-meta';
 import { PRIORITIES } from '@/features/tasks/types';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
+import { useInitialSearch } from '@/lib/use-initial-search';
 
 import { useTicketCategories, useTickets } from './api';
 import { CreateTicketDialog } from './CreateTicketDialog';
@@ -54,7 +55,8 @@ export default function TicketsPage() {
   const categories = useTicketCategories();
   const [ticketId, setTicketId] = useTicketParam();
   const [creating, setCreating] = useState(false);
-  const [search, setSearch] = useState('');
+  const initialSearch = useInitialSearch();
+  const [search, setSearch] = useState(initialSearch);
   const [statusPreset, setStatusPreset] = useState('open');
   const [priority, setPriority] = useState<TicketPriority | ''>('');
   const [view, setView] = useState<TicketView>('ALL');

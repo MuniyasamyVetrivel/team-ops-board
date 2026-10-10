@@ -20,6 +20,7 @@ import { parseLocalDate } from '@/features/tasks/task-meta';
 import { errorMessage } from '@/lib/api/errors';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { cn } from '@/lib/utils';
+import { useIdParam } from '@/lib/use-id-param';
 
 import { useImportDefinitions } from '../api';
 import { CsvImportDialog } from '../components/CsvImportDialog';
@@ -50,7 +51,7 @@ export default function PaidCampaignsPage() {
   const { filters } = useMarketingFilters();
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [openId, setOpenId] = useState<number | null>(null);
+  const [openId, setOpenId] = useIdParam('campaign');
   const canEdit = hasPermission(user, 'CAMPAIGN_EDIT');
   // Offered by the server only to users who may run it (CAMPAIGN_EDIT).
   const paidImport = useImportDefinitions().data?.find((d) => d.type === PAID_IMPORT_TYPE);

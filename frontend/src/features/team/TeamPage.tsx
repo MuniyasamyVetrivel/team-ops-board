@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useDepartments } from '@/features/departments/api';
 import type { UserStatus } from '@/lib/api/types';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
+import { useInitialSearch } from '@/lib/use-initial-search';
 
 import { useTeamDirectory } from './api';
 
@@ -24,7 +25,8 @@ const PAGE_SIZE = 24;
 /** Team directory (brief section 18). */
 export default function TeamPage() {
   const departments = useDepartments();
-  const [search, setSearch] = useState('');
+  const initialSearch = useInitialSearch();
+  const [search, setSearch] = useState(initialSearch);
   const [departmentId, setDepartmentId] = useState('');
   const [status, setStatus] = useState<UserStatus>('ACTIVE');
   const [page, setPage] = useState(0);

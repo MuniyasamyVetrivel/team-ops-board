@@ -18,6 +18,7 @@ import { useAuth } from '@/features/auth/use-auth';
 import { useDepartments } from '@/features/departments/api';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { cn } from '@/lib/utils';
+import { useInitialSearch } from '@/lib/use-initial-search';
 
 import { PROJECT_STATUSES, useProjects, type ProjectStatus } from './api';
 import { ProgressBar, ProjectStatusBadge } from './ProjectBadges';
@@ -41,7 +42,8 @@ export default function ProjectsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const departments = useDepartments();
-  const [search, setSearch] = useState('');
+  const initialSearch = useInitialSearch();
+  const [search, setSearch] = useState(initialSearch);
   const [statusPreset, setStatusPreset] = useState('open');
   const [departmentId, setDepartmentId] = useState('');
   const [sort, setSort] = useState(SORTS[0]!.value);

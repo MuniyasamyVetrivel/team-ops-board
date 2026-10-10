@@ -17,6 +17,7 @@ import { useAuth } from '@/features/auth/use-auth';
 import { formatRelative } from '@/lib/format';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { cn } from '@/lib/utils';
+import { useInitialSearch } from '@/lib/use-initial-search';
 
 import { useArticles, useKnowledgeCategories, type ArticleStatus } from './api';
 import { ArticleEditorDialog } from './ArticleEditorDialog';
@@ -30,7 +31,8 @@ export default function KnowledgeBasePage() {
   const canEdit = hasPermission(user, 'KB_EDIT');
   const categories = useKnowledgeCategories();
   const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [search, setSearch] = useState('');
+  const initialSearch = useInitialSearch();
+  const [search, setSearch] = useState(initialSearch);
   const [status, setStatus] = useState<ArticleStatus | ''>(canEdit ? '' : 'PUBLISHED');
   const [page, setPage] = useState(0);
   const [creating, setCreating] = useState(false);

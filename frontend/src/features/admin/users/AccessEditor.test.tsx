@@ -12,9 +12,9 @@ import type { PermissionResponse, RoleResponse, UserDetail } from './api';
 const originalAdapter = api.defaults.adapter;
 
 const roles: RoleResponse[] = [
-  { id: 1, code: 'SUPER_ADMIN', name: 'Super Admin', description: 'Everything', permissions: [] },
-  { id: 2, code: 'DEPARTMENT_MANAGER', name: 'Department Manager', description: 'Department', permissions: ['TASK_VIEW', 'TASK_ASSIGN'] },
-  { id: 3, code: 'EMPLOYEE', name: 'Employee', description: 'Own work', permissions: ['TASK_VIEW'] },
+  { id: 1, code: 'SUPER_ADMIN', name: 'Super Admin', description: 'Everything', permissions: [], version: 0 },
+  { id: 2, code: 'DEPARTMENT_MANAGER', name: 'Department Manager', description: 'Department', permissions: ['TASK_VIEW', 'TASK_ASSIGN'], version: 0 },
+  { id: 3, code: 'EMPLOYEE', name: 'Employee', description: 'Own work', permissions: ['TASK_VIEW'], version: 0 },
 ];
 
 const catalogue: PermissionResponse[] = [

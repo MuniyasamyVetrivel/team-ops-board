@@ -98,7 +98,8 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
 - Write audit entries with `AuditService.record(...)`, which runs in its own transaction. Add new actions to the `AuditAction` enum and place each in a module in `AuditCatalog` (the audit viewer's filters; the switch won't compile otherwise).
 - Admin settings: add a key to `SettingDefinition` (type and range; edited at `/api/admin/settings`) and read it through `AppSettingsService` with a fallback default. Seed new keys in a migration.
 - Role permissions change only through `RolePermissionService` (Super Admin; rules in `RolePermissionRules`). Digital Marketing permissions are never put on a role.
-- Global search (`GlobalSearchService`) calls each module's own list service with the module's permission. A new searchable module adds a `Group` there instead of its own query.
+- Global search (`GlobalSearchService`) calls each module's own list service with the module's permission. A new searchable module adds a `Group` there instead of its own query On the frontend, add the result's link in `hitHref` (`features/search/api.ts`); pages open records from the URL (`useIdParam`) and take a starting search from `useInitialSearch()`.
+- Approval workflow steps are edited with `WorkflowStepsFields` (inside a `FormProvider`; schema and mapping in `workflow-steps.ts`); approval types are configured in `WorkflowsPanel`, shared by Approvals and Settings.
 - Write audit log entries for logins, task/ticket create/assign/status changes, target, ranking, campaign, lead and backlink changes, and permission changes.
 - UI quality bar:
   - Should look like a modern enterprise SaaS product (Linear/Jira/HubSpot feel), not a Bootstrap template.

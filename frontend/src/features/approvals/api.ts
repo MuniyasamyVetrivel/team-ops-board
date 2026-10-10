@@ -39,6 +39,7 @@ export interface ApprovalType {
   requiresAmount: boolean;
   active: boolean;
   steps: TemplateStep[];
+  version: number;
 }
 
 export interface ApprovalStep {
@@ -184,6 +185,40 @@ export function useUpdateWorkflow(typeId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (steps: WorkflowStepInput[]) => (await api.put<ApprovalType>(`/approvals/types/${typeId}/steps`, { steps })).data,
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: approvalKeys.types() }),
+  });
+}
+
+/** Mirrors ApprovalDtos.CreateType: the code is permanent. */
+export interface CreateApprovalTypeInput {
+  code: string;
+  name: string;
+  description: string | null;
+  requiresAmount: boolean;
+  steps: WorkflowStepInput[];
+}
+
+/** Mirrors ApprovalDtos.UpdateType. Inactive types stay on existing requests but cannot be chosen for new ones. */
+export interface UpdateApprovalTypeInput {
+  version: number;
+  name: string;
+  description: string | null;
+  requiresAmount: boolean;
+  active: boolean;
+}
+
+export function useCreateApprovalType() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreateApprovalTypeInput) => (await api.post<ApprovalType>('/approvals/types', input)).data,
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: approvalKeys.types() }),
+  });
+}
+
+export function useUpdateApprovalType(typeId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: UpdateApprovalTypeInput) => (await api.put<ApprovalType>(`/approvals/types/${typeId}`, input)).data,
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: approvalKeys.types() }),
   });
 }

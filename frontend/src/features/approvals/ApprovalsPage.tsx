@@ -1,4 +1,4 @@
-import { ArrowRight, Inbox, Pencil, Plus, Workflow } from 'lucide-react';
+import { Inbox, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import { EmptyState } from '@/components/common/EmptyState';
@@ -19,12 +19,12 @@ import { useIdParam } from '@/lib/use-id-param';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { cn } from '@/lib/utils';
 
-import { APPROVAL_STATUSES, useApprovals, useApprovalTypes, type ApprovalStatus, type ApprovalType, type ApprovalView } from './api';
+import { APPROVAL_STATUSES, useApprovals, useApprovalTypes, type ApprovalStatus, type ApprovalView } from './api';
 import { ApprovalStatusBadge } from './ApprovalBadges';
 import { ApprovalDrawer } from './ApprovalDrawer';
-import { APPROVAL_STATUS_LABELS, formatAmount, templateApprover } from './approval-meta';
+import { APPROVAL_STATUS_LABELS, formatAmount } from './approval-meta';
 import { NewApprovalDialog } from './NewApprovalDialog';
-import { WorkflowDialog } from './WorkflowDialog';
+import { WorkflowsPanel } from './WorkflowsPanel';
 
 type Tab = ApprovalView | 'WORKFLOWS';
 
@@ -198,47 +198,3 @@ function RequestList({ view, onOpen }: { view: ApprovalView; onOpen: (id: number
   );
 }
 
-function WorkflowsPanel() {
-  const types = useApprovalTypes();
-  const [editing, setEditing] = useState<ApprovalType | null>(null);
-  if (types.isPending) {
-    return (
-      <div className="space-y-3" role="status" aria-label="Loading workflows">
-        {Array.from({ length: 4 }, (_, i) => (
-          <Skeleton key={i} className="h-16 rounded-xl" />
-        ))}
-      </div>
-    );
-  }
-  if (types.isError) return <ErrorState error={types.error} title="Couldn't load workflows" onRetry={() => void types.refetch()} />;
-  return (
-    <>
-      <div className="grid gap-3 md:grid-cols-2">
-        {types.data.map((type) => (
-          <Card key={type.id} className="flex items-start gap-3 p-4">
-            <Workflow className="mt-0.5 size-5 text-muted-foreground" aria-hidden />
-            <div className="min-w-0 flex-1">
-              <p className="font-medium">
-                {type.name}
-                {type.requiresAmount && <span className="ml-2 text-xs text-muted-foreground">needs an amount</span>}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {type.steps.map((step, i) => (
-                  <span key={step.stepOrder}>
-                    {i > 0 && <ArrowRight className="mx-1 inline size-3" aria-label="then" />}
-                    {templateApprover(step)}
-                  </span>
-                ))}
-              </p>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => setEditing(type)} aria-label={`Edit ${type.name} workflow`}>
-              <Pencil aria-hidden />
-              Edit
-            </Button>
-          </Card>
-        ))}
-      </div>
-      <WorkflowDialog type={editing} onClose={() => setEditing(null)} />
-    </>
-  );
-}

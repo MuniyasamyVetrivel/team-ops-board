@@ -10,9 +10,9 @@ const catalogue: PermissionResponse[] = [
 ];
 
 const roles: RoleResponse[] = [
-  { id: 1, code: 'SUPER_ADMIN', name: 'Super Admin', description: null, permissions: [] },
-  { id: 2, code: 'DEPARTMENT_MANAGER', name: 'Manager', description: null, permissions: ['TASK_VIEW', 'TASK_ASSIGN'] },
-  { id: 3, code: 'EMPLOYEE', name: 'Employee', description: null, permissions: ['TASK_VIEW'] },
+  { id: 1, code: 'SUPER_ADMIN', name: 'Super Admin', description: null, permissions: [], version: 0 },
+  { id: 2, code: 'DEPARTMENT_MANAGER', name: 'Manager', description: null, permissions: ['TASK_VIEW', 'TASK_ASSIGN'], version: 0 },
+  { id: 3, code: 'EMPLOYEE', name: 'Employee', description: null, permissions: ['TASK_VIEW'], version: 0 },
 ];
 
 describe('inheritedPermissions', () => {

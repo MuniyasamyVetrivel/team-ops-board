@@ -18,6 +18,7 @@ import { hasPermission } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { cn } from '@/lib/utils';
+import { useIdParam } from '@/lib/use-id-param';
 
 import { useImportDefinitions } from '../api';
 import { CsvImportDialog } from '../components/CsvImportDialog';
@@ -292,7 +293,7 @@ function KeywordsTab({ filters, canEdit }: { filters: MarketingFilters; canEdit:
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<KeywordItem | null>(null);
   const [adding, setAdding] = useState(false);
-  const [historyOf, setHistoryOf] = useState<number | null>(null);
+  const [historyOf, setHistoryOf] = useIdParam('keyword');
   const debounced = useDebouncedValue(search.trim());
 
   const keywords = useSeoKeywords({

@@ -2,6 +2,7 @@ import { Menu } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { NotificationBell } from '@/features/notifications/NotificationBell';
+import { GlobalSearch } from '@/features/search/GlobalSearch';
 
 import { UserMenu } from './UserMenu';
 
@@ -11,7 +12,9 @@ export function Topbar({ onOpenNavigation }: { onOpenNavigation: () => void }) {
       <Button variant="ghost" size="icon" className="lg:hidden" onClick={onOpenNavigation} aria-label="Open navigation">
         <Menu />
       </Button>
-      <div className="flex-1" />
+      <div className="flex min-w-0 flex-1 justify-start">
+        <GlobalSearch />
+      </div>
       <NotificationBell />
       <UserMenu />
     </header>

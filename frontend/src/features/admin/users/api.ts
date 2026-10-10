@@ -54,6 +54,7 @@ export interface RoleResponse {
   name: string;
   description: string | null;
   permissions: PermissionCode[];
+  version: number;
 }
 
 export interface PermissionResponse {
@@ -173,6 +174,19 @@ export function useResetPassword(id: number) {
   return useMutation({
     mutationFn: async (newPassword: string) => {
       await api.post(`/users/${id}/reset-password`, { newPassword });
+    },
+  });
+}
+
+/** Replaces a role's permission set (Super Admin only; the permission matrix). */
+export function useUpdateRolePermissions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ code, version, permissions }: { code: RoleCode; version: number; permissions: PermissionCode[] }) =>
+      (await api.put<RoleResponse>(`/roles/${code}/permissions`, { version, permissions })).data,
+    onSuccess: (saved) => {
+      queryClient.setQueryData<RoleResponse[]>(userKeys.roles, (roles) => roles?.map((r) => (r.code === saved.code ? saved : r)));
+      void queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'detail'] });
     },
   });
 }

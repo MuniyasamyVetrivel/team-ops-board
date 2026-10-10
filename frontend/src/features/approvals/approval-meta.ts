@@ -49,3 +49,14 @@ export function formatAmount(amount: number | null, currency: string): string {
   }
   return format.format(amount);
 }
+
+/** "Travel request" → "TRAVEL_REQUEST", as a starting point for the permanent code. */
+export function suggestCode(name: string): string {
+  return name
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^[^A-Z]+/, '')
+    .replace(/_+$/, '')
+    .slice(0, 40);
+}

@@ -20,6 +20,7 @@ import { parseLocalDate } from '@/features/tasks/task-meta';
 import { errorMessage } from '@/lib/api/errors';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { cn } from '@/lib/utils';
+import { useInitialSearch } from '@/lib/use-initial-search';
 
 import { useImportDefinitions } from '../api';
 import { CsvImportDialog } from '../components/CsvImportDialog';
@@ -92,10 +93,12 @@ export default function EmailCampaignsPage() {
 }
 
 function CampaignList({ filters, canEdit }: { filters: MarketingFilters; canEdit: boolean }) {
-  const [search, setSearch] = useState('');
+  const initialSearch = useInitialSearch();
+  const [search, setSearch] = useState(initialSearch);
   const [type, setType] = useState('');
   const [status, setStatus] = useState('');
-  const [allMonths, setAllMonths] = useState(false);
+  // A campaign opened from global search may be in any month.
+  const [allMonths, setAllMonths] = useState(initialSearch !== '');
   const [sort, setSort] = useState(SORTS[0]!.value);
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<EmailCampaign | null>(null);

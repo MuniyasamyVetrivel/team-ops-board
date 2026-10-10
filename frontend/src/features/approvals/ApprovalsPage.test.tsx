@@ -19,8 +19,8 @@ const types: ApprovalType[] = [
   { id: 3, code: 'PURCHASE', name: 'Purchase', description: 'Equipment and other purchases', requiresAmount: true, active: true, steps: [
     { stepOrder: 1, approverKind: 'DEPARTMENT_MANAGER', role: null, user: null },
     { stepOrder: 2, approverKind: 'ROLE', role: { code: 'SUPER_ADMIN', name: 'Super Admin' }, user: null },
-  ] },
-  { id: 7, code: 'OTHER', name: 'Other', description: null, requiresAmount: false, active: true, steps: [{ stepOrder: 1, approverKind: 'DEPARTMENT_MANAGER', role: null, user: null }] },
+  ], version: 0 },
+  { id: 7, code: 'OTHER', name: 'Other', description: null, requiresAmount: false, active: true, steps: [{ stepOrder: 1, approverKind: 'DEPARTMENT_MANAGER', role: null, user: null }], version: 0 },
 ];
 
 const item: ApprovalListItem = {

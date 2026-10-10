@@ -14,6 +14,7 @@ import { hasPermission } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
 import { useDepartments } from '@/features/departments/api';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
+import { useInitialSearch } from '@/lib/use-initial-search';
 
 import { useTasks } from './api';
 import { CreateTaskDialog } from './CreateTaskDialog';
@@ -59,7 +60,8 @@ export default function TasksPage() {
   const departments = useDepartments();
   const [taskId, setTaskId] = useTaskParam();
   const [creating, setCreating] = useState(false);
-  const [search, setSearch] = useState('');
+  const initialSearch = useInitialSearch();
+  const [search, setSearch] = useState(initialSearch);
   const [statusPreset, setStatusPreset] = useState('open');
   const [priority, setPriority] = useState<TaskPriority | ''>('');
   const [due, setDue] = useState<DueFilter | ''>('');
