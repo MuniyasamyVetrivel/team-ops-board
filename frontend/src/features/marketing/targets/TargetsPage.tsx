@@ -82,7 +82,7 @@ export default function TargetsPage() {
       ) : !targets.data || !filters ? (
         <div className="space-y-4" role="status" aria-label="Loading targets">
           <Skeleton className="h-12 max-w-xl rounded-xl" />
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: 6 }, (_, i) => (
               <Skeleton key={i} className="h-36 rounded-xl" />
             ))}
@@ -218,9 +218,9 @@ function TargetTable({ targets, onEdit }: { targets: TargetItem[]; onEdit: (targ
       <TableHeader>
         <TableRow>
           <TableHead>Target type</TableHead>
-          <TableHead className="text-right">Target</TableHead>
-          <TableHead className="text-right">Actual</TableHead>
-          <TableHead className="text-right">Remaining</TableHead>
+          <TableHead numeric>Target</TableHead>
+          <TableHead numeric>Actual</TableHead>
+          <TableHead numeric>Remaining</TableHead>
           <TableHead className="min-w-44">Achievement</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Owner</TableHead>
@@ -242,9 +242,9 @@ function TargetTable({ targets, onEdit }: { targets: TargetItem[]; onEdit: (targ
                   <ActualHint target={target} />
                 </p>
               </TableCell>
-              <TableCell className="text-right tabular-nums">{formatMetric(target.targetValue, format)}</TableCell>
-              <TableCell className="text-right tabular-nums">{target.status === null ? '—' : formatMetric(target.actual ?? 0, format)}</TableCell>
-              <TableCell className="text-right tabular-nums">{formatMetric(target.remaining, format)}</TableCell>
+              <TableCell numeric>{formatMetric(target.targetValue, format)}</TableCell>
+              <TableCell numeric>{target.status === null ? '—' : formatMetric(target.actual ?? 0, format)}</TableCell>
+              <TableCell numeric>{formatMetric(target.remaining, format)}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <TargetBar label={`${target.type.name} achievement`} achievementPct={target.achievementPct} status={target.status} className="flex-1" />

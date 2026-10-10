@@ -84,7 +84,7 @@ export default function ProjectsPage() {
         }
       />
       <Card>
-        <div className="grid gap-3 border-b p-4 sm:grid-cols-2 lg:grid-cols-[1fr_repeat(3,minmax(0,11rem))]">
+        <div className="flex flex-col gap-3 border-b px-6 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:*:w-auto! sm:*:min-w-40 sm:[&>*:first-child]:min-w-64 sm:[&>*:first-child]:flex-1">
           <SearchInput placeholder="Search name or code" aria-label="Search projects" value={search} onChange={(e) => filter(setSearch)(e.target.value)} />
           <Select aria-label="Status" value={statusPreset} onChange={(e) => filter(setStatusPreset)(e.target.value)}>
             {STATUS_OPTIONS.map((o) => (

@@ -155,17 +155,17 @@ function LeadList({ filters, canEdit, source, onSourceChange, onOpen }: LeadList
 
   return (
     <Card id="lead-table" className="scroll-mt-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4">
         <div>
-          <h2 className="font-semibold">Leads</h2>
-          <p className="text-sm text-muted-foreground">{allMonths ? 'Every lead' : `Dated in ${month}`}</p>
+          <h2 className="text-card-title font-semibold">Leads</h2>
+          <p className="mt-0.5 text-label text-muted-foreground">{allMonths ? 'Every lead' : `Dated in ${month}`}</p>
         </div>
         <Button variant="outline" size="sm" disabled={exporting || !leads.data?.totalElements} onClick={() => void onExport()}>
           <Download aria-hidden />
           Export CSV
         </Button>
       </div>
-      <div className="grid gap-3 border-b p-4 sm:grid-cols-2 lg:grid-cols-[1fr_repeat(3,minmax(0,11rem))_auto]">
+      <div className="flex flex-col gap-3 border-b px-6 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:*:w-auto! sm:*:min-w-40 sm:[&>*:first-child]:min-w-64 sm:[&>*:first-child]:flex-1">
         <SearchInput placeholder="Search name, company, email or code" aria-label="Search leads" value={search} onChange={(e) => filter(setSearch)(e.target.value)} />
         <Select aria-label="Lead source" value={source} onChange={(e) => filter(onSourceChange)(e.target.value)}>
           <option value="">All sources</option>

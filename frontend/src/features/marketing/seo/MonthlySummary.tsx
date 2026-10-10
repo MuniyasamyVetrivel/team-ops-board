@@ -1,6 +1,7 @@
-import { ArrowDownRight, ArrowUpRight, ChartColumn, Gauge, KeyRound, Minus, Trophy } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, ChartColumn, Gauge, KeyRound, Trophy } from 'lucide-react';
 import { useState } from 'react';
 
+import { Delta } from '@/components/common/Delta';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
 import { Select } from '@/components/ui/select';
@@ -39,7 +40,7 @@ export function MonthlySummary({ filters }: { filters: MarketingFilters }) {
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4">
         <p className="text-sm text-muted-foreground">Keywords that are not archived, counted by their position in each month.</p>
         <Select aria-label="Page" className="w-64" value={pageId} onChange={(e) => setPageId(e.target.value)}>
           <option value="">All pages</option>
@@ -52,7 +53,7 @@ export function MonthlySummary({ filters }: { filters: MarketingFilters }) {
       </div>
       {report.isPending ? (
         <div className="space-y-3 p-4" role="status" aria-label="Loading the monthly summary">
-          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-5">
+          <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
             {Array.from({ length: 5 }, (_, i) => (
               <Skeleton key={i} className="h-24 rounded-xl" />
             ))}
@@ -73,8 +74,8 @@ export function MonthlySummary({ filters }: { filters: MarketingFilters }) {
 function SummaryBody({ stats, previous, label, previousLabel, previousFull, dimmed }: { stats: SeoStats; previous: SeoStats; label: string; previousLabel: string; previousFull: string; dimmed: boolean }) {
   const widest = Math.max(1, ...BANDS.map((band) => Math.max(band.value(stats), band.value(previous))));
   return (
-    <div className={cn('space-y-6 p-4', dimmed && 'opacity-60')}>
-      <section aria-label={`SEO summary for ${label}`} className="grid gap-3 sm:grid-cols-3 xl:grid-cols-5">
+    <div className={cn('space-y-6 p-6', dimmed && 'opacity-60')}>
+      <section aria-label={`SEO summary for ${label}`} className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
         <MarketingKpiCard label="Total keywords" icon={KeyRound} value={stats.totalKeywords} hint={stats.notRecorded > 0 ? `${stats.notRecorded} without a ranking for ${label}` : 'All recorded this month'} />
         <MarketingKpiCard label="Top 10 keywords" icon={Trophy} value={stats.top10} previous={previous.top10} previousLabel={previousLabel} />
         <MarketingKpiCard label="Average position" icon={Gauge} value={stats.averagePosition} format="decimal" previous={previous.averagePosition} previousLabel={previousLabel} better="lower" hint="Ranked keywords only" />
@@ -86,8 +87,8 @@ function SummaryBody({ stats, previous, label, previousLabel, previousFull, dimm
           <TableRow>
             <TableHead>Position</TableHead>
             <TableHead className="w-2/5">{label}</TableHead>
-            <TableHead className="text-right">{previousFull}</TableHead>
-            <TableHead>Change</TableHead>
+            <TableHead numeric>{previousFull}</TableHead>
+            <TableHead numeric>Change</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -108,8 +109,8 @@ function SummaryBody({ stats, previous, label, previousLabel, previousFull, dimm
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="text-right tabular-nums text-muted-foreground">{formatCount(before)}</TableCell>
-                <TableCell>
+                <TableCell numeric className="text-muted-foreground">{formatCount(before)}</TableCell>
+                <TableCell numeric>
                   <BandChange current={current} previous={before} better={band.better} />
                 </TableCell>
               </TableRow>
@@ -120,7 +121,7 @@ function SummaryBody({ stats, previous, label, previousLabel, previousFull, dimm
             <TableCell>
               <span className="inline-block w-8 text-right font-semibold tabular-nums">{formatCount(stats.totalKeywords)}</span>
             </TableCell>
-            <TableCell className="text-right tabular-nums text-muted-foreground">{formatCount(previous.totalKeywords)}</TableCell>
+            <TableCell numeric className="text-muted-foreground">{formatCount(previous.totalKeywords)}</TableCell>
             <TableCell />
           </TableRow>
         </TableBody>
@@ -129,24 +130,7 @@ function SummaryBody({ stats, previous, label, previousLabel, previousFull, dimm
   );
 }
 
-/** "+3" / "−2" with an arrow and words; green or red only when the direction is clearly good or bad. */
+/** "↑ 3" / "↓ 2" / "— 0" on one line; green or red only when the direction is clearly good or bad. */
 function BandChange({ current, previous, better }: { current: number; previous: number; better: Band['better'] }) {
-  const diff = current - previous;
-  if (diff === 0) {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-        <Minus className="size-3.5" aria-hidden />
-        No change
-      </span>
-    );
-  }
-  const good = better === null ? null : (diff > 0) === (better === 'higher');
-  const Icon = diff > 0 ? ArrowUpRight : ArrowDownRight;
-  return (
-    <span className={cn('inline-flex items-center gap-1 text-xs font-medium tabular-nums', good === null ? 'text-muted-foreground' : good ? 'text-status-success' : 'text-status-danger')}>
-      <Icon className="size-3.5" aria-hidden />
-      {diff > 0 ? `+${diff}` : `−${Math.abs(diff)}`}
-      <span className="sr-only">{diff > 0 ? ' more' : ' fewer'} than last month</span>
-    </span>
-  );
+  return <Delta value={current - previous} better={better} />;
 }

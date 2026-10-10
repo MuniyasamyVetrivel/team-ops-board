@@ -70,7 +70,7 @@ export default function MyTasksPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6" role="tablist" aria-label="Task views">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 2xl:grid-cols-6" role="tablist" aria-label="Task views">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -82,18 +82,20 @@ export default function MyTasksPage() {
               setPage(0);
             }}
             className={cn(
-              'rounded-xl border bg-card p-4 text-left shadow-xs transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+              'flex h-full flex-col rounded-xl border bg-card p-5 text-left shadow-card transition-[border-color,box-shadow] hover:border-primary/40 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none',
               tab === t.id && 'border-primary ring-1 ring-primary',
             )}
           >
-            <span className="flex items-center gap-2 text-sm text-muted-foreground">
-              <t.icon className={cn('size-4', t.tone)} aria-hidden />
-              {t.label}
+            <span className="flex items-start gap-2.5">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">
+                <t.icon className={cn('size-4', t.tone)} aria-hidden />
+              </span>
+              <span className="pt-1.5 text-label font-medium text-muted-foreground">{t.label}</span>
             </span>
             {summary.isPending ? (
-              <Skeleton className="mt-2 h-8 w-10" />
+              <Skeleton className="mt-4 h-10 w-12" />
             ) : (
-              <span className={cn('mt-1 block text-3xl font-semibold tabular-nums', t.id === 'overdue' && (summary.data?.overdue ?? 0) > 0 && 'text-status-danger')}>
+              <span className={cn('mt-4 block text-kpi font-semibold tracking-tight tabular-nums', t.id === 'overdue' && (summary.data?.overdue ?? 0) > 0 && 'text-status-danger')}>
                 {summary.data ? t.count(summary.data) : '—'}
               </span>
             )}
@@ -104,7 +106,7 @@ export default function MyTasksPage() {
       <Card>
         <div className="flex items-center gap-2 border-b px-4 py-3">
           <active.icon className={cn('size-4', active.tone)} aria-hidden />
-          <h2 className="text-sm font-semibold">{active.label}</h2>
+          <h2 className="text-card-title font-semibold">{active.label}</h2>
         </div>
         {tasks.isPending ? (
           <div className="space-y-3 p-4" role="status" aria-label="Loading tasks">

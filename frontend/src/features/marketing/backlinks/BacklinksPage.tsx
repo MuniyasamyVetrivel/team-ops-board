@@ -167,10 +167,10 @@ function BacklinkList({ filters, canEdit, onOpen }: { filters: MarketingFilters;
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4">
         <div>
-          <h2 className="font-semibold">Backlinks</h2>
-          <p className="text-sm text-muted-foreground">Prospects through to live links. Choose a status to list it.</p>
+          <h2 className="text-card-title font-semibold">Backlinks</h2>
+          <p className="mt-0.5 text-label text-muted-foreground">Prospects through to live links. Choose a status to list it.</p>
         </div>
         <Button variant="outline" size="sm" disabled={exporting || !backlinks.data?.totalElements} onClick={() => void onExport()}>
           <Download aria-hidden />
@@ -178,7 +178,7 @@ function BacklinkList({ filters, canEdit, onOpen }: { filters: MarketingFilters;
         </Button>
       </div>
 
-      <div role="group" aria-label="Pipeline" className="grid grid-cols-2 gap-2 border-b p-4 sm:grid-cols-3 lg:grid-cols-6">
+      <div role="group" aria-label="Pipeline" className="grid grid-cols-2 gap-2 border-b px-6 py-4 sm:grid-cols-3 lg:grid-cols-6">
         {BACKLINK_STATUSES.map((s) => {
           const { icon: Icon } = BACKLINK_STATUS_STYLE[s];
           const active = status === s;
@@ -200,7 +200,7 @@ function BacklinkList({ filters, canEdit, onOpen }: { filters: MarketingFilters;
         })}
       </div>
 
-      <div className="grid gap-3 border-b p-4 sm:grid-cols-2 lg:grid-cols-[1fr_repeat(4,minmax(0,11rem))]">
+      <div className="flex flex-col gap-3 border-b px-6 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:*:w-auto! sm:*:min-w-40 sm:[&>*:first-child]:min-w-64 sm:[&>*:first-child]:flex-1">
         <SearchInput placeholder="Search domain, URL, anchor or code" aria-label="Search backlinks" value={search} onChange={(e) => filter(setSearch)(e.target.value)} />
         <Select aria-label="Backlink type" value={type} onChange={(e) => filter(setType)(e.target.value)}>
           <option value="">All types</option>
@@ -259,7 +259,7 @@ function BacklinkList({ filters, canEdit, onOpen }: { filters: MarketingFilters;
                 <TableHead>Links to</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Latest stage</TableHead>
-                <TableHead className="text-right">DA</TableHead>
+                <TableHead numeric>DA</TableHead>
                 <TableHead>Owner</TableHead>
               </TableRow>
             </TableHeader>
@@ -298,7 +298,7 @@ function BacklinkList({ filters, canEdit, onOpen }: { filters: MarketingFilters;
                         <span className="text-muted-foreground">Not submitted</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{b.domainAuthority ?? <span className="text-muted-foreground">—</span>}</TableCell>
+                    <TableCell numeric>{b.domainAuthority ?? <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell className="max-w-44">{b.owner ? <UserCell name={b.owner.fullName} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
                   </TableRow>
                 );

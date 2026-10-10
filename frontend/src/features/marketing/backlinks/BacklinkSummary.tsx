@@ -40,7 +40,7 @@ export function BacklinkSummary({ filters }: { filters: MarketingFilters }) {
   }
   if (!summary.data) {
     return (
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5" role="status" aria-label="Loading the monthly progress">
+      <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5" role="status" aria-label="Loading the monthly progress">
         {Array.from({ length: 5 }, (_, i) => (
           <Skeleton key={i} className="h-28 rounded-xl" />
         ))}
@@ -57,7 +57,7 @@ export function BacklinkSummary({ filters }: { filters: MarketingFilters }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-semibold">Monthly progress · {current.period.label}</h2>
+        <h2 className="text-card-title font-semibold">Monthly progress · {current.period.label}</h2>
         <Select aria-label="Compare with" className="w-56" value={compare} onChange={(e) => setCompare(e.target.value as Compare)}>
           <option value="previous">Compare with the previous month</option>
           <option value="lastYear">Compare with the same month last year</option>
@@ -91,29 +91,29 @@ export function BacklinkSummary({ filters }: { filters: MarketingFilters }) {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
         <Card className={cn(loading && 'opacity-60')}>
-          <div className="border-b px-5 py-3.5">
+          <div className="border-b px-6 py-4">
             <h3 className="font-semibold">By owner</h3>
             <p className="text-sm text-muted-foreground">{current.period.label}</p>
           </div>
           {summary.data.byOwner.length === 0 ? (
-            <p className="px-5 py-4 text-sm text-muted-foreground">No backlink activity this month.</p>
+            <p className="px-6 py-4 text-sm text-muted-foreground">No backlink activity this month.</p>
           ) : (
             <Table aria-label="Backlinks by owner">
               <TableHeader>
                 <TableRow>
                   <TableHead>Owner</TableHead>
-                  <TableHead className="text-right">Submitted</TableHead>
-                  <TableHead className="text-right">Approved</TableHead>
-                  <TableHead className="text-right">Live</TableHead>
+                  <TableHead numeric>Submitted</TableHead>
+                  <TableHead numeric>Approved</TableHead>
+                  <TableHead numeric>Live</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {summary.data.byOwner.map((o) => (
                   <TableRow key={o.owner?.id ?? 'none'}>
                     <TableCell className="font-medium">{o.owner?.fullName ?? <span className="text-muted-foreground">No owner</span>}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatCount(o.submitted)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatCount(o.approved)}</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{formatCount(o.live)}</TableCell>
+                    <TableCell numeric>{formatCount(o.submitted)}</TableCell>
+                    <TableCell numeric>{formatCount(o.approved)}</TableCell>
+                    <TableCell numeric className="font-semibold">{formatCount(o.live)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -122,16 +122,16 @@ export function BacklinkSummary({ filters }: { filters: MarketingFilters }) {
         </Card>
 
         <Card className={cn(loading && 'opacity-60')}>
-          <div className="border-b px-5 py-3.5">
+          <div className="border-b px-6 py-4">
             <h3 className="font-semibold">Live by type</h3>
             <p className="text-sm text-muted-foreground">Gone live in {current.period.label}</p>
           </div>
           {summary.data.liveByType.length === 0 ? (
-            <p className="px-5 py-4 text-sm text-muted-foreground">Nothing went live this month yet.</p>
+            <p className="px-6 py-4 text-sm text-muted-foreground">Nothing went live this month yet.</p>
           ) : (
             <ul className="divide-y" aria-label="Live by type">
               {summary.data.liveByType.map((t) => (
-                <li key={t.linkType} className="flex items-center justify-between px-5 py-2.5 text-sm">
+                <li key={t.linkType} className="flex items-center justify-between px-6 py-2.5 text-sm">
                   <span>{BACKLINK_TYPE_LABELS[t.linkType]}</span>
                   <span className="font-medium tabular-nums">{formatCount(t.live)}</span>
                 </li>

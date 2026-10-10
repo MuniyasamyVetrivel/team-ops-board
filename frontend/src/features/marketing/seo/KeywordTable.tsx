@@ -34,10 +34,10 @@ export function KeywordTable({ keywords, month, year, showPage = true, onEdit, o
           {showPage && <TableHead>Page</TableHead>}
           <TableHead>Position</TableHead>
           <TableHead>Previous</TableHead>
-          <TableHead>Change</TableHead>
-          <TableHead className="text-right">Target</TableHead>
-          <TableHead className="text-right">Volume</TableHead>
-          <TableHead className="text-right">Difficulty</TableHead>
+          <TableHead numeric>Change</TableHead>
+          <TableHead numeric>Target</TableHead>
+          <TableHead numeric>Volume</TableHead>
+          <TableHead numeric>Difficulty</TableHead>
           <TableHead>Owner</TableHead>
           <TableHead>Status</TableHead>
           {(onEdit || onHistory) && (
@@ -73,12 +73,12 @@ export function KeywordTable({ keywords, month, year, showPage = true, onEdit, o
               <TableCell className="text-sm">
                 <PreviousPosition standing={keyword.ranking} />
               </TableCell>
-              <TableCell>
+              <TableCell numeric>
                 <StandingChange standing={keyword.ranking} />
               </TableCell>
-              <TableCell className="text-right text-sm tabular-nums">{keyword.targetPosition === null ? '—' : `#${keyword.targetPosition}`}</TableCell>
-              <TableCell className="text-right text-sm tabular-nums">{formatCount(keyword.searchVolume)}</TableCell>
-              <TableCell className="text-right text-sm tabular-nums">{formatCount(keyword.keywordDifficulty)}</TableCell>
+              <TableCell numeric className="text-sm">{keyword.targetPosition === null ? '—' : `#${keyword.targetPosition}`}</TableCell>
+              <TableCell numeric className="text-sm">{formatCount(keyword.searchVolume)}</TableCell>
+              <TableCell numeric className="text-sm">{formatCount(keyword.keywordDifficulty)}</TableCell>
               <TableCell className="max-w-44">{keyword.owner ? <UserCell name={keyword.owner.fullName} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
               <TableCell>
                 <KeywordStatusBadge status={keyword.status} />

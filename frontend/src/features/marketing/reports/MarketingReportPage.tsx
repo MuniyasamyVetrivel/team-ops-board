@@ -1,8 +1,9 @@
 import { ArrowRight, ChartColumn, Download, FileText, Lock, LockOpen, Snowflake, TrendingDown, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { toast } from 'sonner';
 
+import { CHART_HIGHLIGHT } from '@/components/charts/chart-theme';
+import { ComboChart } from '@/components/charts/ComboChart';
 import { ErrorState } from '@/components/common/ErrorState';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Panel } from '@/components/common/Panel';
@@ -26,11 +27,10 @@ import { exportMonthlyReport, useFreezeReport, useFrozenMonths, useMonthlyReport
 import { ReportChange } from './ReportChange';
 import { formatReportValue, headlines } from './report-meta';
 
-const AXIS = { fontSize: 12, fill: 'var(--muted-foreground)' };
-const INITIAL = { width: 640, height: 260 };
 /** Categorical chart tokens: the month before is muted, the month is the primary series. */
-const PREVIOUS = 'var(--chart-3)';
-const CURRENT = 'var(--chart-1)';
+const PREVIOUS = 'var(--chart-1)';
+/** The reported month is the current period: brand amber. */
+const CURRENT = CHART_HIGHLIGHT;
 
 /** Freezing needs every marketing view permission (the server checks it too), so a frozen report is never partial. */
 const FULL_ACCESS = ['MARKETING_EDIT', 'SEO_VIEW', 'LEAD_VIEW', 'CAMPAIGN_VIEW', 'BACKLINK_VIEW', 'CONTENT_VIEW', 'TARGET_VIEW'] as const;
@@ -107,7 +107,7 @@ export default function MarketingReportPage() {
         </Card>
       ) : !data ? (
         <div className="space-y-4" role="status" aria-label="Loading the monthly report">
-          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
             {Array.from({ length: 6 }, (_, i) => (
               <Skeleton key={i} className="h-24 rounded-xl" />
             ))}
@@ -175,14 +175,14 @@ function Headlines({ report }: { report: MonthlyReport }) {
   const items = headlines(report);
   if (items.length === 0) return null;
   return (
-    <section aria-label={`${report.comparisonPeriod.label} to ${report.period.label}`} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+    <section aria-label={`${report.comparisonPeriod.label} to ${report.period.label}`} className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
       {items.map(({ title, line }) => (
-        <div key={title} className="rounded-xl border bg-card p-4 shadow-xs">
-          <p className="text-sm text-muted-foreground">{title}</p>
-          <p className="mt-1 flex items-baseline gap-1.5 tabular-nums">
+        <div key={title} className="flex h-full flex-col rounded-xl border bg-card p-5 shadow-card">
+          <p className="text-label font-medium text-muted-foreground">{title}</p>
+          <p className="mt-4 flex flex-wrap items-baseline gap-1.5 tabular-nums">
             <span className="text-sm text-muted-foreground">{formatReportValue(line.previous, line.unit)}</span>
             <ArrowRight className="size-3.5 self-center text-muted-foreground" aria-label="to" />
-            <span className="text-2xl font-semibold tracking-tight">{formatReportValue(line.current, line.unit)}</span>
+            <span className="text-kpi font-semibold tracking-tight">{formatReportValue(line.current, line.unit)}</span>
           </p>
           <ReportChange line={line} className="mt-1" />
         </div>
@@ -217,33 +217,17 @@ function ComparisonChart({ report }: { report: MonthlyReport }) {
       }
     >
       {data.length === 0 ? (
-        <p className="px-5 py-4 text-sm text-muted-foreground">Nothing to compare in this section.</p>
+        <p className="px-6 py-4 text-sm text-muted-foreground">Nothing to compare in this section.</p>
       ) : (
-        <figure aria-label={`${group.title}: ${report.comparisonPeriod.label} and ${report.period.label}`} className="space-y-2 p-5">
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%" initialDimension={INITIAL}>
-              <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={false} interval={0} />
-                <YAxis tick={AXIS} tickLine={false} axisLine={false} width={40} allowDecimals={false} />
-                <Tooltip cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
-                <Bar dataKey="previous" name={report.comparisonPeriod.label} fill={PREVIOUS} radius={[3, 3, 0, 0]} isAnimationActive={false} />
-                <Bar dataKey="current" name={report.period.label} fill={CURRENT} radius={[3, 3, 0, 0]} isAnimationActive={false} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <figcaption>
-            <ul className="flex flex-wrap gap-4 text-xs text-muted-foreground" aria-label="Chart legend">
-              <li className="flex items-center gap-1.5">
-                <span className="size-2.5 rounded-sm" style={{ background: PREVIOUS }} aria-hidden />
-                {report.comparisonPeriod.label}
-              </li>
-              <li className="flex items-center gap-1.5">
-                <span className="size-2.5 rounded-sm" style={{ background: CURRENT }} aria-hidden />
-                {report.period.label}
-              </li>
-            </ul>
-          </figcaption>
+        <figure aria-label={`${group.title}: ${report.comparisonPeriod.label} and ${report.period.label}`} className="space-y-2 p-6">
+          <ComboChart
+            data={data}
+            series={[
+              { key: 'previous', label: report.comparisonPeriod.label, color: PREVIOUS },
+              { key: 'current', label: report.period.label, color: CURRENT },
+            ]}
+            allTicks
+          />
         </figure>
       )}
     </Panel>
@@ -253,25 +237,25 @@ function ComparisonChart({ report }: { report: MonthlyReport }) {
 function GroupTable({ group, report }: { group: ReportGroup; report: MonthlyReport }) {
   return (
     <Card>
-      <div className="border-b px-5 py-3.5">
-        <h2 className="font-semibold">{group.title}</h2>
+      <div className="border-b px-6 py-4">
+        <h2 className="text-card-title font-semibold">{group.title}</h2>
       </div>
       <Table aria-label={group.title}>
         <TableHeader>
           <TableRow>
             <TableHead>Measure</TableHead>
-            <TableHead className="text-right">{report.comparisonPeriod.label}</TableHead>
-            <TableHead className="text-right">{report.period.label}</TableHead>
-            <TableHead>Change</TableHead>
+            <TableHead numeric>{report.comparisonPeriod.label}</TableHead>
+            <TableHead numeric>{report.period.label}</TableHead>
+            <TableHead numeric>Change</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {group.lines.map((l) => (
             <TableRow key={l.label}>
-              <TableCell className="font-medium">{l.label}</TableCell>
-              <TableCell className="text-right tabular-nums text-muted-foreground">{formatReportValue(l.previous, l.unit)}</TableCell>
-              <TableCell className="text-right font-semibold tabular-nums">{formatReportValue(l.current, l.unit)}</TableCell>
-              <TableCell>
+              <TableCell className="font-medium whitespace-nowrap">{l.label}</TableCell>
+              <TableCell numeric className="text-muted-foreground">{formatReportValue(l.previous, l.unit)}</TableCell>
+              <TableCell numeric className="font-semibold">{formatReportValue(l.current, l.unit)}</TableCell>
+              <TableCell numeric>
                 <ReportChange line={l} />
               </TableCell>
             </TableRow>
@@ -288,11 +272,11 @@ function MovesPanel({ title, icon, moves, empty }: { title: string; icon: typeof
   return (
     <Panel title={title} icon={icon}>
       {moves.length === 0 ? (
-        <p className="px-5 py-4 text-sm text-muted-foreground">{empty}</p>
+        <p className="px-6 py-4 text-sm text-muted-foreground">{empty}</p>
       ) : (
         <ul className="divide-y" aria-label={title}>
           {moves.map((m) => (
-            <li key={m.keywordId} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
+            <li key={m.keywordId} className="flex items-center justify-between gap-3 px-6 py-2.5 text-sm">
               <div className="min-w-0">
                 <p className="truncate font-medium">{m.keyword}</p>
                 {m.page && <p className="truncate text-xs text-muted-foreground">{m.page}</p>}
@@ -319,21 +303,21 @@ function TargetsPanel({ report }: { report: MonthlyReport }) {
   const targets = report.targets ?? [];
   return (
     <Card>
-      <div className="border-b px-5 py-3.5">
-        <h2 className="font-semibold">Target achievement</h2>
-        <p className="text-sm text-muted-foreground">Each target with the same type&apos;s achievement in {report.comparisonPeriod.label}</p>
+      <div className="border-b px-6 py-4">
+        <h2 className="text-card-title font-semibold">Target achievement</h2>
+        <p className="mt-0.5 text-label text-muted-foreground">Each target with the same type&apos;s achievement in {report.comparisonPeriod.label}</p>
       </div>
       {targets.length === 0 ? (
-        <p className="px-5 py-4 text-sm text-muted-foreground">No targets set for this month.</p>
+        <p className="px-6 py-4 text-sm text-muted-foreground">No targets set for this month.</p>
       ) : (
         <Table aria-label="Target achievement">
           <TableHeader>
             <TableRow>
               <TableHead>Target</TableHead>
-              <TableHead className="text-right">Target</TableHead>
-              <TableHead className="text-right">Actual</TableHead>
+              <TableHead numeric>Target</TableHead>
+              <TableHead numeric>Actual</TableHead>
               <TableHead className="min-w-40">Achievement</TableHead>
-              <TableHead className="text-right">{report.comparisonPeriod.label}</TableHead>
+              <TableHead numeric>{report.comparisonPeriod.label}</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -343,13 +327,13 @@ function TargetsPanel({ report }: { report: MonthlyReport }) {
               return (
                 <TableRow key={t.type}>
                   <TableCell className="font-medium">{t.type}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatReportValue(t.targetValue, unit)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatReportValue(t.actual, unit)}</TableCell>
+                  <TableCell numeric>{formatReportValue(t.targetValue, unit)}</TableCell>
+                  <TableCell numeric>{formatReportValue(t.actual, unit)}</TableCell>
                   <TableCell>
                     <TargetBar label={`${t.type} achievement`} achievementPct={t.achievementPct} status={t.status} />
                     <p className="mt-1 text-xs text-muted-foreground tabular-nums">{formatPercent(t.achievementPct)}</p>
                   </TableCell>
-                  <TableCell className="text-right text-sm tabular-nums text-muted-foreground">{formatPercent(t.previousAchievementPct)}</TableCell>
+                  <TableCell numeric className="text-sm text-muted-foreground">{formatPercent(t.previousAchievementPct)}</TableCell>
                   <TableCell>
                     <TargetStatusBadge status={t.status} />
                   </TableCell>

@@ -110,7 +110,7 @@ function RequestList({ view, onOpen }: { view: ApprovalView; onOpen: (id: number
 
   return (
     <Card>
-      <div className="grid gap-3 border-b p-4 sm:grid-cols-[1fr_repeat(2,minmax(0,12rem))]">
+      <div className="flex flex-col gap-3 border-b px-6 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:*:w-auto! sm:*:min-w-40 sm:[&>*:first-child]:min-w-64 sm:[&>*:first-child]:flex-1">
         <SearchInput placeholder="Search title or code" aria-label="Search requests" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
         {view !== 'TO_DECIDE' && (
           <Select aria-label="Status" value={status} onChange={(e) => { setStatus(e.target.value as ApprovalStatus | ''); setPage(0); }}>
@@ -148,7 +148,7 @@ function RequestList({ view, onOpen }: { view: ApprovalView; onOpen: (id: number
               <TableRow>
                 <TableHead>Request</TableHead>
                 <TableHead>Requester</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
+                <TableHead numeric>Amount</TableHead>
                 <TableHead>Needed by</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
@@ -175,7 +175,7 @@ function RequestList({ view, onOpen }: { view: ApprovalView; onOpen: (id: number
                     {a.requester?.fullName ?? 'Former user'}
                     <span className="block text-xs text-muted-foreground">{a.department.name}</span>
                   </TableCell>
-                  <TableCell className="text-right text-sm tabular-nums">{formatAmount(a.amount, a.currency)}</TableCell>
+                  <TableCell numeric className="text-sm">{formatAmount(a.amount, a.currency)}</TableCell>
                   <TableCell className="text-sm whitespace-nowrap">{a.dueDate ? dayFormat.format(parseLocalDate(a.dueDate)) : <span className="text-muted-foreground">—</span>}</TableCell>
                   <TableCell>
                     <div className="flex flex-col items-start gap-1">

@@ -173,7 +173,7 @@ function PagesTab({ filters, canEdit }: { filters: MarketingFilters; canEdit: bo
 
   return (
     <>
-      <div className="grid gap-3 border-b p-4 sm:grid-cols-2 lg:grid-cols-[1fr_repeat(3,minmax(0,11rem))_auto]">
+      <div className="flex flex-col gap-3 border-b px-6 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:*:w-auto! sm:*:min-w-40 sm:[&>*:first-child]:min-w-64 sm:[&>*:first-child]:flex-1">
         <SearchInput placeholder="Search title, URL or primary keyword" aria-label="Search pages" value={search} onChange={(e) => filter(setSearch)(e.target.value)} />
         <Select aria-label="Page type" value={type} onChange={(e) => filter(setType)(e.target.value)}>
           <option value="">All page types</option>
@@ -224,11 +224,11 @@ function PagesTab({ filters, canEdit }: { filters: MarketingFilters; canEdit: bo
                 <TableHead>Page</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Owner</TableHead>
-                <TableHead className="text-right">Keywords</TableHead>
-                <TableHead className="text-right">Top 10</TableHead>
-                <TableHead className="text-right">Avg. position</TableHead>
+                <TableHead numeric>Keywords</TableHead>
+                <TableHead numeric>Top 10</TableHead>
+                <TableHead numeric>Avg. position</TableHead>
                 <TableHead>Movement</TableHead>
-                <TableHead className="text-right">Not ranked</TableHead>
+                <TableHead numeric>Not ranked</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -250,9 +250,9 @@ function PagesTab({ filters, canEdit }: { filters: MarketingFilters; canEdit: bo
                   </TableCell>
                   <TableCell className="text-sm">{PAGE_TYPE_LABELS[p.pageType]}</TableCell>
                   <TableCell className="max-w-44">{p.owner ? <UserCell name={p.owner.fullName} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCount(p.stats.totalKeywords)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCount(p.stats.top10)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatDecimal(p.stats.averagePosition)}</TableCell>
+                  <TableCell numeric>{formatCount(p.stats.totalKeywords)}</TableCell>
+                  <TableCell numeric>{formatCount(p.stats.top10)}</TableCell>
+                  <TableCell numeric>{formatDecimal(p.stats.averagePosition)}</TableCell>
                   <TableCell>
                     <span className="flex gap-3 text-xs font-medium tabular-nums">
                       <span className="inline-flex items-center gap-0.5 text-status-success" title="Improved since last month">
@@ -267,7 +267,7 @@ function PagesTab({ filters, canEdit }: { filters: MarketingFilters; canEdit: bo
                       </span>
                     </span>
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCount(p.stats.notRanked)}</TableCell>
+                  <TableCell numeric>{formatCount(p.stats.notRanked)}</TableCell>
                   <TableCell>
                     <PageStatusBadge status={p.status} />
                   </TableCell>
@@ -320,7 +320,7 @@ function KeywordsTab({ filters, canEdit }: { filters: MarketingFilters; canEdit:
 
   return (
     <>
-      <div className="grid gap-3 border-b p-4 sm:grid-cols-2 lg:grid-cols-[1fr_repeat(4,minmax(0,10rem))_auto]">
+      <div className="flex flex-col gap-3 border-b px-6 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:*:w-auto! sm:*:min-w-40 sm:[&>*:first-child]:min-w-64 sm:[&>*:first-child]:flex-1">
         <SearchInput placeholder="Search keywords" aria-label="Search keywords" value={search} onChange={(e) => filter(setSearch)(e.target.value)} />
         <Select aria-label="Page" value={pageId} onChange={(e) => filter(setPageId)(e.target.value)}>
           <option value="">All pages</option>

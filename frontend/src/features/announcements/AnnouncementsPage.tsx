@@ -120,7 +120,7 @@ function AnnouncementCard({ announcement: a, onEdit }: { announcement: Announcem
   const live = a.state === 'ACTIVE';
 
   return (
-    <Card className={cn('p-5', live && !a.read && 'border-primary/40')}>
+    <Card className={cn('p-6', live && !a.read && 'border-primary/40')}>
       <article aria-labelledby={`announcement-${a.id}`}>
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <Badge tone={priority.tone}>

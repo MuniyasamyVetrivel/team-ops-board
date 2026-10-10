@@ -88,7 +88,7 @@ export default function CalendarPage() {
         }
       />
       <Card>
-        <div className="flex flex-wrap items-center gap-3 border-b p-4">
+        <div className="flex flex-wrap items-center gap-3 border-b px-6 py-4">
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" aria-label="Previous" onClick={() => setAnchor(shift(view, anchor, -1))}>
               <ChevronLeft />
@@ -110,9 +110,9 @@ export default function CalendarPage() {
                 Only my tasks
               </Label>
             </div>
-            <div className="flex rounded-md border p-0.5" role="group" aria-label="Calendar view">
+            <div className="flex rounded-lg bg-muted p-1" role="group" aria-label="Calendar view">
               {VIEWS.map((v) => (
-                <Button key={v.id} size="sm" variant={view === v.id ? 'secondary' : 'ghost'} aria-pressed={view === v.id} onClick={() => setView(v.id)}>
+                <Button key={v.id} size="sm" variant="ghost" className={cn('h-8', view === v.id ? 'bg-card text-foreground shadow-xs hover:bg-card' : 'text-muted-foreground')} aria-pressed={view === v.id} onClick={() => setView(v.id)}>
                   {v.label}
                 </Button>
               ))}
@@ -177,9 +177,9 @@ function Grid({ view, items, from, to, anchor, today, onOpen, onDay }: {
   const [expanded, setExpanded] = useState<string | null>(null);
   return (
     <div>
-      <div className="grid grid-cols-7 border-b text-xs font-medium text-muted-foreground" aria-hidden>
+      <div className="grid grid-cols-7 border-b text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase" aria-hidden>
         {days.slice(0, 7).map((day) => (
-          <div key={day} className="px-2 py-2">
+          <div key={day} className="px-3 py-2.5">
             {weekday.format(parseLocalDate(day))}
           </div>
         ))}

@@ -79,8 +79,8 @@ function TypesBody() {
             <TableRow>
               <TableHead>Type</TableHead>
               <TableHead>Actual</TableHead>
-              <TableHead className="text-right">Behind below</TableHead>
-              <TableHead className="text-right">Months</TableHead>
+              <TableHead numeric>Behind below</TableHead>
+              <TableHead numeric>Months</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -109,11 +109,11 @@ function TypesBody() {
                   </span>
                   {!type.automatic && type.actualSource !== 'MANUAL' && <p className="text-xs text-muted-foreground">Entered by hand until that module is available</p>}
                 </TableCell>
-                <TableCell className="text-right text-sm tabular-nums">
+                <TableCell numeric className="text-sm">
                   {formatPercent(type.effectiveThresholdPct)}
                   {type.behindThresholdPct === null && <span className="block text-xs text-muted-foreground">default</span>}
                 </TableCell>
-                <TableCell className="text-right text-sm tabular-nums">
+                <TableCell numeric className="text-sm">
                   <span className="inline-flex items-center gap-1">
                     {type.locked && <Lock className="size-3 text-muted-foreground" aria-label="In use: unit and source are fixed" />}
                     {type.targetCount}

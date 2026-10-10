@@ -276,7 +276,7 @@ export default function TeamProfilePage() {
         <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center">
           <UserAvatar name={member.fullName} size="lg" />
           <div className="min-w-0 flex-1 space-y-1.5">
-            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-page-title">
               {member.fullName}
               {isSelf && <span className="ml-2 text-sm font-normal text-muted-foreground">(you)</span>}
             </h1>

@@ -8,10 +8,10 @@ import type { TargetStatus } from '../api';
 import { formatMetric, formatPercent, type MetricFormat } from '../marketing-format';
 import { TARGET_STATUS_LABELS } from '../marketing-meta';
 
-const STATUS_STYLE: Record<TargetStatus, { tone: BadgeProps['tone']; icon: LucideIcon; bar: string }> = {
-  ACHIEVED: { tone: 'success', icon: CircleCheck, bar: 'bg-status-success' },
-  IN_PROGRESS: { tone: 'warning', icon: Hourglass, bar: 'bg-status-warning' },
-  BEHIND: { tone: 'danger', icon: CircleAlert, bar: 'bg-status-danger' },
+const STATUS_STYLE: Record<TargetStatus, { tone: BadgeProps['tone']; icon: LucideIcon }> = {
+  ACHIEVED: { tone: 'success', icon: CircleCheck },
+  IN_PROGRESS: { tone: 'warning', icon: Hourglass },
+  BEHIND: { tone: 'danger', icon: CircleAlert },
 };
 
 /** A target's status with its label and icon. `null` is a planned (future) month: no actual and no status yet. */
@@ -33,7 +33,10 @@ export function TargetStatusBadge({ status }: { status: TargetStatus | null }) {
   );
 }
 
-/** The achievement bar on its own (for tables); capped at 100% while the text keeps the real figure. */
+/**
+ * The achievement bar on its own (for tables); capped at 100% while the text keeps the real figure. The fill is the
+ * brand amber accent; the status itself is always shown by the labelled badge beside it.
+ */
 export function TargetBar({ label, achievementPct, status, className }: { label: string; achievementPct: number | null; status: TargetStatus | null; className?: string }) {
   const filled = Math.min(Math.max(achievementPct ?? 0, 0), 100);
   return (
@@ -46,7 +49,7 @@ export function TargetBar({ label, achievementPct, status, className }: { label:
       aria-valuetext={status === null ? 'Planned' : formatPercent(achievementPct)}
       className={cn('h-2 overflow-hidden rounded-full bg-muted', className)}
     >
-      <div className={cn('h-full rounded-full', status ? STATUS_STYLE[status].bar : 'bg-muted-foreground/30')} style={{ width: `${filled}%` }} />
+      <div className={cn('h-full rounded-full', status ? 'bg-highlight' : 'bg-muted-foreground/30')} style={{ width: `${filled}%` }} />
     </div>
   );
 }
@@ -71,20 +74,20 @@ interface TargetProgressProps {
 /** "200 of 250 · 80% · 50 remaining" with a progress bar and a labelled status (all values come from the server). */
 export function TargetProgress({ label, target, actual, achievementPct, remaining, status, format = 'count', hint, action }: TargetProgressProps) {
   return (
-    <div className="flex flex-col rounded-xl border bg-card p-4 shadow-xs">
-      <div className="flex items-start justify-between gap-2">
-        <span className="text-sm font-medium">{label}</span>
+    <div className="flex h-full flex-col rounded-xl border bg-card p-6 shadow-card">
+      <div className="flex items-start justify-between gap-3">
+        <span className="min-w-0 pt-0.5 text-label font-medium text-muted-foreground">{label}</span>
         <span className="flex shrink-0 items-center gap-1">
           <TargetStatusBadge status={status} />
           {action}
         </span>
       </div>
-      <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums">
+      <p className="mt-3 text-kpi font-semibold tracking-tight tabular-nums">
         {status === null ? <span className="text-muted-foreground">—</span> : formatMetric(actual ?? 0, format)}
         <span className="ml-1 text-sm font-normal text-muted-foreground">of {formatMetric(target, format)}</span>
       </p>
       <TargetBar label={`${label} achievement`} achievementPct={achievementPct} status={status} className="mt-3" />
-      <p className="mt-2 flex justify-between text-xs text-muted-foreground tabular-nums">
+      <p className="mt-2 flex flex-wrap justify-between gap-x-3 text-xs text-muted-foreground tabular-nums">
         <span>{status === null ? 'Planned month' : `${formatPercent(achievementPct)} achieved`}</span>
         <span>{formatMetric(remaining, format)} remaining</span>
       </p>

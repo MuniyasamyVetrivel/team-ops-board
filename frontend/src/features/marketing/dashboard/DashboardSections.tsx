@@ -1,7 +1,8 @@
-import { ArrowDownRight, ArrowUpRight, CalendarCheck, CircleCheck, Hourglass, Link2, Mail, Minus, MousePointerClick, Search, SquarePen, Target, UserPlus } from 'lucide-react';
+import { CalendarCheck, CircleCheck, Hourglass, Link2, Mail, MousePointerClick, Search, SquarePen, Target, UserPlus } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
+import { Delta } from '@/components/common/Delta';
 import { Panel } from '@/components/common/Panel';
 import { Badge } from '@/components/ui/badge';
 import { DueBadge } from '@/features/tasks/TaskBadges';
@@ -46,7 +47,7 @@ interface MetricRowProps {
  */
 function MetricRow({ label, value, before, kind = 'count', better = 'higher', hint, compareLabel }: MetricRowProps) {
   return (
-    <div className="flex items-start justify-between gap-3 px-5 py-2.5">
+    <div className="flex items-start justify-between gap-3 px-6 py-2.5">
       <dt className="min-w-0 text-sm">
         {label}
         {hint && <span className="block text-xs text-muted-foreground">{hint}</span>}
@@ -67,22 +68,7 @@ function MetricRow({ label, value, before, kind = 'count', better = 'higher', hi
 function PointsChange({ now, before, better, compareLabel }: { now: number | null; before: number | null; better: Better; compareLabel: string }) {
   if (now === null || before === null) return <span className="block text-xs text-muted-foreground">No comparison with {compareLabel}</span>;
   const diff = Math.round((now - before) * 100) / 100;
-  if (diff === 0) {
-    return (
-      <span className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
-        <Minus className="size-3.5" aria-hidden />
-        No change vs {compareLabel}
-      </span>
-    );
-  }
-  const good = better === null ? null : (diff > 0) === (better === 'higher');
-  const Icon = diff > 0 ? ArrowUpRight : ArrowDownRight;
-  return (
-    <span className={cn('flex items-center justify-end gap-1 text-xs font-medium tabular-nums', good === null ? 'text-muted-foreground' : good ? 'text-status-success' : 'text-status-danger')}>
-      <Icon className="size-3.5" aria-hidden />
-      {diff > 0 ? 'Up' : 'Down'} {Math.abs(diff).toFixed(2)} pts vs {compareLabel}
-    </span>
-  );
+  return <Delta value={diff} amount={`${Math.abs(diff).toFixed(2)} pts`} label={`vs ${compareLabel}`} better={better} />;
 }
 
 /** Brief section 22 SEO block: how the month's keywords rank, and how they moved against the month before. */
@@ -96,7 +82,7 @@ export function SeoOverviewPanel({ seo, compareLabel }: { seo: SeoSection; compa
   ];
   return (
     <Panel title="SEO ranking overview" icon={Search} description={`${formatCount(seo.totalPages)} pages · ${formatCount(current.totalKeywords)} keywords`} action={<PanelLink to="/digital-marketing/seo">Rankings</PanelLink>}>
-      <div className="space-y-2 px-5 pt-4">
+      <div className="space-y-2 px-6 pt-4">
         <div className="flex h-3 overflow-hidden rounded-full bg-muted" role="img" aria-label={bands.map((b) => `${RANKING_STATUS_LABELS[b.key]} ${b.value}`).join(', ')}>
           {bands.map((b) => (
             <div key={b.key} className={b.bar} style={{ width: `${(b.value / total) * 100}%` }} />
@@ -134,13 +120,13 @@ export function TargetAchievementPanel({ targets }: { targets: NonNullable<Marke
       action={<PanelLink to="/digital-marketing/targets">Targets</PanelLink>}
     >
       {targets.targets.length === 0 ? (
-        <p className="px-5 py-4 text-sm text-muted-foreground">No targets set for this month.</p>
+        <p className="px-6 py-4 text-sm text-muted-foreground">No targets set for this month.</p>
       ) : (
         <ul className="divide-y" aria-label="Targets">
           {targets.targets.map((t) => (
-            <li key={t.id} className="space-y-1.5 px-5 py-2.5">
+            <li key={t.id} className="space-y-1.5 px-6 py-2.5">
               <div className="flex items-center justify-between gap-2 text-sm">
-                <span className="truncate font-medium">{t.type.name}</span>
+                <span className="font-medium">{t.type.name}</span>
                 <TargetStatusBadge status={t.status} />
               </div>
               <TargetBar label={`${t.type.name} achievement`} achievementPct={t.achievementPct} status={t.status} />
@@ -164,7 +150,7 @@ export function LeadSourcePanel({ leads, compareLabel }: { leads: LeadSection; c
   const max = Math.max(...sources.map((s) => s.leads), 1);
   return (
     <Panel title="Lead source distribution" icon={UserPlus} description={`${formatCount(leads.total)} leads this month`} action={<PanelLink to="/digital-marketing/leads">Leads</PanelLink>}>
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 p-6">
         {leads.target && (
           <TargetProgress
             label="Website Leads target"
@@ -220,7 +206,7 @@ export function LinkedInPanel({ linkedin, compareLabel }: { linkedin: LinkedInSe
   return (
     <Panel title="LinkedIn campaign performance" icon={MousePointerClick} description={`${formatCount(linkedin.runningCampaigns)} running · ${formatCount(c.campaigns)} with results`} action={<PanelLink to="/digital-marketing/paid-campaigns">Campaigns</PanelLink>}>
       {linkedin.runningCampaigns > 0 && (
-        <div className="space-y-1 px-5 pt-4">
+        <div className="space-y-1 px-6 pt-4">
           <p className="text-xs text-muted-foreground tabular-nums">
             {formatInr(linkedin.budget.spent)} of {formatInr(linkedin.budget.budget)} budget spent to date
           </p>
@@ -262,7 +248,7 @@ export function BacklinkPanel({ backlinks, compareLabel }: { backlinks: NonNulla
   const { current: c, comparison: p, target } = backlinks;
   return (
     <Panel title="Backlink progress" icon={Link2} description={`${formatCount(c.rejected)} rejected · ${formatCount(c.lost)} lost this month`} action={<PanelLink to="/digital-marketing/backlinks">Backlinks</PanelLink>}>
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 p-6">
         <FunnelBars
           label="Backlink funnel"
           rows={[
@@ -293,7 +279,7 @@ export function ContentPanel({ content, compareLabel }: { content: NonNullable<M
   const { current: c, comparison: p, blogTarget } = content;
   return (
     <Panel title="Content performance" icon={SquarePen} description={`${formatCount(c.publishedAll)} items published · ${formatCount(c.refreshed)} refreshed`} action={<PanelLink to="/digital-marketing/content">Content</PanelLink>}>
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 p-6">
         <FunnelBars
           label="Blog progress"
           rows={[
@@ -324,18 +310,18 @@ export function ContentPanel({ content, compareLabel }: { content: NonNullable<M
 export function ActivitiesPanel({ activities }: { activities: ActivitySection }) {
   return (
     <Panel title="Recurring activities" icon={CalendarCheck} description="Occurrences due this month" action={<PanelLink to="/digital-marketing/activities">Activities</PanelLink>}>
-      <dl className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-3 p-6 sm:grid-cols-4">
         <Count label="Due" value={activities.due} icon={CalendarCheck} />
         <Count label="Completed" value={activities.completed} icon={CircleCheck} hint={activities.completionPct === null ? undefined : `${formatPercent(activities.completionPct)} done`} />
         <Count label="Open" value={activities.open} icon={Hourglass} />
         <Count label="Overdue" value={activities.overdue} icon={Hourglass} alert={activities.overdue > 0} />
       </dl>
       {activities.attention.length === 0 ? (
-        <p className="border-t px-5 py-3 text-sm text-muted-foreground">Nothing open is due by the end of the month.</p>
+        <p className="border-t px-6 py-3 text-sm text-muted-foreground">Nothing open is due by the end of the month.</p>
       ) : (
         <ul className="divide-y border-t" aria-label="Needs attention">
           {activities.attention.map((o) => (
-            <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-2.5 text-sm">
+            <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 px-6 py-2.5 text-sm">
               <div className="min-w-0">
                 <p className="truncate font-medium">{o.activityName}</p>
                 <p className="text-xs text-muted-foreground">

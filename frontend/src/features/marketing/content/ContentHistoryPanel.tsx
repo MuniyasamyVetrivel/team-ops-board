@@ -1,7 +1,8 @@
 import { ChartColumn } from 'lucide-react';
 import { useState } from 'react';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
+import { ChartTooltip, ChartTooltipRow } from '@/components/charts/ChartTooltip';
+import { ComboChart } from '@/components/charts/ComboChart';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
 import { Card } from '@/components/ui/card';
@@ -13,8 +14,6 @@ import type { MarketingFilters } from '../filter-memory';
 import { formatCount, formatPercent, MONTH_NAMES } from '../marketing-format';
 import { useContentTrend, type ContentTrendMonth } from './api';
 
-const AXIS = { fontSize: 12, fill: 'var(--muted-foreground)' };
-const INITIAL = { width: 640, height: 260 };
 /** Categorical chart tokens (never the status colours). */
 const TARGET = 'var(--chart-3)';
 const PUBLISHED = 'var(--chart-1)';
@@ -33,10 +32,10 @@ export function ContentHistoryPanel({ filters }: { filters: MarketingFilters }) 
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4">
         <div>
-          <h2 className="font-semibold">Monthly history</h2>
-          <p className="text-sm text-muted-foreground">{targetsVisible ? 'Blogs published against the blog target.' : 'Blogs planned and published each month.'}</p>
+          <h2 className="text-card-title font-semibold">Monthly history</h2>
+          <p className="mt-0.5 text-label text-muted-foreground">{targetsVisible ? 'Blogs published against the blog target.' : 'Blogs planned and published each month.'}</p>
         </div>
         <Select aria-label="History range" className="w-40" value={months} onChange={(e) => setMonths(Number(e.target.value))}>
           {RANGES.map((r) => (
@@ -46,7 +45,7 @@ export function ContentHistoryPanel({ filters }: { filters: MarketingFilters }) 
           ))}
         </Select>
       </div>
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 p-6">
         {trend.isPending ? (
           <Skeleton className="h-64" role="status" aria-label="Loading the history" />
         ) : trend.isError ? (
@@ -56,69 +55,41 @@ export function ContentHistoryPanel({ filters }: { filters: MarketingFilters }) 
         ) : (
           <>
             <figure aria-label="Blogs published by month" className="space-y-2">
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%" initialDimension={INITIAL}>
-                  <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                    <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={false} />
-                    <YAxis tick={AXIS} tickLine={false} axisLine={false} width={32} allowDecimals={false} />
-                    <Tooltip
-                      cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
-                      content={({ active, payload }) => {
-                        const row = payload?.[0]?.payload as (typeof data)[number] | undefined;
-                        if (!active || !row) return null;
-                        return (
-                          <div className="rounded-lg border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md">
-                            <p className="mb-1 font-medium">{row.full}</p>
-                            {targetsVisible && <p>Target: {formatCount(row.target)}</p>}
-                            <p>Published: {formatCount(row.published)}</p>
-                            <p>Planned: {formatCount(row.planned)}</p>
-                          </div>
-                        );
-                      }}
-                    />
-                    {targetsVisible && <Bar dataKey="target" name="Target" fill={TARGET} radius={[3, 3, 0, 0]} isAnimationActive={false} />}
-                    <Bar dataKey="published" name="Published" fill={PUBLISHED} radius={[3, 3, 0, 0]} isAnimationActive={false} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <figcaption>
-                <ul className="flex flex-wrap gap-4 text-xs text-muted-foreground" aria-label="Chart legend">
-                  {targetsVisible && (
-                    <li className="flex items-center gap-1.5">
-                      <span className="size-2.5 rounded-sm" style={{ background: TARGET }} aria-hidden />
-                      Blog target
-                    </li>
-                  )}
-                  <li className="flex items-center gap-1.5">
-                    <span className="size-2.5 rounded-sm" style={{ background: PUBLISHED }} aria-hidden />
-                    Blogs published
-                  </li>
-                </ul>
-              </figcaption>
+              <ComboChart
+                data={data}
+                series={[...(targetsVisible ? [{ key: 'target' as const, label: 'Target', color: TARGET }] : []), { key: 'published' as const, label: 'Published', color: PUBLISHED }]}
+                leftWidth={32}
+                renderTooltip={(row) => (
+                  <ChartTooltip title={row.full}>
+                    {targetsVisible && <ChartTooltipRow color={TARGET} label="Target" value={formatCount(row.target)} />}
+                    <ChartTooltipRow color={PUBLISHED} label="Published" value={formatCount(row.published)} />
+                    <ChartTooltipRow label="Planned" value={formatCount(row.planned)} />
+                  </ChartTooltip>
+                )}
+              />
             </figure>
             <Table aria-label="Blog history by month">
               <TableHeader>
                 <TableRow>
                   <TableHead>Month</TableHead>
-                  <TableHead className="text-right">Planned</TableHead>
-                  {targetsVisible && <TableHead className="text-right">Target</TableHead>}
-                  <TableHead className="text-right">Published</TableHead>
-                  {targetsVisible && <TableHead className="text-right">Remaining</TableHead>}
-                  {targetsVisible && <TableHead className="text-right">Achieved</TableHead>}
-                  <TableHead className="text-right">Leads</TableHead>
+                  <TableHead numeric>Planned</TableHead>
+                  {targetsVisible && <TableHead numeric>Target</TableHead>}
+                  <TableHead numeric>Published</TableHead>
+                  {targetsVisible && <TableHead numeric>Remaining</TableHead>}
+                  {targetsVisible && <TableHead numeric>Achieved</TableHead>}
+                  <TableHead numeric>Leads</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {[...points].reverse().map((m) => (
                   <TableRow key={m.figures.period.label}>
                     <TableCell className="font-medium whitespace-nowrap">{m.figures.period.label}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatCount(m.figures.plannedBlogs)}</TableCell>
-                    {targetsVisible && <TableCell className="text-right tabular-nums">{formatCount(m.targetValue)}</TableCell>}
-                    <TableCell className="text-right font-semibold tabular-nums">{formatCount(m.figures.publishedBlogs)}</TableCell>
-                    {targetsVisible && <TableCell className="text-right tabular-nums">{formatCount(m.remaining)}</TableCell>}
-                    {targetsVisible && <TableCell className="text-right tabular-nums">{formatPercent(m.achievementPct)}</TableCell>}
-                    <TableCell className="text-right tabular-nums">{formatCount(m.figures.leads)}</TableCell>
+                    <TableCell numeric>{formatCount(m.figures.plannedBlogs)}</TableCell>
+                    {targetsVisible && <TableCell numeric>{formatCount(m.targetValue)}</TableCell>}
+                    <TableCell numeric className="font-semibold">{formatCount(m.figures.publishedBlogs)}</TableCell>
+                    {targetsVisible && <TableCell numeric>{formatCount(m.remaining)}</TableCell>}
+                    {targetsVisible && <TableCell numeric>{formatPercent(m.achievementPct)}</TableCell>}
+                    <TableCell numeric>{formatCount(m.figures.leads)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

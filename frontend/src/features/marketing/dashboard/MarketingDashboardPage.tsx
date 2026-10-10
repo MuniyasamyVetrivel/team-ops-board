@@ -140,7 +140,7 @@ function KpiRow({ data, compareLabel, loading }: { data: MarketingDashboard; com
   }
   if (cards.length === 0) return null;
   return (
-    <section aria-label={`Marketing performance for ${data.period.label}`} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+    <section aria-label={`Marketing performance for ${data.period.label}`} className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
       {cards}
     </section>
   );
@@ -157,7 +157,7 @@ function KpiLink({ to, children }: { to: string; children: ReactNode }) {
 function DashboardSkeleton() {
   return (
     <div className="space-y-6" role="status" aria-label="Loading the marketing dashboard">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+      <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
         {Array.from({ length: 6 }, (_, i) => (
           <Skeleton key={i} className="h-28 rounded-xl" />
         ))}

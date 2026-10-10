@@ -108,7 +108,7 @@ export default function AuditLogsPage() {
       />
 
       <Card className="space-y-4 p-4">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <SearchInput
             className="sm:col-span-2"
             placeholder="Search details, people or IP address…"

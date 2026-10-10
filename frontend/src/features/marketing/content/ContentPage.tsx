@@ -131,10 +131,10 @@ function ContentList({ filters, canEdit, onOpen }: { filters: MarketingFilters; 
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4">
         <div>
-          <h2 className="font-semibold">Content</h2>
-          <p className="text-sm text-muted-foreground">Ideas through to published posts. Choose a stage to list it.</p>
+          <h2 className="text-card-title font-semibold">Content</h2>
+          <p className="mt-0.5 text-label text-muted-foreground">Ideas through to published posts. Choose a stage to list it.</p>
         </div>
         <Button variant="outline" size="sm" disabled={exporting || !items.data?.totalElements} onClick={() => void onExport()}>
           <Download aria-hidden />
@@ -142,7 +142,7 @@ function ContentList({ filters, canEdit, onOpen }: { filters: MarketingFilters; 
         </Button>
       </div>
 
-      <div role="group" aria-label="Pipeline" className="grid grid-cols-2 gap-2 border-b p-4 sm:grid-cols-3 lg:grid-cols-6">
+      <div role="group" aria-label="Pipeline" className="grid grid-cols-2 gap-2 border-b px-6 py-4 sm:grid-cols-3 lg:grid-cols-6">
         {CONTENT_STATUSES.map((s) => {
           const { icon: Icon } = CONTENT_STATUS_STYLE[s];
           const active = status === s;
@@ -164,7 +164,7 @@ function ContentList({ filters, canEdit, onOpen }: { filters: MarketingFilters; 
         })}
       </div>
 
-      <div className="grid gap-3 border-b p-4 sm:grid-cols-2 lg:grid-cols-[1fr_repeat(4,minmax(0,11rem))]">
+      <div className="flex flex-col gap-3 border-b px-6 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:*:w-auto! sm:*:min-w-40 sm:[&>*:first-child]:min-w-64 sm:[&>*:first-child]:flex-1">
         <SearchInput placeholder="Search title, URL or keyword" aria-label="Search content" value={search} onChange={(e) => filter(setSearch)(e.target.value)} />
         <Select aria-label="Content type" value={type} onChange={(e) => filter(setType)(e.target.value)}>
           <option value="">All types</option>
@@ -221,8 +221,8 @@ function ContentList({ filters, canEdit, onOpen }: { filters: MarketingFilters; 
                 <TableHead>Planned</TableHead>
                 <TableHead>Published</TableHead>
                 <TableHead>Owner</TableHead>
-                <TableHead className="text-right">Leads</TableHead>
-                <TableHead className="text-right">
+                <TableHead numeric>Leads</TableHead>
+                <TableHead numeric>
                   <span className="sr-only">Attachments</span>
                   <Paperclip className="ml-auto size-4" aria-hidden />
                 </TableHead>
@@ -256,8 +256,8 @@ function ContentList({ filters, canEdit, onOpen }: { filters: MarketingFilters; 
                     </span>
                   </TableCell>
                   <TableCell className="max-w-44">{c.owner ? <UserCell name={c.owner.fullName} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCount(c.leads)}</TableCell>
-                  <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
+                  <TableCell numeric>{formatCount(c.leads)}</TableCell>
+                  <TableCell numeric className="text-sm text-muted-foreground">
                     {c.attachments > 0 ? (
                       <span aria-label={`${c.attachments} ${c.attachments === 1 ? 'file' : 'files'}`}>{c.attachments}</span>
                     ) : (

@@ -93,16 +93,16 @@ describe('MarketingReportPage', () => {
     const leads = within(headlines).getByText('Leads').parentElement!;
     expect(leads).toHaveTextContent('180');
     expect(leads).toHaveTextContent('200');
-    expect(within(leads).getByText('Up 11.11%')).toHaveClass('text-status-success');
+    expect(within(leads).getByText('11.11%')).toHaveClass('text-status-success');
     expect(within(headlines).getByText('Top 10 keywords').parentElement).toHaveTextContent('Up 20%');
     expect(within(headlines).getByText('Backlinks live').parentElement).toHaveTextContent('Up 22.22%');
     expect(within(headlines).getByText('Email open rate').parentElement).toHaveTextContent('Up 3.84 pts');
 
     // A lower average position is good news; a drop in completed activities is bad news, in words too.
     const seo = screen.getByRole('table', { name: 'SEO summary' });
-    expect(within(within(seo).getByText('Average position').closest('tr')!).getByText(/Down/)).toHaveClass('text-status-success');
+    expect(within(within(seo).getByText('Average position').closest('tr')!).getByText(/Down/).parentElement).toHaveClass('text-status-success');
     const activities = screen.getByRole('table', { name: 'Recurring activity completion' });
-    expect(within(within(activities).getByText('Completed').closest('tr')!).getByText('Down 25%')).toHaveClass('text-status-danger');
+    expect(within(within(activities).getByText('Completed').closest('tr')!).getByText('25%')).toHaveClass('text-status-danger');
 
     expect(screen.getByRole('figure', { name: 'SEO summary: September 2026 and October 2026' })).toBeInTheDocument();
     const improved = screen.getByRole('list', { name: 'Keywords that improved most' });

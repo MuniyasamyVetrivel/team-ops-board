@@ -219,7 +219,7 @@ describe('SeoPageDetailPage', () => {
     const figures = screen.getByRole('region', { name: 'SEO figures for October 2026' });
     expect(within(figures).getByText('Average position').closest('div')).toHaveTextContent('12.5');
     // A lower average position is better: 18 → 12.5 is shown as an improvement in words.
-    expect(within(figures).getByText('Down 30.6% vs September')).toBeInTheDocument();
+    expect(within(figures).getByText('30.6% vs September')).toBeInTheDocument();
     expect(within(figures).getByText('1 without a ranking for October 2026')).toBeInTheDocument();
     expect(within(figures).getByText('0 in the top 3')).toBeInTheDocument();
 

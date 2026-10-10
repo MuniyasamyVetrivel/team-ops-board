@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
+import { KpiTile } from '@/components/common/KpiCard';
 import { PageHeader } from '@/components/common/PageHeader';
 import { SearchInput } from '@/components/common/SearchInput';
 import { UserCell } from '@/components/common/UserAvatar';
@@ -65,38 +66,27 @@ export default function WorkloadPage() {
     <div className="space-y-6">
       <PageHeader title="Workload" description="Who is overloaded, who has capacity, and what needs attention." />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+      <section aria-label="Workload summary" className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 2xl:grid-cols-6">
         {LEVELS.map((level) => {
           const meta = LEVEL_META[level];
           return (
-            <Card key={level} className="p-4">
-              <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                <meta.icon className={cn('size-4', level === 'OVERLOADED' ? 'text-status-danger' : level === 'HIGH' ? 'text-status-warning' : level === 'NORMAL' ? 'text-status-success' : 'text-status-neutral')} aria-hidden />
-                {meta.label}
-                <span className="text-xs">({meta.range})</span>
-              </p>
-              {data ? <p className="mt-1 text-3xl font-semibold tabular-nums">{data.summary.byLevel[level]}</p> : <Skeleton className="mt-2 h-8 w-10" />}
-            </Card>
+            <KpiTile
+              key={level}
+              label={meta.label}
+              icon={meta.icon}
+              tone={level === 'OVERLOADED' ? 'text-status-danger' : level === 'HIGH' ? 'text-status-warning' : level === 'NORMAL' ? 'text-status-success' : 'text-status-neutral'}
+              value={data?.summary.byLevel[level]}
+              hint={`${meta.range} of capacity`}
+              loading={!data}
+            />
           );
         })}
-        <Card className="p-4">
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <AlarmClock className="size-4 text-status-danger" aria-hidden />
-            Overdue tasks
-          </p>
-          {data ? <p className="mt-1 text-3xl font-semibold tabular-nums">{data.summary.overdue}</p> : <Skeleton className="mt-2 h-8 w-10" />}
-        </Card>
-        <Card className="p-4">
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <CalendarClock className="size-4 text-status-warning" aria-hidden />
-            Due today
-          </p>
-          {data ? <p className="mt-1 text-3xl font-semibold tabular-nums">{data.summary.dueToday}</p> : <Skeleton className="mt-2 h-8 w-10" />}
-        </Card>
-      </div>
+        <KpiTile label="Overdue tasks" icon={AlarmClock} tone="text-status-danger" value={data?.summary.overdue} alert={(data?.summary.overdue ?? 0) > 0} loading={!data} />
+        <KpiTile label="Due today" icon={CalendarClock} tone="text-status-warning" value={data?.summary.dueToday} loading={!data} />
+      </section>
 
       <Card>
-        <div className="grid gap-3 border-b p-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-[1fr_repeat(6,minmax(0,9.5rem))]">
+        <div className="flex flex-col gap-3 border-b px-6 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:*:w-auto! sm:*:min-w-40 sm:[&>*:first-child]:min-w-64 sm:[&>*:first-child]:flex-1">
           <SearchInput placeholder="Search people" aria-label="Search people" value={search} onChange={(e) => setSearch(e.target.value)} />
           <Select aria-label="Department" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
             <option value="">All departments</option>
@@ -163,13 +153,13 @@ export default function WorkloadPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Employee</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead className="text-right">To do</TableHead>
-                <TableHead className="text-right">In progress</TableHead>
-                <TableHead className="text-right">Blocked</TableHead>
-                <TableHead className="text-right">Completed</TableHead>
-                <TableHead className="text-right">Overdue</TableHead>
-                <TableHead className="text-right">Due today</TableHead>
+                <TableHead numeric>Total</TableHead>
+                <TableHead numeric>To do</TableHead>
+                <TableHead numeric>In progress</TableHead>
+                <TableHead numeric>Blocked</TableHead>
+                <TableHead numeric>Completed</TableHead>
+                <TableHead numeric>Overdue</TableHead>
+                <TableHead numeric>Due today</TableHead>
                 <TableHead>Workload</TableHead>
               </TableRow>
             </TableHeader>
@@ -205,5 +195,5 @@ export default function WorkloadPage() {
 }
 
 function Num({ value, tone }: { value: number; tone?: string }) {
-  return <TableCell className={cn('text-right tabular-nums', value === 0 && 'text-muted-foreground', tone)}>{value}</TableCell>;
+  return <TableCell numeric className={cn(value === 0 && 'text-muted-foreground', tone)}>{value}</TableCell>;
 }

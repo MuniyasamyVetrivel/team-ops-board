@@ -31,7 +31,8 @@ describe('RankingChangeIndicator', () => {
       </>,
     );
     expect(screen.getByText('Improved by 5 places')).toBeInTheDocument();
-    expect(screen.getByText('+5')).toBeInTheDocument();
+    // One line: arrow + amount, with the direction in words for screen readers.
+    expect(screen.getByText('Improved by 5 places').parentElement).toHaveTextContent('5');
     expect(screen.getByText('Declined by 1 place')).toBeInTheDocument();
     expect(screen.getByText('Declined: no longer ranked')).toBeInTheDocument();
     expect(screen.getByText('No change')).toBeInTheDocument();
@@ -70,8 +71,8 @@ describe('MarketingKpiCard', () => {
       </>,
     );
     expect(screen.getByText('35.42%')).toBeInTheDocument();
-    expect(screen.getByText('Up 18.1% vs September')).toHaveClass('text-status-success');
-    expect(screen.getByText('Up 25% vs September')).toHaveClass('text-status-danger');
+    expect(screen.getByText('18.1% vs September')).toHaveClass('text-status-success');
+    expect(screen.getByText('25% vs September')).toHaveClass('text-status-danger');
     expect(screen.getByText('No comparison with September')).toBeInTheDocument();
   });
 });

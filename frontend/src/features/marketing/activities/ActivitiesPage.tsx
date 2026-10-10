@@ -123,7 +123,7 @@ function ActivitiesTab() {
 
   return (
     <>
-      <div className="grid gap-3 border-b p-4 sm:grid-cols-2 lg:grid-cols-[1fr_repeat(3,minmax(0,11rem))]">
+      <div className="flex flex-col gap-3 border-b px-6 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:*:w-auto! sm:*:min-w-40 sm:[&>*:first-child]:min-w-64 sm:[&>*:first-child]:flex-1">
         <SearchInput placeholder="Search activities" aria-label="Search activities" value={search} onChange={(e) => filter(setSearch)(e.target.value)} />
         <Select aria-label="Frequency" value={frequency} onChange={(e) => filter(setFrequency)(e.target.value)}>
           <option value="">All frequencies</option>
@@ -228,7 +228,7 @@ function DueTab() {
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4">
         <p className="text-sm text-muted-foreground">Every open occurrence, earliest due first. Occurrences with a task are completed from the task.</p>
         <Select
           aria-label="Assigned to"

@@ -50,7 +50,7 @@ function RatingsPanel({ threshold }: { threshold: number | null }) {
 
 function Rule({ term, children }: { term: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex items-center gap-4 px-5 py-2.5">
+    <div className="flex items-center gap-4 px-6 py-2.5">
       <dt className="w-40 shrink-0">{term}</dt>
       <dd className="text-muted-foreground">{children}</dd>
     </div>
@@ -62,7 +62,7 @@ function DataSourcesPanel() {
   return (
     <Panel title="Data sources" icon={PlugZap} description="Where each kind of marketing data comes from.">
       {providers.isPending ? (
-        <div className="space-y-2 p-5">
+        <div className="space-y-2 p-6">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-10" />
           ))}
@@ -72,7 +72,7 @@ function DataSourcesPanel() {
       ) : (
         <ul className="divide-y text-sm">
           {providers.data.map((provider) => (
-            <li key={provider.category} className="flex flex-wrap items-start justify-between gap-2 px-5 py-3">
+            <li key={provider.category} className="flex flex-wrap items-start justify-between gap-2 px-6 py-3">
               <div className="min-w-0">
                 <p className="font-medium">{PROVIDER_CATEGORY_LABELS[provider.category]}</p>
                 <p className="text-xs text-muted-foreground">{provider.description}</p>
@@ -97,7 +97,7 @@ function ImportsPanel() {
   return (
     <Panel title="CSV imports" icon={FileUp} description="Rows are validated and previewed first. Invalid rows are never imported.">
       {definitions.isPending ? (
-        <div className="p-5">
+        <div className="p-6">
           <Skeleton className="h-12" />
         </div>
       ) : definitions.isError ? (
@@ -111,7 +111,7 @@ function ImportsPanel() {
       ) : (
         <ul className="divide-y">
           {definitions.data.map((definition) => (
-            <li key={definition.type} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+            <li key={definition.type} className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
               <div className="min-w-0">
                 <p className="text-sm font-medium">{definition.label}</p>
                 <p className="text-xs text-muted-foreground">{definition.description}</p>

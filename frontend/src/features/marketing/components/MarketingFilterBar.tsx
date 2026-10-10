@@ -24,9 +24,9 @@ export function MarketingFilterBar({ showOwner = true }: { showOwner?: boolean }
   const filtered = !isCurrentPeriod || filters.ownerId !== null;
 
   return (
-    <div role="group" aria-label="Marketing filters" className="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-3 shadow-xs">
+    <div role="group" aria-label="Marketing filters" className="flex flex-wrap items-end gap-4 rounded-xl border bg-card px-6 py-4 shadow-card">
       <div className="grid gap-1">
-        <label htmlFor="marketing-month" className="text-xs font-medium text-muted-foreground">
+        <label htmlFor="marketing-month" className="text-label font-medium text-muted-foreground">
           Month
         </label>
         <Select id="marketing-month" className="w-36" value={filters.month} onChange={(event) => setFilters({ ...filters, month: Number(event.target.value) })}>
@@ -38,7 +38,7 @@ export function MarketingFilterBar({ showOwner = true }: { showOwner?: boolean }
         </Select>
       </div>
       <div className="grid gap-1">
-        <label htmlFor="marketing-year" className="text-xs font-medium text-muted-foreground">
+        <label htmlFor="marketing-year" className="text-label font-medium text-muted-foreground">
           Year
         </label>
         <Select id="marketing-year" className="w-28" value={filters.year} onChange={(event) => setFilters({ ...filters, year: Number(event.target.value) })}>
@@ -51,7 +51,7 @@ export function MarketingFilterBar({ showOwner = true }: { showOwner?: boolean }
       </div>
       {showOwner && (
         <div className="grid gap-1">
-          <label htmlFor="marketing-owner" className="text-xs font-medium text-muted-foreground">
+          <label htmlFor="marketing-owner" className="text-label font-medium text-muted-foreground">
             Owner
           </label>
           <Select
@@ -70,7 +70,7 @@ export function MarketingFilterBar({ showOwner = true }: { showOwner?: boolean }
         </div>
       )}
       {filtered && (
-        <Button variant="ghost" size="sm" className="mb-1" onClick={() => setFilters({ month: currentPeriod.month, year: currentPeriod.year, ownerId: null })}>
+        <Button variant="ghost" size="sm" className="mb-1 text-primary" onClick={() => setFilters({ month: currentPeriod.month, year: currentPeriod.year, ownerId: null })}>
           <RotateCcw aria-hidden />
           Reset to {currentPeriod.label}
         </Button>

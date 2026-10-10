@@ -138,11 +138,11 @@ describe('PaidCampaignsPage', () => {
     // A lower cost per lead is good news, in words as well as colour.
     const cpl = within(cards).getByText('Cost per lead').closest('div')!;
     expect(cpl).toHaveTextContent('₹500');
-    expect(within(cpl).getByText('Down 37.5% vs September')).toHaveClass('text-status-success');
+    expect(within(cpl).getByText('37.5% vs September')).toHaveClass('text-status-success');
 
     const table = screen.getByRole('table', { name: 'October 2026 against September 2026' });
-    expect(within(within(table).getByText('Cost per lead').closest('tr')!).getByText('Down ₹300')).toHaveClass('text-status-success');
-    expect(within(within(table).getByText('CTR').closest('tr')!).getByText('Up 0.67 pts')).toBeInTheDocument();
+    expect(within(within(table).getByText('Cost per lead').closest('tr')!).getByText('₹300')).toHaveClass('text-status-success');
+    expect(within(within(table).getByText('CTR').closest('tr')!).getByText('0.67 pts')).toBeInTheDocument();
     expect(within(screen.getByRole('table', { name: 'Paid results by month' })).getAllByRole('row')).toHaveLength(3);
     expect(screen.getByRole('figure', { name: 'Spend vs leads by month' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'New campaign' })).not.toBeInTheDocument();

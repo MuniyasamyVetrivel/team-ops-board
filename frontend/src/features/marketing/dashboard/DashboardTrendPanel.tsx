@@ -1,7 +1,8 @@
 import { ChartLine } from 'lucide-react';
 import { useState } from 'react';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
+import { ChartTooltip, ChartTooltipRow } from '@/components/charts/ChartTooltip';
+import { TrendLineChart } from '@/components/charts/TrendLineChart';
 import { Panel } from '@/components/common/Panel';
 import { Select } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,9 +10,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatCount, formatInr, MONTH_NAMES } from '../marketing-format';
 import type { DashboardTrendMonth } from './api';
 
-const AXIS = { fontSize: 12, fill: 'var(--muted-foreground)' };
-const INITIAL = { width: 640, height: 240 };
-const LINE = 'var(--chart-1)';
 
 type MetricKey = Exclude<keyof DashboardTrendMonth, 'period'>;
 
@@ -71,41 +69,28 @@ export function DashboardTrendPanel({ trend, months, onMonthsChange }: Dashboard
       }
     >
       {visible.length === 0 || !metric ? (
-        <p className="px-5 py-4 text-sm text-muted-foreground">No marketing modules to chart for your access.</p>
+        <p className="px-6 py-4 text-sm text-muted-foreground">No marketing modules to chart for your access.</p>
       ) : (
-        <div className="space-y-4 p-5">
+        <div className="space-y-4 p-6">
           <figure aria-label={`${metric.label} by month`}>
-            <div className="h-60">
-              <ResponsiveContainer width="100%" height="100%" initialDimension={INITIAL}>
-                <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                  <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={false} />
-                  <YAxis tick={AXIS} tickLine={false} axisLine={false} width={metric.money ? 64 : 40} allowDecimals={false} tickFormatter={(v: number) => format(v)} />
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      const row = payload?.[0]?.payload as (typeof data)[number] | undefined;
-                      if (!active || !row) return null;
-                      return (
-                        <div className="rounded-lg border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md">
-                          <p className="font-medium">{row.full}</p>
-                          <p>
-                            {metric.label}: {format(row.value)}
-                          </p>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Line type="monotone" dataKey="value" name={metric.label} stroke={LINE} strokeWidth={2} dot={{ r: 3 }} connectNulls={false} isAnimationActive={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            <TrendLineChart
+              data={data}
+              series={[{ key: 'value', label: metric.label }]}
+              yAxisWidth={metric.money ? 64 : 40}
+              formatValue={(v) => format(v)}
+              renderTooltip={(row) => (
+                <ChartTooltip title={row.full}>
+                  <ChartTooltipRow color="var(--chart-1)" label={metric.label} value={format(row.value)} />
+                </ChartTooltip>
+              )}
+            />
           </figure>
           <Table aria-label="Monthly trend">
             <TableHeader>
               <TableRow>
                 <TableHead>Month</TableHead>
                 {visible.map((m) => (
-                  <TableHead key={m.key} className="text-right">
+                  <TableHead key={m.key} numeric>
                     {m.label}
                   </TableHead>
                 ))}
@@ -116,7 +101,7 @@ export function DashboardTrendPanel({ trend, months, onMonthsChange }: Dashboard
                 <TableRow key={t.period.label}>
                   <TableCell className="font-medium whitespace-nowrap">{t.period.label}</TableCell>
                   {visible.map((m) => (
-                    <TableCell key={m.key} className="text-right tabular-nums">
+                    <TableCell key={m.key} numeric>
                       {m.money ? formatInr(t[m.key]) : formatCount(t[m.key])}
                     </TableCell>
                   ))}

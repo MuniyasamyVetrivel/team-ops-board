@@ -1,7 +1,7 @@
 import { ChartColumn } from 'lucide-react';
 import { useState } from 'react';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
+import { ComboChart } from '@/components/charts/ComboChart';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
 import { Card } from '@/components/ui/card';
@@ -13,8 +13,6 @@ import type { MarketingFilters } from '../filter-memory';
 import { formatCount, formatPercent, MONTH_NAMES } from '../marketing-format';
 import { useBacklinkTrend, type BacklinkTrendMonth } from './api';
 
-const AXIS = { fontSize: 12, fill: 'var(--muted-foreground)' };
-const INITIAL = { width: 640, height: 260 };
 const RANGES = [6, 12, 24] as const;
 /** Categorical chart tokens (never the status colours). */
 const SERIES = [
@@ -38,10 +36,10 @@ export function BacklinkHistoryPanel({ filters }: { filters: MarketingFilters })
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4">
         <div>
-          <h2 className="font-semibold">Monthly history</h2>
-          <p className="text-sm text-muted-foreground">{targetsVisible ? 'Each month against its backlink target.' : 'Backlinks submitted, approved and gone live each month.'}</p>
+          <h2 className="text-card-title font-semibold">Monthly history</h2>
+          <p className="mt-0.5 text-label text-muted-foreground">{targetsVisible ? 'Each month against its backlink target.' : 'Backlinks submitted, approved and gone live each month.'}</p>
         </div>
         <Select aria-label="History range" className="w-40" value={months} onChange={(e) => setMonths(Number(e.target.value))}>
           {RANGES.map((r) => (
@@ -51,7 +49,7 @@ export function BacklinkHistoryPanel({ filters }: { filters: MarketingFilters })
           ))}
         </Select>
       </div>
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 p-6">
         {trend.isPending ? (
           <Skeleton className="h-64" role="status" aria-label="Loading the history" />
         ) : trend.isError ? (
@@ -61,72 +59,34 @@ export function BacklinkHistoryPanel({ filters }: { filters: MarketingFilters })
         ) : (
           <>
             <figure aria-label="Backlinks by month" className="space-y-2">
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%" initialDimension={INITIAL}>
-                  <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                    <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={false} />
-                    <YAxis tick={AXIS} tickLine={false} axisLine={false} width={32} allowDecimals={false} />
-                    <Tooltip
-                      cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
-                      content={({ active, payload }) => {
-                        const row = payload?.[0]?.payload as (typeof data)[number] | undefined;
-                        if (!active || !row) return null;
-                        return (
-                          <div className="rounded-lg border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md">
-                            <p className="mb-1 font-medium">{row.full}</p>
-                            {series.map((s) => (
-                              <p key={s.key}>
-                                {s.label}: {formatCount(row[s.key])}
-                              </p>
-                            ))}
-                          </div>
-                        );
-                      }}
-                    />
-                    {series.map((s) => (
-                      <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[3, 3, 0, 0]} isAnimationActive={false} />
-                    ))}
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <figcaption>
-                <ul className="flex flex-wrap gap-4 text-xs text-muted-foreground" aria-label="Chart legend">
-                  {series.map((s) => (
-                    <li key={s.key} className="flex items-center gap-1.5">
-                      <span className="size-2.5 rounded-sm" style={{ background: s.color }} aria-hidden />
-                      {s.label}
-                    </li>
-                  ))}
-                </ul>
-              </figcaption>
+              <ComboChart data={data} series={series.map((s) => ({ key: s.key, label: s.label, color: s.color, format: formatCount }))} leftWidth={32} />
             </figure>
             <Table aria-label="Backlink history by month">
               <TableHeader>
                 <TableRow>
                   <TableHead>Month</TableHead>
-                  {targetsVisible && <TableHead className="text-right">Target</TableHead>}
-                  <TableHead className="text-right">Submitted</TableHead>
-                  <TableHead className="text-right">Approved</TableHead>
-                  <TableHead className="text-right">Live</TableHead>
-                  {targetsVisible && <TableHead className="text-right">Remaining</TableHead>}
-                  {targetsVisible && <TableHead className="text-right">Live vs target</TableHead>}
-                  <TableHead className="text-right">Rejected</TableHead>
-                  <TableHead className="text-right">Lost</TableHead>
+                  {targetsVisible && <TableHead numeric>Target</TableHead>}
+                  <TableHead numeric>Submitted</TableHead>
+                  <TableHead numeric>Approved</TableHead>
+                  <TableHead numeric>Live</TableHead>
+                  {targetsVisible && <TableHead numeric>Remaining</TableHead>}
+                  {targetsVisible && <TableHead numeric>Live vs target</TableHead>}
+                  <TableHead numeric>Rejected</TableHead>
+                  <TableHead numeric>Lost</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {[...points].reverse().map((m) => (
                   <TableRow key={m.activity.period.label}>
                     <TableCell className="font-medium whitespace-nowrap">{m.activity.period.label}</TableCell>
-                    {targetsVisible && <TableCell className="text-right tabular-nums">{formatCount(m.targetValue)}</TableCell>}
-                    <TableCell className="text-right tabular-nums">{formatCount(m.activity.submitted)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatCount(m.activity.approved)}</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{formatCount(m.activity.live)}</TableCell>
-                    {targetsVisible && <TableCell className="text-right tabular-nums">{formatCount(m.remaining)}</TableCell>}
-                    {targetsVisible && <TableCell className="text-right tabular-nums">{formatPercent(m.liveAchievementPct)}</TableCell>}
-                    <TableCell className="text-right tabular-nums">{formatCount(m.activity.rejected)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatCount(m.activity.lost)}</TableCell>
+                    {targetsVisible && <TableCell numeric>{formatCount(m.targetValue)}</TableCell>}
+                    <TableCell numeric>{formatCount(m.activity.submitted)}</TableCell>
+                    <TableCell numeric>{formatCount(m.activity.approved)}</TableCell>
+                    <TableCell numeric className="font-semibold">{formatCount(m.activity.live)}</TableCell>
+                    {targetsVisible && <TableCell numeric>{formatCount(m.remaining)}</TableCell>}
+                    {targetsVisible && <TableCell numeric>{formatPercent(m.liveAchievementPct)}</TableCell>}
+                    <TableCell numeric>{formatCount(m.activity.rejected)}</TableCell>
+                    <TableCell numeric>{formatCount(m.activity.lost)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

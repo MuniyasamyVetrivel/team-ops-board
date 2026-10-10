@@ -168,10 +168,10 @@ describe('LeadsPage', () => {
     const bySource = screen.getByRole('table', { name: 'Leads by source, October 2026' });
     const organic = within(bySource).getByRole('button', { name: 'Organic' }).closest('tr')!;
     expect(organic).toHaveTextContent('80');
-    expect(within(organic).getByText('Up 10')).toHaveClass('text-status-success');
+    expect(within(organic).getByText('10')).toHaveClass('text-status-success');
     expect(within(organic).getByText('No target')).toBeInTheDocument();
     const email = within(bySource).getByRole('button', { name: 'Email' }).closest('tr')!;
-    expect(within(email).getByText('Down 5')).toHaveClass('text-status-danger');
+    expect(within(email).getByText('5')).toHaveClass('text-status-danger');
     expect(email).toHaveTextContent('45 of 60 · 75%');
     expect(within(email).getByRole('progressbar', { name: 'Email target achievement' })).toHaveAttribute('aria-valuenow', '75');
     expect(within(screen.getByRole('list', { name: 'Top campaigns and content' })).getByText('30 leads')).toBeInTheDocument();

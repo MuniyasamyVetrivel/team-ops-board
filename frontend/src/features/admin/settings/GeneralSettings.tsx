@@ -106,7 +106,7 @@ function SettingRow({ setting, onStale }: { setting: SettingItem; onStale: () =>
   });
 
   return (
-    <form onSubmit={onSubmit} noValidate className="grid gap-3 px-5 py-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+    <form onSubmit={onSubmit} noValidate className="grid gap-3 px-6 py-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
       <div className="min-w-0">
         <label htmlFor={id} className="text-sm font-medium">
           {setting.label}

@@ -52,7 +52,7 @@ export default function ArticlePage() {
           {a.status !== 'PUBLISHED' && <Badge tone={a.status === 'DRAFT' ? 'warning' : 'neutral'}>{a.status === 'DRAFT' ? 'Draft' : 'Archived'}</Badge>}
         </div>
         <div className="flex items-start justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">{a.title}</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-page-title">{a.title}</h1>
           {a.canEdit && (
             <Button variant="outline" onClick={() => setEditing(true)}>
               <Pencil aria-hidden />

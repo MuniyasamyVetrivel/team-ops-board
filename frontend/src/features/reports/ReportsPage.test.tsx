@@ -129,7 +129,7 @@ describe('ReportsPage', () => {
     expect(requests.some((r) => (r.params as { from?: string }).from === '2026-08-11')).toBe(true);
     const completed = within(figures).getByText('Tasks completed').closest('div')!;
     expect(completed).toHaveTextContent('8');
-    expect(await within(completed).findByText('Up 33.3% vs 11 Aug – 9 Sep 2026')).toHaveClass('text-status-success');
+    expect(await within(completed).findByText('33.3% vs 11 Aug – 9 Sep 2026')).toHaveClass('text-status-success');
     expect(within(figures).getByText('Overdue now').closest('div')).toHaveTextContent('20% of open tasks');
     // Rates change by points, not by a percentage of a percentage.
     expect(within(figures).getByText('On time').closest('div')).toHaveTextContent('Up 8 pts vs 11 Aug – 9 Sep 2026');

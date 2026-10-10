@@ -47,7 +47,7 @@ export default function SeoPageDetailPage() {
     return (
       <div className="space-y-6" role="status" aria-label="Loading page">
         <Skeleton className="h-10 w-1/2" />
-        <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
           {Array.from({ length: 6 }, (_, i) => (
             <Skeleton key={i} className="h-28 rounded-xl" />
           ))}
@@ -76,7 +76,7 @@ export default function SeoPageDetailPage() {
               <span aria-hidden>·</span>
               <span>Owner: {p.owner?.fullName ?? 'none'}</span>
             </div>
-            <h1 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">{p.title}</h1>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-page-title">{p.title}</h1>
             <p className="mt-1 flex items-center gap-1.5 font-mono text-sm text-muted-foreground">
               {p.url}
               {/^https?:\/\//.test(p.url) && (
@@ -98,7 +98,7 @@ export default function SeoPageDetailPage() {
 
       <MarketingFilterBar showOwner={false} />
 
-      <section aria-label={`SEO figures for ${p.period.label}`} className="grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
+      <section aria-label={`SEO figures for ${p.period.label}`} className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
         <MarketingKpiCard label="Total keywords" icon={KeyRound} value={stats.totalKeywords} loading={loading} hint={stats.notRecorded > 0 ? `${stats.notRecorded} without a ranking for ${p.period.label}` : undefined} />
         <MarketingKpiCard label="Top 10 keywords" icon={Trophy} value={stats.top10} previous={previousStats.top10} previousLabel={previousLabel} loading={loading} hint={`${stats.top3} in the top 3`} />
         <MarketingKpiCard label="Average position" icon={Gauge} value={stats.averagePosition} format="decimal" previous={previousStats.averagePosition} previousLabel={previousLabel} better="lower" loading={loading} hint="Ranked keywords only" />
@@ -134,10 +134,10 @@ function PageKeywords({ pageId, ownerId, month, year, canEdit, canAdd }: { pageI
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4">
         <div>
-          <h2 className="font-semibold">Keywords</h2>
-          <p className="text-sm text-muted-foreground">Positions for the selected month; archived keywords are hidden.</p>
+          <h2 className="text-card-title font-semibold">Keywords</h2>
+          <p className="mt-0.5 text-label text-muted-foreground">Positions for the selected month; archived keywords are hidden.</p>
         </div>
         {canAdd && (
           <Button size="sm" onClick={() => setAdding(true)}>
@@ -182,10 +182,10 @@ function PageHistoryPanel({ pageId, month, year }: { pageId: number; month: numb
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4">
         <div>
-          <h2 className="font-semibold">Ranking history</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-card-title font-semibold">Ranking history</h2>
+          <p className="mt-0.5 text-label text-muted-foreground">
             Monthly positions of this page's keywords{series.length > MAX_SERIES ? `; showing the ${MAX_SERIES} best placed of ${series.length}` : ''}.
           </p>
         </div>
@@ -197,7 +197,7 @@ function PageHistoryPanel({ pageId, month, year }: { pageId: number; month: numb
           ))}
         </Select>
       </div>
-      <div className="p-5">
+      <div className="p-6">
         {history.isPending ? (
           <Skeleton className="h-64" role="status" aria-label="Loading ranking history" />
         ) : history.isError ? (

@@ -170,12 +170,12 @@ describe('Monthly SEO summary', () => {
     const table = await screen.findByRole('table', { name: 'Keywords by position, October 2026 against September 2026' });
     const top10 = within(table).getByText('Top 10').closest('tr')!;
     expect(top10).toHaveTextContent('6');
-    expect(within(top10).getByText('+1')).toBeInTheDocument();
-    expect(within(top10).getByText('more than last month', { exact: false })).toBeInTheDocument();
+    expect(top10).toHaveTextContent('Up 1');
     expect(within(within(table).getByText('11–20').closest('tr')!).getByText('No change')).toBeInTheDocument();
     // Fewer keywords out of the rankings is good news, shown in words as well as colour.
     const notRanked = within(table).getByText('Not ranked').closest('tr')!;
-    expect(within(notRanked).getByText('−2')).toHaveClass('text-status-success');
+    expect(notRanked).toHaveTextContent('Down 2');
+    expect(notRanked.querySelector('.text-status-success')).toHaveTextContent('2');
 
     const cards = screen.getByRole('region', { name: 'SEO summary for October 2026' });
     expect(within(cards).getByText('1 without a ranking for October 2026')).toBeInTheDocument();

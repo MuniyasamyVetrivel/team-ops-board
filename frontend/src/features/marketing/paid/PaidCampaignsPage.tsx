@@ -138,17 +138,17 @@ function CampaignList({ filters, canEdit, onOpen }: { filters: MarketingFilters;
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4">
         <div>
-          <h2 className="font-semibold">Campaigns</h2>
-          <p className="text-sm text-muted-foreground">{allMonths ? 'All campaigns, lifetime figures' : `Running in ${month}, with that month’s figures`}</p>
+          <h2 className="text-card-title font-semibold">Campaigns</h2>
+          <p className="mt-0.5 text-label text-muted-foreground">{allMonths ? 'All campaigns, lifetime figures' : `Running in ${month}, with that month’s figures`}</p>
         </div>
         <Button variant="outline" size="sm" disabled={exporting || !campaigns.data?.totalElements} onClick={() => void onExport()}>
           <Download aria-hidden />
           Export CSV
         </Button>
       </div>
-      <div className="grid gap-3 border-b p-4 sm:grid-cols-2 lg:grid-cols-[1fr_repeat(3,minmax(0,11rem))_auto]">
+      <div className="flex flex-col gap-3 border-b px-6 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:*:w-auto! sm:*:min-w-40 sm:[&>*:first-child]:min-w-64 sm:[&>*:first-child]:flex-1">
         <SearchInput placeholder="Search campaigns" aria-label="Search campaigns" value={search} onChange={(e) => filter(setSearch)(e.target.value)} />
         <Select aria-label="Platform" value={platform} onChange={(e) => filter(setPlatform)(e.target.value)}>
           <option value="">All platforms</option>
@@ -201,9 +201,9 @@ function CampaignList({ filters, canEdit, onOpen }: { filters: MarketingFilters;
                 <TableHead>Dates</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="min-w-44">Budget used</TableHead>
-                <TableHead className="text-right">{allMonths ? 'Spend' : 'Month spend'}</TableHead>
-                <TableHead className="text-right">Leads</TableHead>
-                <TableHead className="text-right">Cost per lead</TableHead>
+                <TableHead numeric>{allMonths ? 'Spend' : 'Month spend'}</TableHead>
+                <TableHead numeric>Leads</TableHead>
+                <TableHead numeric>Cost per lead</TableHead>
                 <TableHead>Owner</TableHead>
               </TableRow>
             </TableHeader>
@@ -233,9 +233,9 @@ function CampaignList({ filters, canEdit, onOpen }: { filters: MarketingFilters;
                       </p>
                       <BudgetBar label={`${c.name} budget used`} progress={c.budgetProgress} />
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{formatInr(figures.results.spend)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatCount(figures.results.leads)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatInr(figures.rates.costPerLead)}</TableCell>
+                    <TableCell numeric>{formatInr(figures.results.spend)}</TableCell>
+                    <TableCell numeric>{formatCount(figures.results.leads)}</TableCell>
+                    <TableCell numeric>{formatInr(figures.rates.costPerLead)}</TableCell>
                     <TableCell className="max-w-44">{c.owner ? <UserCell name={c.owner.fullName} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
                   </TableRow>
                 );

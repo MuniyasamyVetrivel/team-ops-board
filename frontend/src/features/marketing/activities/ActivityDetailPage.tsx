@@ -30,7 +30,7 @@ export default function ActivityDetailPage() {
     return (
       <div className="space-y-6" role="status" aria-label="Loading activity">
         <Skeleton className="h-10 w-1/2" />
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }, (_, i) => (
             <Skeleton key={i} className="h-24 rounded-xl" />
           ))}
@@ -64,7 +64,7 @@ export default function ActivityDetailPage() {
               {!a.active && <InactiveBadge />}
               <span>{a.department.name}</span>
             </div>
-            <h1 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">{a.name}</h1>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-page-title">{a.name}</h1>
             {a.description && <p className="mt-1 max-w-3xl text-sm whitespace-pre-wrap text-muted-foreground">{a.description}</p>}
           </div>
           {a.permissions.canEdit && (
@@ -76,7 +76,7 @@ export default function ActivityDetailPage() {
         </div>
       </div>
 
-      <section aria-label="Activity summary" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="Activity summary" className="grid gap-4 sm:gap-6 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Next due" icon={CalendarClock}>
           {a.nextOccurrence ? (
             <>
@@ -105,7 +105,7 @@ export default function ActivityDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
         <Card className="order-2 lg:order-1">
-          <div className="border-b px-5 py-3.5">
+          <div className="border-b px-6 py-4">
             <h2 className="flex items-center gap-2 font-semibold">
               <History className="size-4 text-muted-foreground" aria-hidden />
               Occurrence history
@@ -116,10 +116,10 @@ export default function ActivityDetailPage() {
         </Card>
         <div className="order-1 space-y-6 lg:order-2">
           <Card>
-            <div className="border-b px-5 py-3.5">
-              <h2 className="font-semibold">Tasks</h2>
+            <div className="border-b px-6 py-4">
+              <h2 className="text-card-title font-semibold">Tasks</h2>
             </div>
-            <div className="space-y-2 px-5 py-4 text-sm">
+            <div className="space-y-2 px-6 py-4 text-sm">
               {a.taskTitleTemplate ? (
                 <>
                   <p>
@@ -137,14 +137,14 @@ export default function ActivityDetailPage() {
             </div>
           </Card>
           <Card>
-            <div className="border-b px-5 py-3.5">
+            <div className="border-b px-6 py-4">
               <h2 className="flex items-center gap-2 font-semibold">
                 <ListChecks className="size-4 text-muted-foreground" aria-hidden />
                 Checklist
               </h2>
             </div>
             {a.checklist.length === 0 ? (
-              <p className="px-5 py-4 text-sm text-muted-foreground">No checklist.</p>
+              <p className="px-6 py-4 text-sm text-muted-foreground">No checklist.</p>
             ) : (
               <ol className="list-decimal space-y-1.5 py-4 pr-5 pl-10 text-sm" aria-label="Checklist">
                 {a.checklist.map((item, index) => (
@@ -172,7 +172,7 @@ function BackLink() {
 
 function Stat({ label, icon: Icon, children }: { label: string; icon: LucideIcon; children: ReactNode }) {
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-xs">
+    <div className="rounded-xl border bg-card p-4 shadow-card">
       <span className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
         <Icon className="size-4" aria-hidden />
         {label}

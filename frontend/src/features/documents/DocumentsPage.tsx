@@ -51,7 +51,7 @@ export default function DocumentsPage() {
         }
       />
       <Card>
-        <div className="grid gap-3 border-b p-4 sm:grid-cols-[1fr_minmax(0,14rem)]">
+        <div className="flex flex-col gap-3 border-b px-6 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:*:w-auto! sm:*:min-w-40 sm:[&>*:first-child]:min-w-64 sm:[&>*:first-child]:flex-1">
           <SearchInput placeholder="Search name or description" aria-label="Search documents" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
           <Select aria-label="Department" value={departmentId} onChange={(e) => { setDepartmentId(e.target.value); setPage(0); }}>
             <option value="">All departments</option>

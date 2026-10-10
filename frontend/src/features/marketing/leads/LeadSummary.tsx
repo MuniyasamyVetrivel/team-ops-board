@@ -1,6 +1,7 @@
-import { ArrowDownRight, ArrowUpRight, CircleCheck, Megaphone, Minus, Percent, Target, UserPlus } from 'lucide-react';
+import { CircleCheck, Megaphone, Percent, Target, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 
+import { Delta } from '@/components/common/Delta';
 import { ErrorState } from '@/components/common/ErrorState';
 import { Card } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
@@ -49,7 +50,7 @@ export function LeadSummary({ filters, onPickSource }: LeadSummaryProps) {
   if (!summary.data) {
     return (
       <div className="space-y-4" role="status" aria-label="Loading the lead summary">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }, (_, i) => (
             <Skeleton key={i} className="h-28 rounded-xl" />
           ))}
@@ -69,7 +70,7 @@ export function LeadSummary({ filters, onPickSource }: LeadSummaryProps) {
 
   return (
     <div className="space-y-6">
-      <section aria-label={`Leads for ${data.period.label}`} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label={`Leads for ${data.period.label}`} className="grid gap-4 sm:gap-6 sm:grid-cols-2 xl:grid-cols-4">
         <MarketingKpiCard label="Leads generated" icon={UserPlus} value={data.total} previous={data.comparisonTotal} previousLabel={compareLabel} loading={loading} hint="Every lead dated in the month, any status" />
         {data.targetsVisible &&
           (target ? (
@@ -90,10 +91,10 @@ export function LeadSummary({ filters, onPickSource }: LeadSummaryProps) {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
         <Card className={cn(loading && 'opacity-60')}>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4">
             <div>
-              <h2 className="font-semibold">Leads by source</h2>
-              <p className="text-sm text-muted-foreground">{data.targetsVisible ? 'Each source against its monthly target.' : 'Choose a source to list its leads.'}</p>
+              <h2 className="text-card-title font-semibold">Leads by source</h2>
+              <p className="mt-0.5 text-label text-muted-foreground">{data.targetsVisible ? 'Each source against its monthly target.' : 'Choose a source to list its leads.'}</p>
             </div>
             <Select aria-label="Compare with" className="w-56" value={compare} onChange={(e) => setCompare(e.target.value as Compare)}>
               <option value="previous">Compare with the previous month</option>
@@ -104,9 +105,9 @@ export function LeadSummary({ filters, onPickSource }: LeadSummaryProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>Source</TableHead>
-                <TableHead className="text-right">{data.period.label}</TableHead>
-                <TableHead className="text-right">{data.comparisonPeriod.label}</TableHead>
-                <TableHead>Change</TableHead>
+                <TableHead numeric>{data.period.label}</TableHead>
+                <TableHead numeric>{data.comparisonPeriod.label}</TableHead>
+                <TableHead numeric>Change</TableHead>
                 {data.targetsVisible && <TableHead className="min-w-52">Target</TableHead>}
               </TableRow>
             </TableHeader>
@@ -114,13 +115,13 @@ export function LeadSummary({ filters, onPickSource }: LeadSummaryProps) {
               {data.bySource.map((row) => (
                 <TableRow key={row.source}>
                   <TableCell>
-                    <button type="button" className="font-medium hover:underline" onClick={() => onPickSource(row.source)}>
+                    <button type="button" className="font-medium whitespace-nowrap hover:underline" onClick={() => onPickSource(row.source)}>
                       {LEAD_SOURCE_LABELS[row.source]}
                     </button>
                   </TableCell>
-                  <TableCell className="text-right font-semibold tabular-nums">{formatCount(row.leads)}</TableCell>
-                  <TableCell className="text-right tabular-nums text-muted-foreground">{formatCount(row.comparison)}</TableCell>
-                  <TableCell>
+                  <TableCell numeric className="font-semibold">{formatCount(row.leads)}</TableCell>
+                  <TableCell numeric className="text-muted-foreground">{formatCount(row.comparison)}</TableCell>
+                  <TableCell numeric>
                     <CountChange now={row.leads} before={row.comparison} />
                   </TableCell>
                   {data.targetsVisible && (
@@ -148,11 +149,11 @@ export function LeadSummary({ filters, onPickSource }: LeadSummaryProps) {
 
         <div className="space-y-6">
           <Card className={cn(loading && 'opacity-60')}>
-            <div className="border-b px-5 py-3.5">
-              <h2 className="font-semibold">By status</h2>
-              <p className="text-sm text-muted-foreground">Leads dated in {data.period.label}, by their current status</p>
+            <div className="border-b px-6 py-4">
+              <h2 className="text-card-title font-semibold">By status</h2>
+              <p className="mt-0.5 text-label text-muted-foreground">Leads dated in {data.period.label}, by their current status</p>
             </div>
-            <ul className="space-y-3 px-5 py-4" aria-label="Leads by status">
+            <ul className="space-y-3 px-6 py-4" aria-label="Leads by status">
               {data.byStatus.map((s) => (
                 <li key={s.status} className="space-y-1">
                   <div className="flex items-center justify-between gap-2 text-sm">
@@ -168,19 +169,19 @@ export function LeadSummary({ filters, onPickSource }: LeadSummaryProps) {
           </Card>
 
           <Card className={cn(loading && 'opacity-60')}>
-            <div className="border-b px-5 py-3.5">
-              <h2 className="font-semibold">Top campaigns & content</h2>
-              <p className="text-sm text-muted-foreground">Most leads in {data.period.label}</p>
+            <div className="border-b px-6 py-4">
+              <h2 className="text-card-title font-semibold">Top campaigns & content</h2>
+              <p className="mt-0.5 text-label text-muted-foreground">Most leads in {data.period.label}</p>
             </div>
             {data.topLinks.length === 0 ? (
-              <p className="flex items-center gap-2 px-5 py-4 text-sm text-muted-foreground">
+              <p className="flex items-center gap-2 px-6 py-4 text-sm text-muted-foreground">
                 <Megaphone className="size-4" aria-hidden />
                 No leads linked to a campaign or content this month.
               </p>
             ) : (
               <ol className="divide-y" aria-label="Top campaigns and content">
                 {data.topLinks.map((l) => (
-                  <li key={`${l.kind}-${l.id}`} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
+                  <li key={`${l.kind}-${l.id}`} className="flex items-center justify-between gap-3 px-6 py-2.5 text-sm">
                     <div className="min-w-0">
                       <p className="truncate font-medium" title={l.name}>
                         {l.name}
@@ -204,19 +205,5 @@ export function LeadSummary({ filters, onPickSource }: LeadSummaryProps) {
 /** More leads is good news; the change is in words and an arrow as well as colour. */
 function CountChange({ now, before }: { now: number; before: number }) {
   const diff = now - before;
-  if (diff === 0) {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-        <Minus className="size-3.5" aria-hidden />
-        No change
-      </span>
-    );
-  }
-  const Icon = diff > 0 ? ArrowUpRight : ArrowDownRight;
-  return (
-    <span className={cn('inline-flex items-center gap-1 text-xs font-medium tabular-nums', diff > 0 ? 'text-status-success' : 'text-status-danger')}>
-      <Icon className="size-3.5" aria-hidden />
-      {diff > 0 ? 'Up' : 'Down'} {formatCount(Math.abs(diff))}
-    </span>
-  );
+  return <Delta value={diff} amount={formatCount(Math.abs(diff))} />;
 }

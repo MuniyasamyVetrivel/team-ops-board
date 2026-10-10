@@ -91,7 +91,7 @@ export function RankingsTab({ filters, canEdit }: { filters: MarketingFilters; c
 
   return (
     <>
-      <div className="grid gap-3 border-b p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[1fr_repeat(5,minmax(0,9.5rem))_auto]">
+      <div className="flex flex-col gap-3 border-b px-6 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:*:w-auto! sm:*:min-w-40 sm:[&>*:first-child]:min-w-64 sm:[&>*:first-child]:flex-1">
         <SearchInput placeholder="Search keywords" aria-label="Search keywords" value={search} onChange={(e) => filter(setSearch)(e.target.value)} />
         <Select aria-label="Page" value={pageId} onChange={(e) => filter(setPageId)(e.target.value)}>
           <option value="">All pages</option>
@@ -171,8 +171,8 @@ function RankingTable({ rows, month, year, onHistory, dimmed }: { rows: KeywordI
           <TableHead>Page</TableHead>
           <TableHead>Position</TableHead>
           <TableHead>Previous</TableHead>
-          <TableHead>Change</TableHead>
-          <TableHead className="text-right">Search volume</TableHead>
+          <TableHead numeric>Change</TableHead>
+          <TableHead numeric>Search volume</TableHead>
           <TableHead>Owner</TableHead>
           <TableHead>Last updated</TableHead>
           <TableHead>
@@ -205,10 +205,10 @@ function RankingTable({ rows, month, year, onHistory, dimmed }: { rows: KeywordI
               <TableCell className="text-sm">
                 <PreviousPosition standing={row.ranking} />
               </TableCell>
-              <TableCell>
+              <TableCell numeric>
                 <StandingChange standing={row.ranking} />
               </TableCell>
-              <TableCell className="text-right text-sm tabular-nums">{formatCount(volume)}</TableCell>
+              <TableCell numeric className="text-sm">{formatCount(volume)}</TableCell>
               <TableCell className="max-w-44">{row.owner ? <UserCell name={row.owner.fullName} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
               <TableCell className="text-sm whitespace-nowrap text-muted-foreground">{row.entry?.updatedAt ? dayFormat.format(new Date(row.entry.updatedAt)) : '—'}</TableCell>
               <TableCell>

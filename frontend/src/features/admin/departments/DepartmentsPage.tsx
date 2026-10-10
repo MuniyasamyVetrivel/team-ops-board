@@ -51,7 +51,7 @@ export default function DepartmentsPage() {
               <TableRow>
                 <TableHead>Department</TableHead>
                 <TableHead>Manager</TableHead>
-                <TableHead className="text-right">People</TableHead>
+                <TableHead numeric>People</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -84,7 +84,7 @@ export default function DepartmentsPage() {
                       <span className="text-sm text-muted-foreground">Not assigned</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">
+                  <TableCell numeric>
                     {department.memberCount}
                     {department.secondaryMemberCount > 0 && (
                       <span className="text-xs text-muted-foreground"> +{department.secondaryMemberCount}</span>

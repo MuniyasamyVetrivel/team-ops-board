@@ -106,10 +106,10 @@ export default function SlaPage() {
                     <TableHead>Priority</TableHead>
                     <TableHead>First response target</TableHead>
                     <TableHead>Resolution target</TableHead>
-                    <TableHead className="text-right">Raised</TableHead>
-                    <TableHead className="text-right">First response met</TableHead>
-                    <TableHead className="text-right">Resolution met</TableHead>
-                    <TableHead className="text-right">Open breached</TableHead>
+                    <TableHead numeric>Raised</TableHead>
+                    <TableHead numeric>First response met</TableHead>
+                    <TableHead numeric>Resolution met</TableHead>
+                    <TableHead numeric>Open breached</TableHead>
                     {canManage && <TableHead className="sr-only">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
@@ -123,12 +123,12 @@ export default function SlaPage() {
                         </TableCell>
                         <TableCell className="tabular-nums">{formatMinutes(policy?.firstResponseMinutes ?? row.firstResponseMinutes)}</TableCell>
                         <TableCell className="tabular-nums">{formatMinutes(policy?.resolutionMinutes ?? row.resolutionMinutes)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{row.created}</TableCell>
-                        <TableCell className="text-right tabular-nums">{percent(row.firstResponseCompliance)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{percent(row.resolutionCompliance)}</TableCell>
-                        <TableCell className={cn('text-right tabular-nums', row.openBreached > 0 && 'font-semibold text-status-danger')}>{row.openBreached}</TableCell>
+                        <TableCell numeric>{row.created}</TableCell>
+                        <TableCell numeric>{percent(row.firstResponseCompliance)}</TableCell>
+                        <TableCell numeric>{percent(row.resolutionCompliance)}</TableCell>
+                        <TableCell numeric className={cn(row.openBreached > 0 && 'font-semibold text-status-danger')}>{row.openBreached}</TableCell>
                         {canManage && (
-                          <TableCell className="text-right">
+                          <TableCell numeric>
                             {policy && (
                               <Button variant="ghost" size="sm" onClick={() => setEditing(policy)} aria-label={`Edit ${policy.name} targets`}>
                                 <Pencil aria-hidden />
@@ -143,7 +143,7 @@ export default function SlaPage() {
                 </TableBody>
               </Table>
             )}
-            <p className="flex items-center gap-2 border-t px-5 py-3 text-xs text-muted-foreground">
+            <p className="flex items-center gap-2 border-t px-6 py-3 text-xs text-muted-foreground">
               <CirclePause className="size-3.5" aria-hidden />
               The clock pauses while a ticket waits for the requester. Due times are fixed when a ticket is raised.
             </p>

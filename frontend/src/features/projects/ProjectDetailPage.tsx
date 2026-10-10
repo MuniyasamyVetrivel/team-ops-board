@@ -97,7 +97,7 @@ export default function ProjectDetailPage() {
               <ProjectStatusBadge status={p.status} />
               <span className="text-muted-foreground">{p.department.name}</span>
             </div>
-            <h1 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">{p.name}</h1>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-page-title">{p.name}</h1>
             {p.description && <p className="mt-1 max-w-3xl text-sm whitespace-pre-wrap text-muted-foreground">{p.description}</p>}
           </div>
           {p.permissions.canEdit && (
@@ -109,18 +109,18 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      <section aria-label="Project figures" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="Project figures" className="grid gap-4 sm:gap-6 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label={p.progressOverride === null ? 'Progress (from tasks)' : 'Progress (set manually)'} icon={CircleCheck}>
           <ProgressBar value={p.progress} label="Project progress" className="mt-2" />
         </Stat>
         <Stat label="Tasks" icon={ClipboardList}>
-          <span className="text-2xl font-semibold tabular-nums">
+          <span className="text-kpi font-semibold tracking-tight tabular-nums">
             {p.tasks.completed}/{p.tasks.total}
           </span>
           {p.tasks.overdue > 0 && <span className="ml-2 text-sm font-medium text-status-danger">{p.tasks.overdue} overdue</span>}
         </Stat>
         <Stat label="Milestones" icon={Flag}>
-          <span className="text-2xl font-semibold tabular-nums">
+          <span className="text-kpi font-semibold tracking-tight tabular-nums">
             {milestonesDone}/{p.milestones.length}
           </span>
         </Stat>
@@ -166,12 +166,14 @@ export default function ProjectDetailPage() {
 
 function Stat({ label, icon: Icon, children }: { label: string; icon: LucideIcon; children: ReactNode }) {
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-xs">
-      <p className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Icon className="size-4" aria-hidden />
-        {label}
+    <div className="flex h-full flex-col rounded-xl border bg-card p-5 shadow-card">
+      <p className="flex items-start gap-2.5">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">
+          <Icon className="size-4 text-muted-foreground" aria-hidden />
+        </span>
+        <span className="pt-1.5 text-label font-medium text-muted-foreground">{label}</span>
       </p>
-      <div className="mt-1">{children}</div>
+      <div className="mt-4">{children}</div>
     </div>
   );
 }

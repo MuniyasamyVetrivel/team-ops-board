@@ -122,8 +122,8 @@ function HistoryBody({ keywordId, month, year, canEdit }: { keywordId: number; m
                 <TableRow>
                   <TableHead>Month</TableHead>
                   <TableHead>Position</TableHead>
-                  <TableHead>Change</TableHead>
-                  <TableHead className="text-right">Volume</TableHead>
+                  <TableHead numeric>Change</TableHead>
+                  <TableHead numeric>Volume</TableHead>
                   <TableHead>Recorded</TableHead>
                   {canEdit && (
                     <TableHead>
@@ -142,10 +142,10 @@ function HistoryBody({ keywordId, month, year, canEdit }: { keywordId: number; m
                     <TableCell>
                       <RankingBadge position={entry.position} status={entry.status} />
                     </TableCell>
-                    <TableCell>
+                    <TableCell numeric>
                       <RankingChangeIndicator change={entry.change} />
                     </TableCell>
-                    <TableCell className="text-right text-sm tabular-nums">{formatCount(entry.searchVolume)}</TableCell>
+                    <TableCell numeric className="text-sm">{formatCount(entry.searchVolume)}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       <Badge tone="neutral">{RANKING_SOURCE_LABELS[entry.source]}</Badge>
                       <p className="mt-0.5">

@@ -1,7 +1,8 @@
 import { AlarmClock, CircleCheck, ClipboardList, Clock, Hourglass, LifeBuoy, ShieldCheck, Timer } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
+import { ComboChart } from '@/components/charts/ComboChart';
+import type { DeltaProps } from '@/components/common/Delta';
 import { ErrorState } from '@/components/common/ErrorState';
 import { Panel } from '@/components/common/Panel';
 import { UserCell } from '@/components/common/UserAvatar';
@@ -20,10 +21,8 @@ import { cn } from '@/lib/utils';
 
 import type { ProjectReport, TaskReport, TicketReport, WorkloadReport } from './api';
 
-const AXIS = { fontSize: 12, fill: 'var(--muted-foreground)' };
-const INITIAL = { width: 640, height: 240 };
 /** Categorical chart tokens (never the status colours). */
-const FIRST = 'var(--chart-3)';
+const FIRST = 'var(--chart-5)';
 const SECOND = 'var(--chart-1)';
 
 const shortDay = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' });
@@ -41,7 +40,7 @@ export function ReportState<T>({ query, label, children }: { query: { data?: T; 
   if (!query.data) {
     return (
       <div className="space-y-4" role="status" aria-label={`Loading the ${label}`}>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }, (_, i) => (
             <Skeleton key={i} className="h-28 rounded-xl" />
           ))}
@@ -56,31 +55,16 @@ export function ReportState<T>({ query, label, children }: { query: { data?: T; 
 /** Two series per category on one bar chart, with a legend in words. */
 function PairChart({ label, data, first, second }: { label: string; data: { label: string; a: number; b: number }[]; first: string; second: string }) {
   return (
-    <figure aria-label={label} className="space-y-2 p-5">
-      <div className="h-60">
-        <ResponsiveContainer width="100%" height="100%" initialDimension={INITIAL}>
-          <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-            <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={false} />
-            <YAxis tick={AXIS} tickLine={false} axisLine={false} width={36} allowDecimals={false} />
-            <Tooltip cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
-            <Bar dataKey="a" name={first} fill={FIRST} radius={[3, 3, 0, 0]} isAnimationActive={false} />
-            <Bar dataKey="b" name={second} fill={SECOND} radius={[3, 3, 0, 0]} isAnimationActive={false} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      <figcaption>
-        <ul className="flex flex-wrap gap-4 text-xs text-muted-foreground" aria-label="Chart legend">
-          <li className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-sm" style={{ background: FIRST }} aria-hidden />
-            {first}
-          </li>
-          <li className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-sm" style={{ background: SECOND }} aria-hidden />
-            {second}
-          </li>
-        </ul>
-      </figcaption>
+    <figure aria-label={label} className="space-y-2 p-6">
+      <ComboChart
+        data={data}
+        series={[
+          { key: 'a', label: first, color: FIRST },
+          { key: 'b', label: second, color: SECOND },
+        ]}
+        height={240}
+        leftWidth={36}
+      />
     </figure>
   );
 }
@@ -89,12 +73,12 @@ function PairChart({ label, data, first, second }: { label: string; data: { labe
 function BarList({ label, rows }: { label: string; rows: { key: string; name: ReactNode; value: number }[] }) {
   const max = Math.max(...rows.map((r) => r.value), 1);
   return (
-    <ul className="space-y-2.5 p-5" aria-label={label}>
+    <ul className="space-y-2.5 p-6" aria-label={label}>
       {rows.map((r) => (
-        <li key={r.key} className="grid grid-cols-[9rem_1fr_3rem] items-center gap-3 text-sm">
-          <span className="truncate">{r.name}</span>
+        <li key={r.key} className="grid grid-cols-[minmax(0,11rem)_1fr_3rem] items-center gap-4 text-sm">
+          <span>{r.name}</span>
           <div className="h-2 overflow-hidden rounded-full bg-muted" aria-hidden>
-            <div className="h-full rounded-full bg-primary/70" style={{ width: `${(r.value / max) * 100}%` }} />
+            <div className="h-full rounded-full bg-primary" style={{ width: `${(r.value / max) * 100}%` }} />
           </div>
           <span className="text-right font-semibold tabular-nums">{formatCount(r.value)}</span>
         </li>
@@ -103,11 +87,11 @@ function BarList({ label, rows }: { label: string; rows: { key: string; name: Re
   );
 }
 
-/** A rate's change against the previous period, in points: "Up 8 pts vs September 2026". */
-function pointsHint(now: number | null, before: number | null | undefined, label: string): string | undefined {
+/** A rate's change against the previous period, in points: "↑ 8 pts vs September 2026". */
+function pointsDelta(now: number | null, before: number | null | undefined, label: string): DeltaProps | undefined {
   if (now === null || before === null || before === undefined) return undefined;
   const diff = Math.round((now - before) * 10) / 10;
-  return diff === 0 ? `No change vs ${label}` : `${diff > 0 ? 'Up' : 'Down'} ${Math.abs(diff)} pts vs ${label}`;
+  return { value: diff, amount: `${Math.abs(diff)} pts`, label: `vs ${label}` };
 }
 
 interface Comparison<T> {
@@ -121,10 +105,10 @@ export function TaskReportView({ report, previous }: { report: TaskReport; previ
   const p = previous.data?.summary;
   return (
     <div className="space-y-6">
-      <section aria-label="Task figures" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+      <section aria-label="Task figures" className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
         <MarketingKpiCard label="Tasks created" icon={ClipboardList} value={s.created} previous={p?.created ?? null} previousLabel={previous.label} better={null} />
         <MarketingKpiCard label="Tasks completed" icon={CircleCheck} value={s.completed} previous={p?.completed ?? null} previousLabel={previous.label} />
-        <MarketingKpiCard label="On time" icon={Clock} value={s.onTimePct} format="percent" hint={pointsHint(s.onTimePct, p?.onTimePct, previous.label) ?? `${formatCount(s.completedOnTime)} of ${formatCount(s.completedWithDueDate)} with a due date`} />
+        <MarketingKpiCard label="On time" icon={Clock} value={s.onTimePct} format="percent" delta={pointsDelta(s.onTimePct, p?.onTimePct, previous.label)} hint={`${formatCount(s.completedOnTime)} of ${formatCount(s.completedWithDueDate)} with a due date`} />
         <MarketingKpiCard label="Hours logged" icon={Timer} value={s.hoursLogged} format="decimal" previous={p?.hoursLogged ?? null} previousLabel={previous.label} better={null} hint="On tasks completed in the range" />
         <MarketingKpiCard label="Open now" icon={Hourglass} value={s.open} hint="Active tasks today" />
         <MarketingKpiCard label="Overdue now" icon={AlarmClock} value={s.overdue} hint={s.overduePct === null ? undefined : `${formatPercent(s.overduePct)} of open tasks`} />
@@ -141,30 +125,30 @@ export function TaskReportView({ report, previous }: { report: TaskReport; previ
 
       <Panel title="Department performance" icon={ShieldCheck} description="Created and completed in the range; open and overdue now">
         {report.departments.length === 0 ? (
-          <p className="px-5 py-4 text-sm text-muted-foreground">No tasks in this report.</p>
+          <p className="px-6 py-4 text-sm text-muted-foreground">No tasks in this report.</p>
         ) : (
           <Table aria-label="Department performance">
             <TableHeader>
               <TableRow>
                 <TableHead>Department</TableHead>
-                <TableHead className="text-right">Created</TableHead>
-                <TableHead className="text-right">Completed</TableHead>
-                <TableHead className="text-right">On time</TableHead>
-                <TableHead className="text-right">Open</TableHead>
-                <TableHead className="text-right">Overdue</TableHead>
-                <TableHead className="text-right">Overdue %</TableHead>
+                <TableHead numeric>Created</TableHead>
+                <TableHead numeric>Completed</TableHead>
+                <TableHead numeric>On time</TableHead>
+                <TableHead numeric>Open</TableHead>
+                <TableHead numeric>Overdue</TableHead>
+                <TableHead numeric>Overdue %</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {report.departments.map((d) => (
                 <TableRow key={d.department.id}>
-                  <TableCell className="font-medium">{d.department.name}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCount(d.created)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCount(d.completed)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatPercent(d.onTimePct)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCount(d.open)}</TableCell>
-                  <TableCell className={cn('text-right tabular-nums', d.overdue > 0 && 'text-status-danger')}>{formatCount(d.overdue)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatPercent(d.overduePct)}</TableCell>
+                  <TableCell className="font-medium whitespace-nowrap">{d.department.name}</TableCell>
+                  <TableCell numeric>{formatCount(d.created)}</TableCell>
+                  <TableCell numeric>{formatCount(d.completed)}</TableCell>
+                  <TableCell numeric>{formatPercent(d.onTimePct)}</TableCell>
+                  <TableCell numeric>{formatCount(d.open)}</TableCell>
+                  <TableCell numeric className={cn(d.overdue > 0 && 'text-status-danger')}>{formatCount(d.overdue)}</TableCell>
+                  <TableCell numeric>{formatPercent(d.overduePct)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -174,17 +158,17 @@ export function TaskReportView({ report, previous }: { report: TaskReport; previ
 
       <Panel title="Employee productivity" icon={CircleCheck} description="Most completed first">
         {report.employees.length === 0 ? (
-          <p className="px-5 py-4 text-sm text-muted-foreground">No assigned tasks in this report.</p>
+          <p className="px-6 py-4 text-sm text-muted-foreground">No assigned tasks in this report.</p>
         ) : (
           <Table aria-label="Employee productivity">
             <TableHeader>
               <TableRow>
                 <TableHead>Employee</TableHead>
-                <TableHead className="text-right">Completed</TableHead>
-                <TableHead className="text-right">On time</TableHead>
-                <TableHead className="text-right">Open</TableHead>
-                <TableHead className="text-right">Overdue</TableHead>
-                <TableHead className="text-right">Hours logged</TableHead>
+                <TableHead numeric>Completed</TableHead>
+                <TableHead numeric>On time</TableHead>
+                <TableHead numeric>Open</TableHead>
+                <TableHead numeric>Overdue</TableHead>
+                <TableHead numeric>Hours logged</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -193,11 +177,11 @@ export function TaskReportView({ report, previous }: { report: TaskReport; previ
                   <TableCell className="max-w-56">
                     <UserCell name={e.user.fullName} detail={e.department.name} />
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCount(e.completed)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatPercent(e.onTimePct)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCount(e.open)}</TableCell>
-                  <TableCell className={cn('text-right tabular-nums', e.overdue > 0 && 'text-status-danger')}>{formatCount(e.overdue)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatDecimal(e.hoursLogged)}</TableCell>
+                  <TableCell numeric>{formatCount(e.completed)}</TableCell>
+                  <TableCell numeric>{formatPercent(e.onTimePct)}</TableCell>
+                  <TableCell numeric>{formatCount(e.open)}</TableCell>
+                  <TableCell numeric className={cn(e.overdue > 0 && 'text-status-danger')}>{formatCount(e.overdue)}</TableCell>
+                  <TableCell numeric>{formatDecimal(e.hoursLogged)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -214,29 +198,29 @@ export function WorkloadReportView({ report }: { report: WorkloadReport }) {
     <div className="space-y-6">
       <Panel title="Department workload" icon={Hourglass} description={`Remaining hours against capacity over the next ${report.employees.windowDays} days`}>
         {report.departments.length === 0 ? (
-          <p className="px-5 py-4 text-sm text-muted-foreground">No people in this report.</p>
+          <p className="px-6 py-4 text-sm text-muted-foreground">No people in this report.</p>
         ) : (
           <Table aria-label="Department workload">
             <TableHeader>
               <TableRow>
                 <TableHead>Department</TableHead>
-                <TableHead className="text-right">People</TableHead>
-                <TableHead className="text-right">Active tasks</TableHead>
-                <TableHead className="text-right">Overdue</TableHead>
-                <TableHead className="text-right">Remaining h</TableHead>
-                <TableHead className="text-right">Capacity h</TableHead>
+                <TableHead numeric>People</TableHead>
+                <TableHead numeric>Active tasks</TableHead>
+                <TableHead numeric>Overdue</TableHead>
+                <TableHead numeric>Remaining h</TableHead>
+                <TableHead numeric>Capacity h</TableHead>
                 <TableHead className="min-w-44">Workload</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {report.departments.map((d) => (
                 <TableRow key={d.department.id}>
-                  <TableCell className="font-medium">{d.department.name}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCount(d.people)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCount(d.activeTasks)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCount(d.overdue)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatDecimal(d.remainingHours)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatDecimal(d.capacityHours)}</TableCell>
+                  <TableCell className="font-medium whitespace-nowrap">{d.department.name}</TableCell>
+                  <TableCell numeric>{formatCount(d.people)}</TableCell>
+                  <TableCell numeric>{formatCount(d.activeTasks)}</TableCell>
+                  <TableCell numeric>{formatCount(d.overdue)}</TableCell>
+                  <TableCell numeric>{formatDecimal(d.remainingHours)}</TableCell>
+                  <TableCell numeric>{formatDecimal(d.capacityHours)}</TableCell>
                   <TableCell>{d.workloadPercent === null || d.level === null ? <span className="text-muted-foreground">—</span> : <WorkloadMeter percent={d.workloadPercent} level={d.level} />}</TableCell>
                 </TableRow>
               ))}
@@ -249,9 +233,9 @@ export function WorkloadReportView({ report }: { report: WorkloadReport }) {
           <TableHeader>
             <TableRow>
               <TableHead>Employee</TableHead>
-              <TableHead className="text-right">Active</TableHead>
-              <TableHead className="text-right">Overdue</TableHead>
-              <TableHead className="text-right">Due today</TableHead>
+              <TableHead numeric>Active</TableHead>
+              <TableHead numeric>Overdue</TableHead>
+              <TableHead numeric>Due today</TableHead>
               <TableHead className="min-w-44">Workload</TableHead>
               <TableHead>Level</TableHead>
             </TableRow>
@@ -262,9 +246,9 @@ export function WorkloadReportView({ report }: { report: WorkloadReport }) {
                 <TableCell className="max-w-56">
                   <UserCell name={r.user.fullName} detail={r.department.name} />
                 </TableCell>
-                <TableCell className="text-right tabular-nums">{formatCount(r.activeTasks)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatCount(r.overdue)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatCount(r.dueToday)}</TableCell>
+                <TableCell numeric>{formatCount(r.activeTasks)}</TableCell>
+                <TableCell numeric>{formatCount(r.overdue)}</TableCell>
+                <TableCell numeric>{formatCount(r.dueToday)}</TableCell>
                 <TableCell>
                   <WorkloadMeter percent={r.workloadPercent} level={r.level} />
                 </TableCell>
@@ -286,11 +270,11 @@ export function TicketReportView({ report, previous }: { report: TicketReport; p
   const p = previous.data?.summary;
   return (
     <div className="space-y-6">
-      <section aria-label="Ticket figures" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+      <section aria-label="Ticket figures" className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
         <MarketingKpiCard label="Tickets created" icon={LifeBuoy} value={s.created} previous={p?.created ?? null} previousLabel={previous.label} better={null} />
         <MarketingKpiCard label="Tickets resolved" icon={CircleCheck} value={s.resolved} previous={p?.resolved ?? null} previousLabel={previous.label} />
-        <MarketingKpiCard label="First response SLA" icon={ShieldCheck} value={s.firstResponseCompliance} format="percent" hint={pointsHint(s.firstResponseCompliance, p?.firstResponseCompliance, previous.label) ?? 'Met, of tickets created in the range'} />
-        <MarketingKpiCard label="Resolution SLA" icon={ShieldCheck} value={s.resolutionCompliance} format="percent" hint={pointsHint(s.resolutionCompliance, p?.resolutionCompliance, previous.label)} />
+        <MarketingKpiCard label="First response SLA" icon={ShieldCheck} value={s.firstResponseCompliance} format="percent" delta={pointsDelta(s.firstResponseCompliance, p?.firstResponseCompliance, previous.label)} hint="Met, of tickets created in the range" />
+        <MarketingKpiCard label="Resolution SLA" icon={ShieldCheck} value={s.resolutionCompliance} format="percent" delta={pointsDelta(s.resolutionCompliance, p?.resolutionCompliance, previous.label)} />
         <MarketingKpiCard label="Average resolution" icon={Timer} value={s.averageResolutionHours} format="decimal" previous={p?.averageResolutionHours ?? null} previousLabel={previous.label} better="lower" hint="Hours from creation" />
         <MarketingKpiCard label="Open now" icon={Hourglass} value={s.open} hint={`${formatCount(s.openBreached)} with a breached SLA`} />
       </section>
@@ -310,22 +294,22 @@ export function TicketReportView({ report, previous }: { report: TicketReport; p
           <TableHeader>
             <TableRow>
               <TableHead>Priority</TableHead>
-              <TableHead className="text-right">Created</TableHead>
-              <TableHead className="text-right">Resolved</TableHead>
-              <TableHead className="text-right">Open</TableHead>
-              <TableHead className="text-right">First response SLA</TableHead>
-              <TableHead className="text-right">Resolution SLA</TableHead>
+              <TableHead numeric>Created</TableHead>
+              <TableHead numeric>Resolved</TableHead>
+              <TableHead numeric>Open</TableHead>
+              <TableHead numeric>First response SLA</TableHead>
+              <TableHead numeric>Resolution SLA</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {report.priorities.map((r) => (
               <TableRow key={r.priority}>
                 <TableCell className="font-medium">{PRIORITY_LABELS[r.priority]}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatCount(r.created)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatCount(r.resolved)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatCount(r.open)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatPercent(r.firstResponseCompliance)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatPercent(r.resolutionCompliance)}</TableCell>
+                <TableCell numeric>{formatCount(r.created)}</TableCell>
+                <TableCell numeric>{formatCount(r.resolved)}</TableCell>
+                <TableCell numeric>{formatCount(r.open)}</TableCell>
+                <TableCell numeric>{formatPercent(r.firstResponseCompliance)}</TableCell>
+                <TableCell numeric>{formatPercent(r.resolutionCompliance)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -334,28 +318,28 @@ export function TicketReportView({ report, previous }: { report: TicketReport; p
 
       <Panel title="By department" icon={LifeBuoy} description="The handling department">
         {report.departments.length === 0 ? (
-          <p className="px-5 py-4 text-sm text-muted-foreground">No tickets in this report.</p>
+          <p className="px-6 py-4 text-sm text-muted-foreground">No tickets in this report.</p>
         ) : (
           <Table aria-label="Tickets by department">
             <TableHeader>
               <TableRow>
                 <TableHead>Department</TableHead>
-                <TableHead className="text-right">Created</TableHead>
-                <TableHead className="text-right">Resolved</TableHead>
-                <TableHead className="text-right">Open</TableHead>
-                <TableHead className="text-right">Open breached</TableHead>
-                <TableHead className="text-right">Resolution SLA</TableHead>
+                <TableHead numeric>Created</TableHead>
+                <TableHead numeric>Resolved</TableHead>
+                <TableHead numeric>Open</TableHead>
+                <TableHead numeric>Open breached</TableHead>
+                <TableHead numeric>Resolution SLA</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {report.departments.map((d) => (
                 <TableRow key={d.department.id}>
-                  <TableCell className="font-medium">{d.department.name}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCount(d.created)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCount(d.resolved)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCount(d.open)}</TableCell>
-                  <TableCell className={cn('text-right tabular-nums', d.openBreached > 0 && 'text-status-danger')}>{formatCount(d.openBreached)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatPercent(d.resolutionCompliance)}</TableCell>
+                  <TableCell className="font-medium whitespace-nowrap">{d.department.name}</TableCell>
+                  <TableCell numeric>{formatCount(d.created)}</TableCell>
+                  <TableCell numeric>{formatCount(d.resolved)}</TableCell>
+                  <TableCell numeric>{formatCount(d.open)}</TableCell>
+                  <TableCell numeric className={cn(d.openBreached > 0 && 'text-status-danger')}>{formatCount(d.openBreached)}</TableCell>
+                  <TableCell numeric>{formatPercent(d.resolutionCompliance)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -383,7 +367,7 @@ export function ProjectReportView({ report }: { report: ProjectReport }) {
       </section>
       <Panel title="Project progress" icon={ClipboardList} description={`As of ${dayLabel(report.today)}`}>
         {report.projects.length === 0 ? (
-          <p className="px-5 py-4 text-sm text-muted-foreground">No projects match these filters.</p>
+          <p className="px-6 py-4 text-sm text-muted-foreground">No projects match these filters.</p>
         ) : (
           <Table aria-label="Project progress">
             <TableHeader>
@@ -391,9 +375,9 @@ export function ProjectReportView({ report }: { report: ProjectReport }) {
                 <TableHead>Project</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="min-w-40">Progress</TableHead>
-                <TableHead className="text-right">Tasks</TableHead>
-                <TableHead className="text-right">Milestones</TableHead>
-                <TableHead className="text-right">Open risks</TableHead>
+                <TableHead numeric>Tasks</TableHead>
+                <TableHead numeric>Milestones</TableHead>
+                <TableHead numeric>Open risks</TableHead>
                 <TableHead>End date</TableHead>
               </TableRow>
             </TableHeader>
@@ -416,14 +400,14 @@ export function ProjectReportView({ report }: { report: ProjectReport }) {
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground tabular-nums">{p.progress === null ? '—' : `${p.progress}%`}</p>
                   </TableCell>
-                  <TableCell className="text-right text-sm tabular-nums">
+                  <TableCell numeric className="text-sm">
                     {formatCount(p.tasksCompleted)} / {formatCount(p.tasks)}
                     {p.tasksOverdue > 0 && <p className="text-xs text-status-danger">{formatCount(p.tasksOverdue)} overdue</p>}
                   </TableCell>
-                  <TableCell className="text-right text-sm tabular-nums">
+                  <TableCell numeric className="text-sm">
                     {formatCount(p.milestonesCompleted)} / {formatCount(p.milestones)}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCount(p.openRisks)}</TableCell>
+                  <TableCell numeric>{formatCount(p.openRisks)}</TableCell>
                   <TableCell className="text-sm whitespace-nowrap">
                     {dayLabel(p.endDate)}
                     {p.pastEndDate && (

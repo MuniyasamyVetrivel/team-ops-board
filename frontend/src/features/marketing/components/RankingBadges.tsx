@@ -24,15 +24,15 @@ export function RankingBadge({ position, status }: { position: number | null; st
 }
 
 /**
- * Month-over-month movement: green up arrow (improved), red down arrow (declined), gray dash (no change). Change is
- * previous − current, so +5 means five places higher.
+ * Month-over-month movement on one line: "↑ 5" green (improved), "↓ 2" red (declined), "— 0" grey (no change).
+ * Change is previous − current, so ↑ 5 means five places higher.
  */
 export function RankingChangeIndicator({ change, className }: { change: RankingChange; className?: string }) {
   const { value, movement } = change;
   const { icon: Icon, text, tone, description } = describe(value, movement);
   return (
-    <span className={cn('inline-flex items-center gap-1 text-xs font-medium tabular-nums', tone, className)} title={description}>
-      <Icon className="size-3.5" aria-hidden />
+    <span className={cn('inline-flex items-center gap-1 text-label font-medium whitespace-nowrap tabular-nums', tone, className)} title={description}>
+      <Icon className="size-3.5 shrink-0" strokeWidth={2.5} aria-hidden />
       <span aria-hidden>{text}</span>
       <span className="sr-only">{description}</span>
     </span>
@@ -44,11 +44,11 @@ function describe(value: number | null, movement: RankingChange['movement']) {
     case 'IMPROVED':
       return value === null
         ? { icon: ArrowUp, text: 'Entered', tone: 'text-status-success', description: 'Improved: now ranked' }
-        : { icon: ArrowUp, text: `+${value}`, tone: 'text-status-success', description: `Improved by ${value} ${value === 1 ? 'place' : 'places'}` };
+        : { icon: ArrowUp, text: `${value}`, tone: 'text-status-success', description: `Improved by ${value} ${value === 1 ? 'place' : 'places'}` };
     case 'DECLINED':
       return value === null
         ? { icon: ArrowDown, text: 'Dropped', tone: 'text-status-danger', description: 'Declined: no longer ranked' }
-        : { icon: ArrowDown, text: `−${Math.abs(value)}`, tone: 'text-status-danger', description: `Declined by ${Math.abs(value)} ${Math.abs(value) === 1 ? 'place' : 'places'}` };
+        : { icon: ArrowDown, text: `${Math.abs(value)}`, tone: 'text-status-danger', description: `Declined by ${Math.abs(value)} ${Math.abs(value) === 1 ? 'place' : 'places'}` };
     case 'NEW':
       return { icon: Sparkles, text: 'New', tone: 'text-muted-foreground', description: 'New: no ranking last month' };
     default:

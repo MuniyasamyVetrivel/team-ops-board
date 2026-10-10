@@ -137,17 +137,17 @@ function CampaignList({ filters, canEdit }: { filters: MarketingFilters; canEdit
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4">
         <div>
-          <h2 className="font-semibold">Campaigns</h2>
-          <p className="text-sm text-muted-foreground">{allMonths ? 'All months' : periodLabel(filters.month, filters.year)}</p>
+          <h2 className="text-card-title font-semibold">Campaigns</h2>
+          <p className="mt-0.5 text-label text-muted-foreground">{allMonths ? 'All months' : periodLabel(filters.month, filters.year)}</p>
         </div>
         <Button variant="outline" size="sm" disabled={exporting || !campaigns.data?.totalElements} onClick={() => void onExport()}>
           <Download aria-hidden />
           Export CSV
         </Button>
       </div>
-      <div className="grid gap-3 border-b p-4 sm:grid-cols-2 lg:grid-cols-[1fr_repeat(3,minmax(0,11rem))_auto]">
+      <div className="flex flex-col gap-3 border-b px-6 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:*:w-auto! sm:*:min-w-40 sm:[&>*:first-child]:min-w-64 sm:[&>*:first-child]:flex-1">
         <SearchInput placeholder="Search name or audience" aria-label="Search campaigns" value={search} onChange={(e) => filter(setSearch)(e.target.value)} />
         <Select aria-label="Campaign type" value={type} onChange={(e) => filter(setType)(e.target.value)}>
           <option value="">All types</option>
@@ -199,10 +199,10 @@ function CampaignList({ filters, canEdit }: { filters: MarketingFilters; canEdit
                 <TableHead>Campaign</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Sent</TableHead>
-                <TableHead className="text-right">Open rate</TableHead>
-                <TableHead className="text-right">Click rate</TableHead>
-                <TableHead className="text-right">Leads</TableHead>
+                <TableHead numeric>Sent</TableHead>
+                <TableHead numeric>Open rate</TableHead>
+                <TableHead numeric>Click rate</TableHead>
+                <TableHead numeric>Leads</TableHead>
                 <TableHead>Owner</TableHead>
                 {canEdit && (
                   <TableHead>
@@ -227,10 +227,10 @@ function CampaignList({ filters, canEdit }: { filters: MarketingFilters; canEdit
                     <TableCell>
                       <CampaignStatusBadge status={c.status} />
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{sent ? formatCount(c.counts.emailsSent) : '—'}</TableCell>
-                    <TableCell className="text-right tabular-nums">{sent ? formatPercent(c.rates.openRate) : '—'}</TableCell>
-                    <TableCell className="text-right tabular-nums">{sent ? formatPercent(c.rates.clickRate) : '—'}</TableCell>
-                    <TableCell className="text-right tabular-nums">{sent ? formatCount(c.counts.leads) : '—'}</TableCell>
+                    <TableCell numeric>{sent ? formatCount(c.counts.emailsSent) : '—'}</TableCell>
+                    <TableCell numeric>{sent ? formatPercent(c.rates.openRate) : '—'}</TableCell>
+                    <TableCell numeric>{sent ? formatPercent(c.rates.clickRate) : '—'}</TableCell>
+                    <TableCell numeric>{sent ? formatCount(c.counts.leads) : '—'}</TableCell>
                     <TableCell className="max-w-44">{c.owner ? <UserCell name={c.owner.fullName} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
                     {canEdit && (
                       <TableCell>

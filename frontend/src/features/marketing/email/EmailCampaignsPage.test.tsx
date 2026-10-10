@@ -94,9 +94,9 @@ describe('EmailCampaignsPage', () => {
 
     const table = screen.getByRole('table', { name: 'October 2026 against September 2026' });
     const openRow = within(table).getByText('Open rate').closest('tr')!;
-    expect(within(openRow).getByText('Up 2.60 pts')).toHaveClass('text-status-success');
+    expect(within(openRow).getByText('2.60 pts')).toHaveClass('text-status-success');
     // A higher bounce rate is bad news, shown in words too.
-    expect(within(within(table).getByText('Bounce rate').closest('tr')!).getByText('Up 0.50 pts')).toHaveClass('text-status-danger');
+    expect(within(within(table).getByText('Bounce rate').closest('tr')!).getByText('0.50 pts')).toHaveClass('text-status-danger');
     expect(within(screen.getByRole('list', { name: 'Campaign types' })).getByText('Lead generation')).toBeInTheDocument();
     expect(within(screen.getByRole('table', { name: 'Email results by month' })).getAllByRole('row')).toHaveLength(3);
 

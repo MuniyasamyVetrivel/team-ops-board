@@ -39,7 +39,7 @@ export function ContentSummary({ filters }: { filters: MarketingFilters }) {
   }
   if (!summary.data) {
     return (
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5" role="status" aria-label="Loading the monthly summary">
+      <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5" role="status" aria-label="Loading the monthly summary">
         {Array.from({ length: 5 }, (_, i) => (
           <Skeleton key={i} className="h-28 rounded-xl" />
         ))}
@@ -56,7 +56,7 @@ export function ContentSummary({ filters }: { filters: MarketingFilters }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-semibold">Blog target · {current.period.label}</h2>
+        <h2 className="text-card-title font-semibold">Blog target · {current.period.label}</h2>
         <Select aria-label="Compare with" className="w-56" value={compare} onChange={(e) => setCompare(e.target.value as Compare)}>
           <option value="previous">Compare with the previous month</option>
           <option value="lastYear">Compare with the same month last year</option>
@@ -87,38 +87,38 @@ export function ContentSummary({ filters }: { filters: MarketingFilters }) {
 
       <div className={cn('grid gap-6', blogLeadsTarget ? 'lg:grid-cols-3' : 'lg:grid-cols-2')}>
         <Card className={cn(loading && 'opacity-60')}>
-          <div className="border-b px-5 py-3.5">
+          <div className="border-b px-6 py-4">
             <h3 className="font-semibold">Published this month</h3>
             <p className="text-sm text-muted-foreground">
               {formatCount(current.publishedAll)} items · {formatCount(current.refreshed)} refreshed
             </p>
           </div>
           {summary.data.publishedByType.length === 0 ? (
-            <p className="px-5 py-4 text-sm text-muted-foreground">Nothing published this month yet.</p>
+            <p className="px-6 py-4 text-sm text-muted-foreground">Nothing published this month yet.</p>
           ) : (
             <ul className="divide-y" aria-label="Published by type">
               {summary.data.publishedByType.map((t) => (
-                <li key={t.contentType} className="flex items-center justify-between px-5 py-2.5 text-sm">
+                <li key={t.contentType} className="flex items-center justify-between px-6 py-2.5 text-sm">
                   <span>{CONTENT_TYPE_LABELS[t.contentType]}</span>
                   <span className="font-medium tabular-nums">{formatCount(t.published)}</span>
                 </li>
               ))}
             </ul>
           )}
-          <p className="border-t px-5 py-2.5 text-xs text-muted-foreground">Only blog posts count towards the blog target.</p>
+          <p className="border-t px-6 py-2.5 text-xs text-muted-foreground">Only blog posts count towards the blog target.</p>
         </Card>
 
         <Card className={cn(loading && 'opacity-60')}>
-          <div className="border-b px-5 py-3.5">
+          <div className="border-b px-6 py-4">
             <h3 className="font-semibold">Top content by leads</h3>
             <p className="text-sm text-muted-foreground">Leads in {current.period.label}</p>
           </div>
           {summary.data.topContent.length === 0 ? (
-            <p className="px-5 py-4 text-sm text-muted-foreground">No leads named content this month.</p>
+            <p className="px-6 py-4 text-sm text-muted-foreground">No leads named content this month.</p>
           ) : (
             <ol className="divide-y" aria-label="Top content by leads">
               {summary.data.topContent.map((c) => (
-                <li key={c.id} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
+                <li key={c.id} className="flex items-center justify-between gap-3 px-6 py-2.5 text-sm">
                   <div className="min-w-0">
                     <p className="truncate font-medium" title={c.title}>
                       {c.title}

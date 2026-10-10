@@ -74,7 +74,7 @@ describe('MarketingDashboardPage', () => {
     const position = screen.getByText('Average position').closest('div')!;
     expect(position).toHaveTextContent('9.4');
     // A lower average position is better: the drop reads as good news, in words.
-    expect(within(position).getByText(/Down 16.1% vs September/)).toHaveClass('text-status-success');
+    expect(within(position).getByText(/16.1% vs September/)).toHaveClass('text-status-success');
 
     const targets = screen.getByRole('list', { name: 'Targets' });
     expect(within(targets).getAllByRole('listitem')).toHaveLength(3);
@@ -86,7 +86,7 @@ describe('MarketingDashboardPage', () => {
 
     expect(screen.getByText('Open rate').closest('div')!.parentElement).toHaveTextContent('Up 3.84 pts vs September');
     const cpl = screen.getByText('Cost per lead').closest('div')!.parentElement!;
-    expect(within(cpl).getByText(/Down 37.5% vs September/)).toHaveClass('text-status-success');
+    expect(within(cpl).getByText(/37.5% vs September/)).toHaveClass('text-status-success');
     expect(screen.getByRole('progressbar', { name: 'LinkedIn budget used' })).toHaveAttribute('aria-valuenow', '84');
 
     expect(within(screen.getByRole('list', { name: 'Backlink funnel' })).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['Target50', 'Submitted35', 'Approved28', 'Live22']);

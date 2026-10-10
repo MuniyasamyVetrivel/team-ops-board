@@ -111,7 +111,7 @@ function CampaignBody({ campaignId, month, year, onClose }: { campaignId: number
         )}
       </DialogHeader>
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
-        <section aria-label="Campaign totals" className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <section aria-label="Campaign totals" className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
           <MarketingKpiCard label="Budget" icon={Wallet} value={progress.budget} format="currency" />
           <MarketingKpiCard label="Spent" icon={ReceiptIndianRupee} value={progress.spent} format="currency">
             <BudgetBar label={`${campaign.name} budget used`} progress={progress} className="mt-2" compact />
@@ -147,12 +147,12 @@ function CampaignBody({ campaignId, month, year, onClose }: { campaignId: number
               <TableHeader>
                 <TableRow>
                   <TableHead>Month</TableHead>
-                  <TableHead className="text-right">Spend</TableHead>
-                  <TableHead className="text-right">Impressions</TableHead>
-                  <TableHead className="text-right">Clicks</TableHead>
-                  <TableHead className="text-right">CTR</TableHead>
-                  <TableHead className="text-right">Leads</TableHead>
-                  <TableHead className="text-right">Cost per lead</TableHead>
+                  <TableHead numeric>Spend</TableHead>
+                  <TableHead numeric>Impressions</TableHead>
+                  <TableHead numeric>Clicks</TableHead>
+                  <TableHead numeric>CTR</TableHead>
+                  <TableHead numeric>Leads</TableHead>
+                  <TableHead numeric>Cost per lead</TableHead>
                   <TableHead>Recorded</TableHead>
                   {canEdit && (
                     <TableHead>
@@ -168,12 +168,12 @@ function CampaignBody({ campaignId, month, year, onClose }: { campaignId: number
                       {row.period.label}
                       {row.notes && <p className="max-w-44 truncate text-xs font-normal text-muted-foreground" title={row.notes}>{row.notes}</p>}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{formatInr(row.figures.results.spend)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatCount(row.figures.results.impressions)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatCount(row.figures.results.clicks)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatPercent(row.figures.rates.ctr)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatCount(row.figures.results.leads)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatInr(row.figures.rates.costPerLead)}</TableCell>
+                    <TableCell numeric>{formatInr(row.figures.results.spend)}</TableCell>
+                    <TableCell numeric>{formatCount(row.figures.results.impressions)}</TableCell>
+                    <TableCell numeric>{formatCount(row.figures.results.clicks)}</TableCell>
+                    <TableCell numeric>{formatPercent(row.figures.rates.ctr)}</TableCell>
+                    <TableCell numeric>{formatCount(row.figures.results.leads)}</TableCell>
+                    <TableCell numeric>{formatInr(row.figures.rates.costPerLead)}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       <Badge tone="neutral">{SOURCE_LABELS[row.source]}</Badge>
                       <p className="mt-0.5">
