@@ -17,7 +17,9 @@ export default defineConfig({
           groups: [
             { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/, priority: 30 },
             { name: 'router', test: /node_modules[\\/]react-router[\\/]/, priority: 30 },
-            { name: 'ui', test: /node_modules[\\/](@radix-ui|@floating-ui|lucide-react|sonner)[\\/]/, priority: 20 },
+            // clsx is shared with Recharts: outside a group it was bundled into the charts chunk, so every page
+            // (the login page included) preloaded the whole chart library through the Button component.
+            { name: 'ui', test: /node_modules[\\/](@radix-ui|@floating-ui|lucide-react|sonner|clsx|tailwind-merge|class-variance-authority)[\\/]/, priority: 25 },
             { name: 'data', test: /node_modules[\\/](@tanstack|axios)[\\/]/, priority: 20 },
             { name: 'forms', test: /node_modules[\\/](react-hook-form|@hookform|zod)[\\/]/, priority: 20 },
             // Recharts and its own dependencies: only loaded by pages with charts.

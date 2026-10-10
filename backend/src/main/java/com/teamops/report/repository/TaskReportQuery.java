@@ -75,8 +75,14 @@ public class TaskReportQuery {
 
 	private final NamedParameterJdbcTemplate jdbc;
 
+	/**
+	 * Only tasks that are open, created in the range or completed in it add to any sum, so the query reads just those
+	 * (index ranges) rather than the whole task history.
+	 */
 	public Sums summary(Filter f) {
-		return jdbc.queryForObject("select " + SUMS + " from tasks t where " + where(f), params(f), (rs, i) -> sums(rs));
+		return jdbc.queryForObject("select " + SUMS + " from tasks t where " + where(f) + " and (t.status in (:active)"
+				+ " or (t.created_at >= :from and t.created_at < :to) or (" + COMPLETED_IN_RANGE + "))", params(f),
+				(rs, i) -> sums(rs));
 	}
 
 	/** Departments with any task in the report, by name. */

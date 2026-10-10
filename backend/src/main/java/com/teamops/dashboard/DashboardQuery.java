@@ -50,11 +50,16 @@ public class DashboardQuery {
 
 	}
 
-	/** KPI and status-distribution counts in one pass. */
+	/**
+	 * KPI and status-distribution counts in one pass. Only active tasks and tasks completed since the earlier of the two
+	 * dates can count, so the query reads just those (an index range on status and completion time) instead of the
+	 * whole task history.
+	 */
 	public TaskCounts taskCounts(AccessScope scope, LocalDate today, Instant weekStart, Instant recentSince) {
 		MapSqlParameterSource params = params(scope).addValue("today", Date.valueOf(today))
 			.addValue("weekStart", Timestamp.from(weekStart))
-			.addValue("recentSince", Timestamp.from(recentSince));
+			.addValue("recentSince", Timestamp.from(recentSince))
+			.addValue("completedSince", Timestamp.from(weekStart.isBefore(recentSince) ? weekStart : recentSince));
 		String sql = """
 				select
 				  coalesce(sum(case when t.status in (:active) then 1 else 0 end), 0) as open_tasks,
@@ -67,7 +72,8 @@ public class DashboardQuery {
 				  coalesce(sum(case when t.status = 'IN_REVIEW' then 1 else 0 end), 0) as in_review,
 				  coalesce(sum(case when t.status = 'COMPLETED' and t.completed_at >= :recentSince then 1 else 0 end), 0) as completed_recent
 				from tasks t
-				where %s
+				where (%s)
+				  and (t.status in (:active) or (t.status = 'COMPLETED' and t.completed_at >= :completedSince))
 				""".formatted(scopeClause(scope));
 		return jdbc.queryForObject(sql, params,
 				(rs, i) -> new TaskCounts(rs.getLong("open_tasks"), rs.getLong("due_today"), rs.getLong("overdue"),
