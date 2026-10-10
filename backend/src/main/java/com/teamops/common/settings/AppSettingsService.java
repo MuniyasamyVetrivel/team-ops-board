@@ -34,6 +34,12 @@ public class AppSettingsService {
 
 	public static final BigDecimal DEFAULT_BEHIND_THRESHOLD_PCT = new BigDecimal("60");
 
+	public static final String DEFAULT_WEEKLY_CAPACITY_HOURS = "users.defaultWeeklyCapacityHours";
+
+	public static final BigDecimal DEFAULT_CAPACITY_HOURS = new BigDecimal("40");
+
+	public static final String UPLOAD_MAX_SIZE_MB = "upload.maxSizeMb";
+
 	private final AppSettingRepository repository;
 
 	/** Days ahead (plus overdue) counted towards workload %. */
@@ -58,6 +64,23 @@ public class AppSettingsService {
 	public BigDecimal marketingBehindThresholdPct() {
 		BigDecimal pct = decimal(MARKETING_BEHIND_THRESHOLD_PCT, DEFAULT_BEHIND_THRESHOLD_PCT);
 		return pct.signum() < 0 || pct.compareTo(BigDecimal.valueOf(100)) > 0 ? DEFAULT_BEHIND_THRESHOLD_PCT : pct;
+	}
+
+	/** Weekly capacity given to a new user when the form leaves it empty (1–80 hours). */
+	public BigDecimal defaultWeeklyCapacityHours() {
+		BigDecimal hours = decimal(DEFAULT_WEEKLY_CAPACITY_HOURS, DEFAULT_CAPACITY_HOURS);
+		return hours.compareTo(BigDecimal.ONE) < 0 || hours.compareTo(BigDecimal.valueOf(80)) > 0
+				? DEFAULT_CAPACITY_HOURS : hours;
+	}
+
+	/**
+	 * Upload limit in bytes: the admin setting, never above {@code ceilingMb} (the multipart limit the server was
+	 * started with, which rejects larger requests before they reach the application).
+	 */
+	public long uploadMaxBytes(int ceilingMb) {
+		int mb = decimal(UPLOAD_MAX_SIZE_MB, BigDecimal.valueOf(ceilingMb)).intValue();
+		int effective = mb < 1 ? ceilingMb : Math.min(mb, ceilingMb);
+		return effective * 1024L * 1024L;
 	}
 
 	private BigDecimal decimal(String key, BigDecimal fallback) {

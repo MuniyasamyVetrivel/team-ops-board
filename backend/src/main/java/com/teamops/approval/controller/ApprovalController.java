@@ -52,6 +52,21 @@ public class ApprovalController {
 		return approvalService.types();
 	}
 
+	@PostMapping("/types")
+	@PreAuthorize("hasAuthority('APPROVAL_CONFIGURE')")
+	public ResponseEntity<TypeResponse> createType(@Valid @RequestBody ApprovalDtos.CreateType request,
+			@AuthenticationPrincipal AuthenticatedUser actor, HttpServletRequest http) {
+		return ResponseEntity.status(HttpStatus.CREATED)
+			.body(approvalService.createType(request, actor, ClientInfo.from(http)));
+	}
+
+	@PutMapping("/types/{id}")
+	@PreAuthorize("hasAuthority('APPROVAL_CONFIGURE')")
+	public TypeResponse updateType(@PathVariable Long id, @Valid @RequestBody ApprovalDtos.UpdateType request,
+			@AuthenticationPrincipal AuthenticatedUser actor, HttpServletRequest http) {
+		return approvalService.updateType(id, request, actor, ClientInfo.from(http));
+	}
+
 	@PutMapping("/types/{id}/steps")
 	@PreAuthorize("hasAuthority('APPROVAL_CONFIGURE')")
 	public TypeResponse updateWorkflow(@PathVariable Long id, @Valid @RequestBody ApprovalDtos.UpdateWorkflow request,

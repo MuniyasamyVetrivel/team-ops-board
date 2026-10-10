@@ -75,11 +75,12 @@ public final class ApprovalDtos {
 	}
 
 	public record TypeResponse(Long id, String code, String name, String description, boolean requiresAmount,
-			boolean active, List<TemplateStep> steps) {
+			boolean active, List<TemplateStep> steps, Integer version) {
 
 		public static TypeResponse of(ApprovalType type) {
 			return new TypeResponse(type.getId(), type.getCode(), type.getName(), type.getDescription(),
-					type.isRequiresAmount(), type.isActive(), type.getSteps().stream().map(TemplateStep::of).toList());
+					type.isRequiresAmount(), type.isActive(), type.getSteps().stream().map(TemplateStep::of).toList(),
+					type.getVersion());
 		}
 
 	}
@@ -157,6 +158,24 @@ public final class ApprovalDtos {
 	/** Replaces a type's workflow. Applies to new requests only. */
 	public record UpdateWorkflow(
 			@NotEmpty(message = "At least one step is required") @Size(max = 5, message = "At most 5 steps") List<@Valid WorkflowStep> steps) {
+
+	}
+
+	/** A new request type with its workflow. The code is permanent; it is how seeded types are recognised. */
+	public record CreateType(
+			@NotBlank(message = "Code is required") @Pattern(regexp = "^[A-Z][A-Z0-9_]{1,39}$", message = "Use 2–40 capital letters, digits or underscores, starting with a letter") String code,
+			@NotBlank(message = "Name is required") @Size(max = 100, message = "Name is too long") String name,
+			@Size(max = 500, message = "Description is too long") String description, Boolean requiresAmount,
+			@NotEmpty(message = "At least one step is required") @Size(max = 5, message = "At most 5 steps") List<@Valid WorkflowStep> steps) {
+
+	}
+
+	/** Changes a type's details. An inactive type stays on existing requests but cannot be chosen for new ones. */
+	public record UpdateType(@NotNull(message = "Version is required") Integer version,
+			@NotBlank(message = "Name is required") @Size(max = 100, message = "Name is too long") String name,
+			@Size(max = 500, message = "Description is too long") String description,
+			@NotNull(message = "Say whether an amount is required") Boolean requiresAmount,
+			@NotNull(message = "Say whether the type is active") Boolean active) {
 
 	}
 

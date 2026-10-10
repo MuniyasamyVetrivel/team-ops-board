@@ -1,15 +1,20 @@
 package com.teamops.common.settings;
 
+import java.time.Instant;
+
+import org.hibernate.annotations.UpdateTimestamp;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
 
-/** Admin-editable setting (seeded by V2). Editing UI arrives in Phase 21. */
+/** Admin-editable setting (seeded by V2/V20), edited through the admin settings API (Phase 21). */
 @Getter
 @Setter
 @Entity
@@ -31,5 +36,16 @@ public class AppSetting {
 
 	@Column(name = "description")
 	private String description;
+
+	@Column(name = "updated_by")
+	private Long updatedBy;
+
+	@UpdateTimestamp
+	@Column(name = "updated_at", nullable = false)
+	private Instant updatedAt;
+
+	@Version
+	@Column(name = "version", nullable = false)
+	private Integer version;
 
 }

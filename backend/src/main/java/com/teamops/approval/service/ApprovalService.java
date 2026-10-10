@@ -3,8 +3,10 @@ package com.teamops.approval.service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.data.domain.Pageable;
@@ -29,6 +31,7 @@ import com.teamops.approval.repository.ApprovalRepository;
 import com.teamops.approval.repository.ApprovalSpecifications;
 import com.teamops.approval.repository.ApprovalTypeRepository;
 import com.teamops.common.audit.AuditAction;
+import com.teamops.common.audit.AuditChanges;
 import com.teamops.common.audit.AuditService;
 import com.teamops.common.config.BusinessCalendar;
 import com.teamops.common.exception.ApiException;
@@ -84,17 +87,83 @@ public class ApprovalService {
 		return typeRepository.findAllByOrderByNameAsc().stream().map(TypeResponse::of).toList();
 	}
 
+	/** Adds a request type with its workflow (brief: "Configure workflows"). */
+	@Transactional
+	public TypeResponse createType(ApprovalDtos.CreateType request, AuthenticatedUser actor, ClientInfo client) {
+		if (typeRepository.existsByCode(request.code())) {
+			throw ApiException.conflict("APPROVAL_TYPE_CODE_TAKEN", "Another approval type already uses this code");
+		}
+		ApprovalType type = new ApprovalType();
+		type.setCode(request.code());
+		type.setName(request.name().trim());
+		type.setDescription(blankToNull(request.description()));
+		type.setRequiresAmount(Boolean.TRUE.equals(request.requiresAmount()));
+		type.setActive(true);
+		replaceSteps(type, request.steps());
+		ApprovalType saved = typeRepository.saveAndFlush(type);
+		Map<String, Object> details = new LinkedHashMap<>();
+		details.put("code", saved.getCode());
+		details.put("name", saved.getName());
+		details.put("requiresAmount", saved.isRequiresAmount());
+		details.put("steps", saved.getSteps().stream().map(ApprovalService::describe).toList());
+		auditService.record(AuditAction.APPROVAL_TYPE_CREATED, actor.id(), "APPROVAL_TYPE", saved.getId(), details,
+				client);
+		return TypeResponse.of(saved);
+	}
+
+	/** Changes a type's details. Deactivating keeps existing requests but stops new ones. */
+	@Transactional
+	public TypeResponse updateType(Long typeId, ApprovalDtos.UpdateType request, AuthenticatedUser actor,
+			ClientInfo client) {
+		ApprovalType type = loadType(typeId);
+		if (!Objects.equals(type.getVersion(), request.version())) {
+			throw ApiException.conflict("STALE_UPDATE",
+					"Someone else changed this approval type just now. Reload and try again.");
+		}
+		String name = request.name().trim();
+		String description = blankToNull(request.description());
+		AuditChanges changes = new AuditChanges().track("name", type.getName(), name)
+			.track("description", type.getDescription(), description)
+			.track("requiresAmount", type.isRequiresAmount(), request.requiresAmount())
+			.track("active", type.isActive(), request.active());
+		if (!changes.isEmpty()) {
+			type.setName(name);
+			type.setDescription(description);
+			type.setRequiresAmount(request.requiresAmount());
+			type.setActive(request.active());
+			typeRepository.flush();
+			auditService.record(AuditAction.APPROVAL_TYPE_UPDATED, actor.id(), "APPROVAL_TYPE", type.getId(),
+					changes.toDetails(), client);
+		}
+		return TypeResponse.of(type);
+	}
+
 	/** Replaces a type's workflow. Requests already submitted keep their own copy of the steps. */
 	@Transactional
 	public TypeResponse updateWorkflow(Long typeId, ApprovalDtos.UpdateWorkflow request, AuthenticatedUser actor,
 			ClientInfo client) {
-		ApprovalType type = typeRepository.findById(typeId)
-			.orElseThrow(() -> ApiException.notFound("APPROVAL_TYPE_NOT_FOUND", "Approval type not found"));
+		ApprovalType type = loadType(typeId);
 		List<String> before = type.getSteps().stream().map(ApprovalService::describe).toList();
 		type.getSteps().clear();
 		typeRepository.flush(); // delete old rows first: (type, step_order) is unique
+		replaceSteps(type, request.steps());
+		typeRepository.flush();
+		List<String> after = type.getSteps().stream().map(ApprovalService::describe).toList();
+		if (!before.equals(after)) {
+			auditService.record(AuditAction.APPROVAL_WORKFLOW_UPDATED, actor.id(), "APPROVAL_TYPE", type.getId(),
+					Map.of("changes", Map.of("steps", Map.of("from", before, "to", after))), client);
+		}
+		return TypeResponse.of(type);
+	}
+
+	private ApprovalType loadType(Long typeId) {
+		return typeRepository.findById(typeId)
+			.orElseThrow(() -> ApiException.notFound("APPROVAL_TYPE_NOT_FOUND", "Approval type not found"));
+	}
+
+	private void replaceSteps(ApprovalType type, List<ApprovalDtos.WorkflowStep> steps) {
 		int order = 1;
-		for (ApprovalDtos.WorkflowStep input : request.steps()) {
+		for (ApprovalDtos.WorkflowStep input : steps) {
 			ApprovalTypeStep step = new ApprovalTypeStep();
 			step.setApprovalType(type);
 			step.setStepOrder(order++);
@@ -108,13 +177,10 @@ public class ApprovalService {
 			}
 			type.getSteps().add(step);
 		}
-		typeRepository.flush();
-		List<String> after = type.getSteps().stream().map(ApprovalService::describe).toList();
-		if (!before.equals(after)) {
-			auditService.record(AuditAction.APPROVAL_WORKFLOW_UPDATED, actor.id(), "APPROVAL_TYPE", type.getId(),
-					Map.of("changes", Map.of("steps", Map.of("from", before, "to", after))), client);
-		}
-		return TypeResponse.of(type);
+	}
+
+	private static String blankToNull(String value) {
+		return value == null || value.isBlank() ? null : value.trim();
 	}
 
 	// --- requests -------------------------------------------------------------------------------------------

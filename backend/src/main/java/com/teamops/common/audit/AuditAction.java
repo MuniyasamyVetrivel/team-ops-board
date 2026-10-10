@@ -31,6 +31,9 @@ public enum AuditAction {
 	APPROVAL_DECIDED,
 	APPROVAL_CANCELLED,
 	APPROVAL_WORKFLOW_UPDATED,
+	APPROVAL_TYPE_CREATED,
+	/** Name, description, amount rule or active flag changed ({@code changes} holds from/to). */
+	APPROVAL_TYPE_UPDATED,
 	ANNOUNCEMENT_PUBLISHED,
 	ARTICLE_PUBLISHED,
 	DOCUMENT_UPLOADED,
@@ -93,6 +96,10 @@ public enum AuditAction {
 	CONTENT_STATUS_CHANGED,
 	CONTENT_DELETED,
 	/** An ended month's Digital Marketing report was frozen (kept as it stood). */
-	MARKETING_REPORT_FROZEN
+	MARKETING_REPORT_FROZEN,
+	/** An admin setting changed ({@code changes} holds from/to). */
+	SETTING_UPDATED,
+	/** A role's permissions changed ({@code added}, {@code removed}); brief section 63: "User permission change". */
+	ROLE_PERMISSIONS_CHANGED
 
 }

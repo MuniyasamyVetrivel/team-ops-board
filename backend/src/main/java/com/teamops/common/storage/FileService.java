@@ -16,6 +16,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.multipart.MultipartFile;
 
 import com.teamops.common.exception.ApiException;
+import com.teamops.common.settings.AppSettingsService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -34,9 +35,11 @@ public class FileService {
 
 	private final StorageProperties properties;
 
+	private final AppSettingsService settings;
+
 	public StoredFile store(MultipartFile upload, Long uploadedBy) {
 		UploadPolicy.Checked checked = UploadPolicy.check(upload.getOriginalFilename(), upload.getSize(),
-				properties.maxFileSizeBytes());
+				settings.uploadMaxBytes(properties.maxFileSizeMb()));
 		String key;
 		MessageDigest digest = sha256();
 		try (InputStream in = new DigestInputStream(upload.getInputStream(), digest)) {

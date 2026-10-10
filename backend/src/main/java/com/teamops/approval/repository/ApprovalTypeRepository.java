@@ -12,4 +12,6 @@ public interface ApprovalTypeRepository extends JpaRepository<ApprovalType, Long
 	@EntityGraph(attributePaths = { "steps", "steps.approverRole", "steps.approverUser" })
 	List<ApprovalType> findAllByOrderByNameAsc();
 
+	boolean existsByCode(String code);
+
 }

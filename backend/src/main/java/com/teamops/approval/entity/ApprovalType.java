@@ -11,6 +11,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -35,6 +36,10 @@ public class ApprovalType extends BaseEntity {
 
 	@Column(name = "active", nullable = false)
 	private boolean active = true;
+
+	@Version
+	@Column(name = "version", nullable = false)
+	private Integer version;
 
 	@OneToMany(mappedBy = "approvalType", cascade = CascadeType.ALL, orphanRemoval = true)
 	@OrderBy("stepOrder")

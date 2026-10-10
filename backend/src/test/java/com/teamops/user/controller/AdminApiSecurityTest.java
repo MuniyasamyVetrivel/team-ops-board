@@ -31,6 +31,7 @@ import com.teamops.support.SliceAuth;
 import com.teamops.team.controller.TeamController;
 import com.teamops.team.service.TeamService;
 import com.teamops.user.service.AccessCatalogService;
+import com.teamops.user.service.RolePermissionService;
 import com.teamops.user.service.UserService;
 
 /** Authorization matrix and request validation for the Phase 4 endpoints. Services are mocked; no database. */
@@ -53,6 +54,9 @@ class AdminApiSecurityTest {
 
 	@MockitoBean
 	private AccessCatalogService accessCatalogService;
+
+	@MockitoBean
+	private RolePermissionService rolePermissionService;
 
 	@MockitoBean
 	private DepartmentService departmentService;

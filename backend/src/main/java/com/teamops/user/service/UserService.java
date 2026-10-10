@@ -1,6 +1,5 @@
 package com.teamops.user.service;
 
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.HashSet;
 import java.util.List;
@@ -27,6 +26,7 @@ import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.security.AuthenticatedUserFactory;
 import com.teamops.common.security.PasswordPolicy;
+import com.teamops.common.settings.AppSettingsService;
 import com.teamops.common.web.ClientInfo;
 import com.teamops.common.web.PageResponse;
 import com.teamops.department.entity.Department;
@@ -66,8 +66,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class UserService {
 
-	private static final BigDecimal DEFAULT_CAPACITY = new BigDecimal("40.00");
-
 	private static final int MAX_REPORTING_DEPTH = 100;
 
 	private final UserRepository userRepository;
@@ -87,6 +85,8 @@ public class UserService {
 	private final AuditService auditService;
 
 	private final Clock clock;
+
+	private final AppSettingsService settings;
 
 	@Transactional(readOnly = true)
 	public PageResponse<UserListItem> search(UserSearchCriteria criteria, Pageable pageable) {
@@ -126,7 +126,7 @@ public class UserService {
 		user.setDepartment(resolveActiveDepartment(request.departmentId()));
 		user.setReportsTo(resolveReportsTo(request.reportsToId(), null));
 		user.setWeeklyCapacityHours(
-				request.weeklyCapacityHours() == null ? DEFAULT_CAPACITY : request.weeklyCapacityHours());
+				request.weeklyCapacityHours() == null ? settings.defaultWeeklyCapacityHours() : request.weeklyCapacityHours());
 		user.setRoles(new HashSet<>(roles));
 		user.setDirectPermissions(new HashSet<>(grants));
 		User saved = userRepository.save(user);

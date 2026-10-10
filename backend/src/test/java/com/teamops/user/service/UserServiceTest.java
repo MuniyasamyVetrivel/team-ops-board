@@ -34,6 +34,8 @@ import com.teamops.common.audit.AuditService;
 import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.security.AuthenticatedUserFactory;
+import com.teamops.common.settings.AppSettingRepository;
+import com.teamops.common.settings.AppSettingsService;
 import com.teamops.common.web.ClientInfo;
 import com.teamops.department.entity.Department;
 import com.teamops.department.entity.DepartmentStatus;
@@ -91,7 +93,8 @@ class UserServiceTest {
 	void setUp() {
 		service = new UserService(userRepository, departmentRepository, roleRepository, permissionRepository,
 				refreshTokenRepository, passwordEncoder, new AuthenticatedUserFactory(permissionRepository),
-				auditService, Clock.fixed(NOW, ZoneOffset.UTC));
+				auditService, Clock.fixed(NOW, ZoneOffset.UTC),
+				new AppSettingsService(mock(AppSettingRepository.class)));
 		when(roleRepository.findByCodeIn(any())).thenAnswer(inv -> rolesFor(inv.getArgument(0)));
 		when(permissionRepository.findByCodeIn(any())).thenAnswer(inv -> ((Collection<String>) inv.getArgument(0))
 			.stream()
