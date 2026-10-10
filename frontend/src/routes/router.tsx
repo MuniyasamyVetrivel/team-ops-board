@@ -11,7 +11,6 @@ import { RootLayout } from './RootLayout';
 
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage'));
-const ComingSoonPage = lazy(() => import('@/pages/ComingSoonPage'));
 const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 const UsersPage = lazy(() => import('@/features/admin/users/UsersPage'));
@@ -48,7 +47,7 @@ const ContentPage = lazy(() => import('@/features/marketing/content/ContentPage'
 const SettingsPage = lazy(() => import('@/features/admin/settings/SettingsPage'));
 const AuditLogsPage = lazy(() => import('@/features/admin/audit/AuditLogsPage'));
 
-/** Pages that exist so far. Every other sidebar entry renders a placeholder naming the phase that builds it. */
+/** The page for every sidebar entry, by path. */
 const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
   '/dashboard': DashboardPage,
   '/admin/users': UsersPage,
@@ -66,7 +65,6 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
   '/knowledge-base': KnowledgeBasePage,
   '/documents': DocumentsPage,
   '/my/calendar': CalendarPage,
-  // The marketing home until the executive dashboard replaces it in Phase 19.
   '/digital-marketing': MarketingDashboardPage,
   '/digital-marketing/seo': SeoRankingsPage,
   '/digital-marketing/targets': TargetsPage,
@@ -132,11 +130,12 @@ const marketingDetailRoutes: RouteObject[] = [
 
 function moduleRoute(item: RouteItem): RouteObject {
   const Page = IMPLEMENTED_PAGES[item.path];
+  if (!Page) throw new Error(`No page registered for ${item.path}`);
   return {
     path: item.path,
     element: (
       <RequirePermission permission={item.requires}>
-        {Page ? <Page /> : <ComingSoonPage item={item} />}
+        <Page />
       </RequirePermission>
     ),
   };

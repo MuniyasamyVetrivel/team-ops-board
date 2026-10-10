@@ -110,7 +110,7 @@ function TicketDrawerBody({ ticket }: { ticket: TicketDetail }) {
         </div>
 
         <Tabs defaultValue="conversation" className="pb-6">
-          <TabsList className="overflow-x-auto">
+          <TabsList>
             <TabsTrigger value="conversation">Conversation ({ticket.comments.length})</TabsTrigger>
             <TabsTrigger value="files">Files ({ticket.attachments.length})</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>

@@ -13,22 +13,20 @@ import { hasPermission, type RoleCode } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
 import { useTasks } from '@/features/tasks/api';
 import { DueBadge, TaskStatusBadge } from '@/features/tasks/TaskBadges';
-import { ACTIVE_STATUSES } from '@/features/tasks/types';
+import { ACTIVE_STATUSES, type TaskQuery } from '@/features/tasks/types';
+import { useTickets } from '@/features/tickets/api';
+import { SlaStateBadge, TicketStatusBadge } from '@/features/tickets/TicketBadges';
+import { OPEN_TICKET_STATUSES } from '@/features/tickets/types';
 import { useWorkload } from '@/features/workload/api';
 import { WorkloadMeter } from '@/features/workload/WorkloadMeter';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatRelative } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 import { useTeamProfile } from './api';
 
-/** Work sections still to come. */
-const LATER_SECTIONS: { title: string; icon: LucideIcon; phase: number }[] = [
-  { title: 'Recent activity', icon: Activity, phase: 6 },
-  { title: 'Tickets', icon: Ticket, phase: 7 },
-];
-
-/** Workload and current tasks; only rendered when the server says the viewer may see this person's work. */
+/** Workload, tasks and tickets; only rendered when the server says the viewer may see this person's work. */
 function MemberWork({ userId, firstName }: { userId: number; firstName: string }) {
+  const { user: viewer } = useAuth();
   const workload = useWorkload({ userId });
   const tasks = useTasks({ assigneeId: userId, status: ACTIVE_STATUSES, sort: 'due,asc', size: 6 });
   const row = workload.data?.rows[0];
@@ -80,7 +78,7 @@ function MemberWork({ userId, firstName }: { userId: number; firstName: string }
         </CardHeader>
         <CardContent>
           {tasks.isPending ? (
-            <Skeleton className="h-24" />
+            <ListSkeleton label="Loading tasks" />
           ) : tasks.isError ? (
             <ErrorState error={tasks.error} onRetry={() => void tasks.refetch()} />
           ) : tasks.data.content.length === 0 ? (
@@ -92,7 +90,7 @@ function MemberWork({ userId, firstName }: { userId: number; firstName: string }
             <ul className="divide-y">
               {tasks.data.content.map((task) => (
                 <li key={task.id}>
-                  <Link to={`/tasks?task=${task.id}`} className="flex items-center gap-3 py-2.5 hover:bg-muted/40">
+                  <Link to={`/tasks?task=${task.id}`} className="-mx-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md px-2 py-2.5 hover:bg-muted/40">
                     <span className="font-mono text-xs text-muted-foreground">{task.code}</span>
                     <span className="min-w-0 flex-1 truncate text-sm">{task.title}</span>
                     <TaskStatusBadge status={task.status} />
@@ -105,21 +103,118 @@ function MemberWork({ userId, firstName }: { userId: number; firstName: string }
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {LATER_SECTIONS.map(({ title, icon: Icon, phase }) => (
-          <Card key={title} className="border-dashed">
-            <CardContent className="flex items-center gap-3 p-4">
-              <span className="flex size-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                <Icon className="size-4" aria-hidden />
-              </span>
-              <div>
-                <p className="text-sm font-medium">{title}</p>
-                <p className="text-xs text-muted-foreground">Arrives in Phase {phase}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      {hasPermission(viewer, 'TICKET_VIEW') && <MemberTickets userId={userId} firstName={firstName} />}
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <RecentTasks
+          title="Recent activity"
+          icon={Activity}
+          query={{ assigneeId: userId, sort: 'updated,desc', size: 5 }}
+          empty={`No task activity for ${firstName} yet.`}
+        />
+        <RecentTasks
+          title="Recently completed"
+          icon={CircleCheck}
+          query={{ assigneeId: userId, status: ['COMPLETED'], sort: 'updated,desc', size: 5 }}
+          empty={`${firstName} hasn't completed any tasks yet.`}
+        />
       </div>
+    </div>
+  );
+}
+
+/** Open tickets assigned to the member, the most urgent SLA first. */
+function MemberTickets({ userId, firstName }: { userId: number; firstName: string }) {
+  const tickets = useTickets({ assigneeId: userId, status: OPEN_TICKET_STATUSES, sort: 'due,asc', size: 5 });
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-center justify-between">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Ticket className="size-4 text-muted-foreground" aria-hidden />
+          Open tickets
+        </CardTitle>
+        {tickets.data && tickets.data.totalElements > tickets.data.content.length && (
+          <span className="text-xs text-muted-foreground">
+            Showing {tickets.data.content.length} of {tickets.data.totalElements}
+          </span>
+        )}
+      </CardHeader>
+      <CardContent>
+        {tickets.isPending ? (
+          <ListSkeleton label="Loading tickets" />
+        ) : tickets.isError ? (
+          <ErrorState error={tickets.error} onRetry={() => void tickets.refetch()} />
+        ) : tickets.data.content.length === 0 ? (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <CircleCheck className="size-4 text-status-success" aria-hidden />
+            No open tickets assigned to {firstName}.
+          </p>
+        ) : (
+          <ul className="divide-y">
+            {tickets.data.content.map((ticket) => (
+              <li key={ticket.id}>
+                <Link to={`/tickets?ticket=${ticket.id}`} className="-mx-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md px-2 py-2.5 hover:bg-muted/40">
+                  <span className="font-mono text-xs text-muted-foreground">{ticket.code}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm">{ticket.subject}</span>
+                  <TicketStatusBadge status={ticket.status} />
+                  <SlaStateBadge state={ticket.sla.overall} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function RecentTasks({ title, icon: Icon, query, empty }: { title: string; icon: LucideIcon; query: TaskQuery; empty: string }) {
+  const tasks = useTasks(query);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Icon className="size-4 text-muted-foreground" aria-hidden />
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {tasks.isPending ? (
+          <ListSkeleton label={`Loading ${title.toLowerCase()}`} />
+        ) : tasks.isError ? (
+          <ErrorState error={tasks.error} onRetry={() => void tasks.refetch()} />
+        ) : tasks.data.content.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{empty}</p>
+        ) : (
+          <ul className="divide-y">
+            {tasks.data.content.map((task) => (
+              <li key={task.id}>
+                <Link to={`/tasks?task=${task.id}`} className="-mx-2 flex items-center gap-3 rounded-md px-2 py-2.5 hover:bg-muted/40">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm">{task.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-mono">{task.code}</span> · updated {formatRelative(task.updatedAt)}
+                    </p>
+                  </div>
+                  <TaskStatusBadge status={task.status} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ListSkeleton({ label }: { label: string }) {
+  return (
+    <div className="space-y-3" role="status" aria-label={label}>
+      {Array.from({ length: 3 }, (_, i) => (
+        <Skeleton key={i} className="h-9" />
+      ))}
     </div>
   );
 }

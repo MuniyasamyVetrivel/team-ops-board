@@ -132,7 +132,7 @@ export default function ProjectDetailPage() {
 
       <Card>
         <Tabs defaultValue="milestones" className="pb-4">
-          <TabsList className="overflow-x-auto">
+          <TabsList>
             <TabsTrigger value="milestones">Milestones ({p.milestones.length})</TabsTrigger>
             <TabsTrigger value="risks">Risks ({openRisks} open)</TabsTrigger>
             <TabsTrigger value="tasks">Tasks ({p.tasks.total})</TabsTrigger>

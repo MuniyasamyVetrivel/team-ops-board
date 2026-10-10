@@ -97,7 +97,7 @@ function TaskDrawerBody({ task, onClose }: { task: TaskDetail; onClose: () => vo
         </div>
 
         <Tabs defaultValue="comments" className="pb-6">
-          <TabsList className="overflow-x-auto">
+          <TabsList>
             <TabsTrigger value="comments">Comments ({task.comments.length})</TabsTrigger>
             <TabsTrigger value="checklist">
               Checklist ({doneItems}/{task.checklist.length})

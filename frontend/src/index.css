@@ -3,7 +3,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Design tokens (shadcn/ui convention). Light theme is the default; .dark on <html> switches theme (Phase 22).
+ * Design tokens (shadcn/ui convention). .dark on <html> switches theme: set by ThemeProvider (light / dark / system)
+ * and, before first paint, by the inline script in index.html.
  * Semantic status colours follow brief section 62: green = healthy/achieved, orange = warning/in progress,
  * red = critical/overdue, gray = inactive/no data. Never use colour alone - always pair with a label or icon.
  */
@@ -29,8 +30,9 @@
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.373 0.034 259.73);
 
-  --status-success: oklch(0.627 0.17 149.21);
-  --status-warning: oklch(0.705 0.187 47.6);
+  /* Dark enough for 4.5:1 text contrast on white and on the 10% tinted badge backgrounds. */
+  --status-success: oklch(0.527 0.154 150.07);
+  --status-warning: oklch(0.54 0.16 50);
   --status-danger: oklch(0.577 0.245 27.33);
   --status-neutral: oklch(0.551 0.027 264.36);
 
@@ -66,6 +68,13 @@
   --ring: oklch(0.585 0.233 277.12);
   --sidebar: oklch(0.17 0.017 264.7);
   --sidebar-foreground: oklch(0.872 0.01 258.34);
+
+  /* Lighter in dark mode so status text keeps WCAG AA contrast on tinted badge backgrounds. */
+  --status-success: oklch(0.765 0.177 152.2);
+  --status-warning: oklch(0.78 0.16 60.5);
+  --status-danger: oklch(0.704 0.191 22.22);
+  --status-neutral: oklch(0.707 0.022 261.33);
+
   --chart-1: oklch(0.707 0.165 254.62);
   --chart-2: oklch(0.777 0.152 181.91);
   --chart-3: oklch(0.714 0.203 305.5);

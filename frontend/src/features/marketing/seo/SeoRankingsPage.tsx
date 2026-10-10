@@ -111,7 +111,7 @@ export default function SeoRankingsPage() {
       <MarketingFilterBar />
       <Card>
         <Tabs value={tab} onValueChange={selectTab}>
-          <TabsList className="overflow-x-auto">
+          <TabsList>
             <TabsTrigger value="rankings">Rankings</TabsTrigger>
             <TabsTrigger value="summary">Monthly summary</TabsTrigger>
             <TabsTrigger value="pages">Pages</TabsTrigger>
