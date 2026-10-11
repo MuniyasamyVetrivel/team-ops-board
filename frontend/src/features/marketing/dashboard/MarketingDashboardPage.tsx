@@ -96,9 +96,7 @@ function KpiRow({ data, compareLabel, loading }: { data: MarketingDashboard; com
     const l = data.leads;
     cards.push(
       <KpiLink key="leads" to="/digital-marketing/leads">
-        <MarketingKpiCard label="Leads" icon={UserPlus} value={l.total} previous={l.comparisonTotal} previousLabel={compareLabel} loading={loading} hint={l.target ? `Target ${formatCount(l.target.targetValue)} · ${formatCount(l.target.remaining)} to go` : undefined}>
-          {l.target && <TargetBar label="Leads against target" achievementPct={l.target.achievementPct} status={l.target.status} className="mt-2" />}
-        </MarketingKpiCard>
+        <MarketingKpiCard label="Leads" icon={UserPlus} value={l.total} previous={l.comparisonTotal} previousLabel={compareLabel} loading={loading} hint={l.target ? `Target ${formatCount(l.target.targetValue)} · ${formatCount(l.target.remaining)} to go` : undefined} progress={l.target && <TargetBar label="Leads against target" achievementPct={l.target.achievementPct} status={l.target.status} className="h-1" />} />
       </KpiLink>,
     );
   }
@@ -122,9 +120,7 @@ function KpiRow({ data, compareLabel, loading }: { data: MarketingDashboard; com
     const b = data.backlinks;
     cards.push(
       <KpiLink key="backlinks" to="/digital-marketing/backlinks">
-        <MarketingKpiCard label="Backlinks · Live" icon={Link2} value={b.current.live} previous={b.comparison.live} previousLabel={compareLabel} loading={loading} hint={b.target ? `${formatCount(b.current.submitted)} submitted · ${formatCount(b.target.remaining)} to submit` : `${formatCount(b.current.submitted)} submitted`}>
-          {b.target && <TargetBar label="Live backlinks against target" achievementPct={b.target.target.achievementPct} status={b.target.target.status} className="mt-2" />}
-        </MarketingKpiCard>
+        <MarketingKpiCard label="Backlinks · Live" icon={Link2} value={b.current.live} previous={b.comparison.live} previousLabel={compareLabel} loading={loading} hint={b.target ? `${formatCount(b.current.submitted)} submitted · ${formatCount(b.target.remaining)} to submit` : `${formatCount(b.current.submitted)} submitted`} progress={b.target && <TargetBar label="Live backlinks against target" achievementPct={b.target.target.achievementPct} status={b.target.target.status} className="h-1" />} />
       </KpiLink>,
     );
   }
@@ -132,15 +128,13 @@ function KpiRow({ data, compareLabel, loading }: { data: MarketingDashboard; com
     const c = data.content;
     cards.push(
       <KpiLink key="content" to="/digital-marketing/content">
-        <MarketingKpiCard label="Content · Blogs published" icon={SquarePen} value={c.current.publishedBlogs} previous={c.comparison.publishedBlogs} previousLabel={compareLabel} loading={loading} hint={c.blogTarget ? `${formatCount(c.blogTarget.remaining)} remaining · ${formatCount(c.current.leads)} leads` : `${formatCount(c.current.leads)} leads`}>
-          {c.blogTarget && <TargetBar label="Blogs against target" achievementPct={c.blogTarget.target.achievementPct} status={c.blogTarget.target.status} className="mt-2" />}
-        </MarketingKpiCard>
+        <MarketingKpiCard label="Content · Blogs published" icon={SquarePen} value={c.current.publishedBlogs} previous={c.comparison.publishedBlogs} previousLabel={compareLabel} loading={loading} hint={c.blogTarget ? `${formatCount(c.blogTarget.remaining)} remaining · ${formatCount(c.current.leads)} leads` : `${formatCount(c.current.leads)} leads`} progress={c.blogTarget && <TargetBar label="Blogs against target" achievementPct={c.blogTarget.target.achievementPct} status={c.blogTarget.target.status} className="h-1" />} />
       </KpiLink>,
     );
   }
   if (cards.length === 0) return null;
   return (
-    <section aria-label={`Marketing performance for ${data.period.label}`} className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+    <section aria-label={`Marketing performance for ${data.period.label}`} className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {cards}
     </section>
   );
@@ -148,7 +142,7 @@ function KpiRow({ data, compareLabel, loading }: { data: MarketingDashboard; com
 
 function KpiLink({ to, children }: { to: string; children: ReactNode }) {
   return (
-    <Link to={to} className="block rounded-xl transition-shadow hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
+    <Link to={to} className="block h-full rounded-xl hover:[&>*]:border-primary/40 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none">
       {children}
     </Link>
   );
@@ -157,7 +151,7 @@ function KpiLink({ to, children }: { to: string; children: ReactNode }) {
 function DashboardSkeleton() {
   return (
     <div className="space-y-6" role="status" aria-label="Loading the marketing dashboard">
-      <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 6 }, (_, i) => (
           <Skeleton key={i} className="h-28 rounded-xl" />
         ))}

@@ -109,7 +109,7 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      <section aria-label="Project figures" className="grid gap-4 sm:gap-6 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="Project figures" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label={p.progressOverride === null ? 'Progress (from tasks)' : 'Progress (set manually)'} icon={CircleCheck}>
           <ProgressBar value={p.progress} label="Project progress" className="mt-2" />
         </Stat>

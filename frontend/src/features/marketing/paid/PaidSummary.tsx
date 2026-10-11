@@ -14,7 +14,7 @@ import type { MarketingFilters } from '../filter-memory';
 import { formatCount, formatInr, formatPercent, MONTH_NAMES } from '../marketing-format';
 import { usePaidSummary, type PaidMonthTotals } from './api';
 import { BudgetBar } from './PaidBadges';
-import { PAID_RATE_HINTS, PLATFORM_LABELS } from './paid-meta';
+import { budgetUsedText, PAID_RATE_HINTS, PLATFORM_LABELS } from './paid-meta';
 
 type Compare = 'previous' | 'lastYear';
 type Kind = 'count' | 'money' | 'percent';
@@ -66,7 +66,7 @@ export function PaidSummary({ filters }: { filters: MarketingFilters }) {
   if (!summary.data) {
     return (
       <div className="space-y-4" role="status" aria-label="Loading the monthly summary">
-        <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 6 }, (_, i) => (
             <Skeleton key={i} className="h-28 rounded-xl" />
           ))}
@@ -85,14 +85,26 @@ export function PaidSummary({ filters }: { filters: MarketingFilters }) {
 
   return (
     <div className="space-y-6">
-      <section aria-label={`Paid results for ${current.period.label}`} className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+      <section aria-label={`Paid results for ${current.period.label}`} className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MarketingKpiCard label="Budget" icon={Wallet} value={progress.budget} format="currency" loading={loading} hint={`${running} in ${MONTH_NAMES[current.period.month - 1]}`} />
-        <MarketingKpiCard label="Spent to date" icon={ReceiptIndianRupee} value={progress.spent} format="currency" loading={loading}>
-          {budget.campaigns > 0 && <BudgetBar label="Budget used" progress={progress} className="mt-2" compact />}
-        </MarketingKpiCard>
-        <MarketingKpiCard label="Remaining budget" icon={PiggyBank} value={progress.remaining} format="currency" loading={loading} hint="Budget − spent to date">
-          {progress.overBudget && <p className="mt-1 text-xs font-medium text-status-danger">Over budget</p>}
-        </MarketingKpiCard>
+        <MarketingKpiCard
+          label="Spent to date"
+          icon={ReceiptIndianRupee}
+          value={progress.spent}
+          format="currency"
+          loading={loading}
+          hint={budget.campaigns > 0 ? budgetUsedText(progress) : 'No campaigns running'}
+          progress={budget.campaigns > 0 && <BudgetBar label="Budget used" progress={progress} bare />}
+        />
+        <MarketingKpiCard
+          label="Remaining budget"
+          icon={PiggyBank}
+          value={progress.remaining}
+          format="currency"
+          loading={loading}
+          critical={progress.overBudget}
+          hint={progress.overBudget ? 'Over budget' : 'Budget − spent to date'}
+        />
         <MarketingKpiCard label="Spend this month" icon={IndianRupee} value={current.figures.results.spend} format="currency" previous={comparison.figures.results.spend} previousLabel={compareLabel} better={null} loading={loading} />
         <MarketingKpiCard label="Leads" icon={UserPlus} value={current.figures.results.leads} previous={comparison.figures.results.leads} previousLabel={compareLabel} loading={loading} />
         <MarketingKpiCard label="Cost per lead" icon={IndianRupee} value={current.figures.rates.costPerLead} format="currency" previous={comparison.figures.rates.costPerLead} previousLabel={compareLabel} better="lower" loading={loading} hint={PAID_RATE_HINTS.costPerLead} />

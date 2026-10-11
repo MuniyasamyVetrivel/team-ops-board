@@ -48,7 +48,7 @@ function addDays(isoDate: string, days: number): string {
 function DashboardSkeleton() {
   return (
     <div className="space-y-6" role="status" aria-label="Loading dashboard">
-      <div className="grid grid-cols-2 gap-4 sm:gap-6 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 8 }, (_, i) => (
           <Skeleton key={i} className="h-36 rounded-xl" />
         ))}
@@ -127,7 +127,7 @@ export default function DashboardPage() {
         <DashboardSkeleton />
       ) : (
         <>
-          <section aria-label="Key figures" className="grid grid-cols-2 gap-4 sm:gap-6 xl:grid-cols-4">
+          <section aria-label="Key figures" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <KpiCard
               label={personal ? 'My open tasks' : 'Open tasks'}
               value={data.kpis.openTasks}
@@ -136,8 +136,8 @@ export default function DashboardPage() {
               hint={`${data.kpis.inProgress} in progress · ${data.kpis.blocked} blocked`}
               to={tasksPath}
             />
-            <KpiCard label="Due today" value={data.kpis.dueToday} icon={CalendarClock} tone="text-status-warning" to={tasksPath} />
-            <KpiCard label="Overdue" value={data.kpis.overdue} icon={AlarmClock} tone="text-status-danger" alert={data.kpis.overdue > 0} hint="Past their due date" to={tasksPath} />
+            <KpiCard label="Due today" value={data.kpis.dueToday} icon={CalendarClock} tone="text-status-warning" hint={data.kpis.dueToday === 0 ? 'Nothing due today' : 'Due by the end of today'} to={tasksPath} />
+            <KpiCard label="Overdue" value={data.kpis.overdue} icon={AlarmClock} tone="text-status-danger" critical={data.kpis.overdue > 0} hint={data.kpis.overdue === 0 ? 'Nothing overdue' : 'Past their due date'} to={tasksPath} />
             <KpiCard
               label="Completed this week"
               value={data.kpis.completedThisWeek}
@@ -148,17 +148,17 @@ export default function DashboardPage() {
             />
             {personal ? (
               <>
-                <KpiCard label="In progress" value={data.kpis.inProgress} icon={CircleDot} tone="text-primary" />
-                <KpiCard label="Blocked" value={data.kpis.blocked} icon={OctagonX} tone="text-status-danger" />
-                <KpiCard label="My open tickets" value={data.kpis.openTickets} icon={LifeBuoy} to="/my/tickets" />
-                <KpiCard label="Pending approvals" value={data.kpis.pendingApprovals} icon={Workflow} tone="text-status-warning" to={hasPermission(user, 'APPROVAL_VIEW') ? '/approvals' : undefined} />
+                <KpiCard label="In progress" value={data.kpis.inProgress} icon={CircleDot} tone="text-primary" hint="Being worked on now" />
+                <KpiCard label="Blocked" value={data.kpis.blocked} icon={OctagonX} tone="text-status-danger" hint={data.kpis.blocked === 0 ? 'Nothing blocked' : 'Waiting on something'} />
+                <KpiCard label="My open tickets" value={data.kpis.openTickets} icon={LifeBuoy} hint="Raised by you, not yet closed" to="/my/tickets" />
+                <KpiCard label="Pending approvals" value={data.kpis.pendingApprovals} icon={Workflow} tone="text-status-warning" hint={data.kpis.pendingApprovals ? 'Waiting for a decision' : 'Nothing waiting'} to={hasPermission(user, 'APPROVAL_VIEW') ? '/approvals' : undefined} />
               </>
             ) : (
               <>
-                <KpiCard label="Open tickets" value={data.kpis.openTickets} icon={LifeBuoy} to={hasPermission(user, 'TICKET_VIEW') ? '/tickets' : undefined} />
-                <KpiCard label="SLA breaches" value={data.kpis.slaBreaches} icon={Timer} tone="text-status-danger" alert={(data.kpis.slaBreaches ?? 0) > 0} to={hasPermission(user, 'TICKET_VIEW') ? '/sla' : undefined} />
-                <KpiCard label="Pending approvals" value={data.kpis.pendingApprovals} icon={Workflow} tone="text-status-warning" to={hasPermission(user, 'APPROVAL_VIEW') ? '/approvals' : undefined} />
-                <KpiCard label="Team members" value={data.kpis.teamMembers} icon={Users} to={hasPermission(user, 'TEAM_VIEW') ? '/team' : undefined} />
+                <KpiCard label="Open tickets" value={data.kpis.openTickets} icon={LifeBuoy} hint="New, open or in progress" to={hasPermission(user, 'TICKET_VIEW') ? '/tickets' : undefined} />
+                <KpiCard label="SLA breaches" value={data.kpis.slaBreaches} icon={Timer} tone="text-status-danger" critical={(data.kpis.slaBreaches ?? 0) > 0} hint={(data.kpis.slaBreaches ?? 0) === 0 ? 'Every ticket within SLA' : 'Tickets past their SLA'} to={hasPermission(user, 'TICKET_VIEW') ? '/sla' : undefined} />
+                <KpiCard label="Pending approvals" value={data.kpis.pendingApprovals} icon={Workflow} tone="text-status-warning" hint={data.kpis.pendingApprovals ? 'Waiting for a decision' : 'Nothing waiting'} to={hasPermission(user, 'APPROVAL_VIEW') ? '/approvals' : undefined} />
+                <KpiCard label="Team members" value={data.kpis.teamMembers} icon={Users} hint="Active people in your view" to={hasPermission(user, 'TEAM_VIEW') ? '/team' : undefined} />
               </>
             )}
           </section>

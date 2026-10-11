@@ -127,7 +127,7 @@ export default function TargetsPage() {
                 />
               ) : (
                 <>
-                  <TabsContent value="cards" className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
+                  <TabsContent value="cards" className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 xl:grid-cols-4">
                     {targets.data.targets.map((target) => (
                       <TargetProgress
                         key={target.id}

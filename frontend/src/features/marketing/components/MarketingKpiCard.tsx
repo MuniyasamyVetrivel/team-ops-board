@@ -13,35 +13,51 @@ interface MarketingKpiCardProps {
   /** null renders "—" (no data, or a division by zero on the server). */
   value: number | null | undefined;
   format?: MetricFormat;
-  /** Last period's value; when given, the card shows the change. */
+  /** Last period's value; when given, the tile shows the change as a chip. */
   previous?: number | null;
   /** Names the comparison, e.g. "September". */
   previousLabel?: string;
   /** Whether a rise is good news (leads), bad news (cost per lead), or neither (null: spend). */
   better?: 'higher' | 'lower' | null;
-  /** A ready-made change line instead of the percentage change from {@code previous}, e.g. a rate's change in points. */
-  delta?: Omit<DeltaProps, 'className'>;
+  /** A ready-made change instead of the percentage change from {@code previous}, e.g. a rate's change in points. */
+  delta?: Omit<DeltaProps, 'className' | 'variant'>;
+  /** The helper line. Defaults to the comparison ("vs September"). */
   hint?: ReactNode;
+  /** Replaces the icon, e.g. a target status badge. */
+  aside?: ReactNode;
+  /** A 4px bar where a ratio exists, e.g. a target's achievement. */
+  progress?: ReactNode;
+  critical?: boolean;
   loading?: boolean;
-  /** Extra content under the value, e.g. a progress bar. */
-  children?: ReactNode;
 }
 
-/** A marketing KPI with an optional month-over-month change, on the shared KPI layout. */
-export function MarketingKpiCard({ label, icon, value, format = 'count', previous, previousLabel = 'last month', better = 'higher', delta, hint, loading, children }: MarketingKpiCardProps) {
-  const change = delta ? (
-    delta.value == null ? undefined : <Delta {...delta} />
-  ) : previous !== undefined ? (
-    <ChangeText current={value} previous={previous} previousLabel={previousLabel} better={better} className="" />
+/** A marketing KPI on the shared tile, with the month-over-month change as a chip beside the value. */
+export function MarketingKpiCard({ label, icon, value, format = 'count', previous, previousLabel = 'last month', better = 'higher', delta, hint, aside, progress, critical, loading }: MarketingKpiCardProps) {
+  const change = previous !== undefined ? percentChange(value, previous) : null;
+  const chip = delta ? (
+    delta.value == null ? undefined : <Delta {...delta} variant="chip" />
+  ) : change !== null ? (
+    <Delta value={change} amount={`${Math.abs(change)}%`} label={`vs ${previousLabel}`} better={better} variant="chip" />
   ) : undefined;
+  const comparison = delta?.label ?? (previous !== undefined ? (change === null ? `No comparison with ${previousLabel}` : `vs ${previousLabel}`) : undefined);
   return (
-    <KpiTile label={label} icon={icon} value={formatMetric(value, format)} muted={value == null} change={change} hint={hint} loading={loading}>
-      {children}
-    </KpiTile>
+    <KpiTile
+      label={label}
+      icon={icon}
+      aside={aside}
+      value={formatMetric(value, format)}
+      muted={value == null || value === 0}
+      critical={critical}
+      delta={chip}
+      // The chip already reads its comparison out, so a "vs September" helper is for sighted users only.
+      hint={hint ?? (comparison && (chip ? <span aria-hidden>{comparison}</span> : comparison))}
+      progress={progress}
+      loading={loading}
+    />
   );
 }
 
-/** "↑ 11.1% vs September" on one line; green or red only when the direction is clearly good or bad. */
+/** "↑ 11.1% vs September" on one line, for rows and tables; green or red only when the direction is clearly good or bad. */
 export function ChangeText({
   current,
   previous,

@@ -138,7 +138,7 @@ describe('PaidCampaignsPage', () => {
     // A lower cost per lead is good news, in words as well as colour.
     const cpl = within(cards).getByText('Cost per lead').closest('div')!;
     expect(cpl).toHaveTextContent('₹500');
-    expect(within(cpl).getByText('37.5% vs September')).toHaveClass('text-status-success');
+    expect(within(cpl).getByText('37.5%')).toHaveClass('text-status-success');
 
     const table = screen.getByRole('table', { name: 'October 2026 against September 2026' });
     expect(within(within(table).getByText('Cost per lead').closest('tr')!).getByText('₹300')).toHaveClass('text-status-success');

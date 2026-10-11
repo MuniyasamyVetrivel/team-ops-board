@@ -40,7 +40,7 @@ export function ReportState<T>({ query, label, children }: { query: { data?: T; 
   if (!query.data) {
     return (
       <div className="space-y-4" role="status" aria-label={`Loading the ${label}`}>
-        <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }, (_, i) => (
             <Skeleton key={i} className="h-28 rounded-xl" />
           ))}
@@ -105,7 +105,7 @@ export function TaskReportView({ report, previous }: { report: TaskReport; previ
   const p = previous.data?.summary;
   return (
     <div className="space-y-6">
-      <section aria-label="Task figures" className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+      <section aria-label="Task figures" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MarketingKpiCard label="Tasks created" icon={ClipboardList} value={s.created} previous={p?.created ?? null} previousLabel={previous.label} better={null} />
         <MarketingKpiCard label="Tasks completed" icon={CircleCheck} value={s.completed} previous={p?.completed ?? null} previousLabel={previous.label} />
         <MarketingKpiCard label="On time" icon={Clock} value={s.onTimePct} format="percent" delta={pointsDelta(s.onTimePct, p?.onTimePct, previous.label)} hint={`${formatCount(s.completedOnTime)} of ${formatCount(s.completedWithDueDate)} with a due date`} />
@@ -270,7 +270,7 @@ export function TicketReportView({ report, previous }: { report: TicketReport; p
   const p = previous.data?.summary;
   return (
     <div className="space-y-6">
-      <section aria-label="Ticket figures" className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+      <section aria-label="Ticket figures" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MarketingKpiCard label="Tickets created" icon={LifeBuoy} value={s.created} previous={p?.created ?? null} previousLabel={previous.label} better={null} />
         <MarketingKpiCard label="Tickets resolved" icon={CircleCheck} value={s.resolved} previous={p?.resolved ?? null} previousLabel={previous.label} />
         <MarketingKpiCard label="First response SLA" icon={ShieldCheck} value={s.firstResponseCompliance} format="percent" delta={pointsDelta(s.firstResponseCompliance, p?.firstResponseCompliance, previous.label)} hint="Met, of tickets created in the range" />

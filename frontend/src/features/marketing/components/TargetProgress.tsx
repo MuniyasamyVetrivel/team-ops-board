@@ -1,6 +1,7 @@
 import { CalendarClock, CircleAlert, CircleCheck, Hourglass, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { KpiTile } from '@/components/common/KpiCard';
 import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -71,27 +72,41 @@ interface TargetProgressProps {
   action?: ReactNode;
 }
 
-/** "200 of 250 · 80% · 50 remaining" with a progress bar and a labelled status (all values come from the server). */
+/**
+ * A target on the shared KPI tile: label with its status badge (and an optional action), "200 of 250" as the value,
+ * "80% achieved · 50 remaining" as the helper line and an amber progress bar. All values come from the server.
+ */
 export function TargetProgress({ label, target, actual, achievementPct, remaining, status, format = 'count', hint, action }: TargetProgressProps) {
   return (
-    <div className="flex h-full flex-col rounded-xl border bg-card p-6 shadow-card">
-      <div className="flex items-start justify-between gap-3">
-        <span className="min-w-0 pt-0.5 text-label font-medium text-muted-foreground">{label}</span>
-        <span className="flex shrink-0 items-center gap-1">
+    <KpiTile
+      label={label}
+      aside={
+        <>
           <TargetStatusBadge status={status} />
           {action}
-        </span>
-      </div>
-      <p className="mt-3 text-kpi font-semibold tracking-tight tabular-nums">
-        {status === null ? <span className="text-muted-foreground">—</span> : formatMetric(actual ?? 0, format)}
-        <span className="ml-1 text-sm font-normal text-muted-foreground">of {formatMetric(target, format)}</span>
-      </p>
-      <TargetBar label={`${label} achievement`} achievementPct={achievementPct} status={status} className="mt-3" />
-      <p className="mt-2 flex flex-wrap justify-between gap-x-3 text-xs text-muted-foreground tabular-nums">
-        <span>{status === null ? 'Planned month' : `${formatPercent(achievementPct)} achieved`}</span>
-        <span>{formatMetric(remaining, format)} remaining</span>
-      </p>
-      {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
-    </div>
+        </>
+      }
+      value={
+        <>
+          {status === null ? <span className="text-muted-foreground">—</span> : formatMetric(actual ?? 0, format)}
+          <span className="ml-1.5 text-label font-normal text-muted-foreground">of {formatMetric(target, format)}</span>
+        </>
+      }
+      muted={status !== null && !actual}
+      hint={
+        <>
+          <span>{status === null ? 'Planned month' : `${formatPercent(achievementPct)} achieved`}</span>
+          <span aria-hidden> · </span>
+          <span>{formatMetric(remaining, format)} remaining</span>
+          {hint && (
+            <>
+              <span aria-hidden> · </span>
+              {hint}
+            </>
+          )}
+        </>
+      }
+      progress={<TargetBar label={`${label} achievement`} achievementPct={achievementPct} status={status} className="h-1" />}
+    />
   );
 }

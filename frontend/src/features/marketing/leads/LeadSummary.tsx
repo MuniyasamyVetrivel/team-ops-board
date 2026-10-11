@@ -50,7 +50,7 @@ export function LeadSummary({ filters, onPickSource }: LeadSummaryProps) {
   if (!summary.data) {
     return (
       <div className="space-y-4" role="status" aria-label="Loading the lead summary">
-        <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }, (_, i) => (
             <Skeleton key={i} className="h-28 rounded-xl" />
           ))}
@@ -70,7 +70,7 @@ export function LeadSummary({ filters, onPickSource }: LeadSummaryProps) {
 
   return (
     <div className="space-y-6">
-      <section aria-label={`Leads for ${data.period.label}`} className="grid gap-4 sm:gap-6 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label={`Leads for ${data.period.label}`} className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MarketingKpiCard label="Leads generated" icon={UserPlus} value={data.total} previous={data.comparisonTotal} previousLabel={compareLabel} loading={loading} hint="Every lead dated in the month, any status" />
         {data.targetsVisible &&
           (target ? (

@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
-import { KpiCard } from '@/components/common/KpiCard';
+import { KpiCard, KpiProgress } from '@/components/common/KpiCard';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Panel } from '@/components/common/Panel';
 import { Button } from '@/components/ui/button';
@@ -69,13 +69,31 @@ export default function SlaPage() {
         </Card>
       ) : (
         <>
-          <section aria-label="SLA figures" className={cn('grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6', summary.isPlaceholderData && 'opacity-60')}>
-            <KpiCard label="First response met" value={data?.firstResponseCompliance} suffix="%" icon={MessageSquareReply} tone="text-primary" loading={!data} hint={data ? `${data.created} tickets raised` : undefined} />
-            <KpiCard label="Resolution met" value={data?.resolutionCompliance} suffix="%" icon={ShieldCheck} tone="text-status-success" loading={!data} />
-            <KpiCard label="Open tickets" value={data?.open} icon={Timer} loading={!data} to="/tickets" />
-            <KpiCard label="On track" value={data?.onTrack} icon={Clock} tone="text-status-success" loading={!data} />
+          <section aria-label="SLA figures" className={cn('grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4', summary.isPlaceholderData && 'opacity-60')}>
+            <KpiCard
+              label="First response met"
+              value={data?.firstResponseCompliance}
+              suffix="%"
+              icon={MessageSquareReply}
+              tone="text-primary"
+              loading={!data}
+              hint={data ? `Of ${data.created} tickets raised` : undefined}
+              progress={data && data.firstResponseCompliance !== null && <KpiProgress value={data.firstResponseCompliance} label="First response met" />}
+            />
+            <KpiCard
+              label="Resolution met"
+              value={data?.resolutionCompliance}
+              suffix="%"
+              icon={ShieldCheck}
+              tone="text-status-success"
+              loading={!data}
+              hint="Resolved within the resolution target"
+              progress={data && data.resolutionCompliance !== null && <KpiProgress value={data.resolutionCompliance} label="Resolution met" />}
+            />
+            <KpiCard label="Open tickets" value={data?.open} icon={Timer} loading={!data} hint="Open now, with an SLA clock" to="/tickets" />
+            <KpiCard label="On track" value={data?.onTrack} icon={Clock} tone="text-status-success" loading={!data} hint="Comfortably inside their targets" />
             <KpiCard label="At risk" value={data?.warning} icon={TriangleAlert} tone="text-status-warning" loading={!data} hint={data ? `${data.warningThresholdPct}%+ of target used` : undefined} />
-            <KpiCard label="Breached" value={data?.breached} icon={OctagonAlert} tone="text-status-danger" alert={(data?.breached ?? 0) > 0} loading={!data} hint={data && data.paused > 0 ? `${data.paused} paused, waiting on requester` : undefined} />
+            <KpiCard label="Breached" value={data?.breached} icon={OctagonAlert} tone="text-status-danger" critical={(data?.breached ?? 0) > 0} loading={!data} hint={data && data.paused > 0 ? `${data.paused} paused, waiting on requester` : 'Past a response or resolution target'} />
           </section>
 
           <Panel title="Tickets at risk" icon={TriangleAlert} description="Open tickets that are close to or past a deadline, most urgent first">

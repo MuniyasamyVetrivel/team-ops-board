@@ -40,7 +40,7 @@ export function BacklinkSummary({ filters }: { filters: MarketingFilters }) {
   }
   if (!summary.data) {
     return (
-      <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5" role="status" aria-label="Loading the monthly progress">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" role="status" aria-label="Loading the monthly progress">
         {Array.from({ length: 5 }, (_, i) => (
           <Skeleton key={i} className="h-28 rounded-xl" />
         ))}
@@ -63,26 +63,16 @@ export function BacklinkSummary({ filters }: { filters: MarketingFilters }) {
           <option value="lastYear">Compare with the same month last year</option>
         </Select>
       </div>
-      <section aria-label={`Backlink progress for ${current.period.label}`} className={cn('grid gap-3 sm:grid-cols-2', targetsVisible ? 'xl:grid-cols-5' : 'xl:grid-cols-3')}>
+      <section aria-label={`Backlink progress for ${current.period.label}`} className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {targetsVisible && (
-          <MarketingKpiCard label="Target" icon={Target} value={target?.targetValue ?? null} loading={loading} hint={target ? 'Backlinks to go live this month' : `No backlink target for ${current.period.label}`}>
-            {goal && (
-              <div className="mt-1">
-                <TargetStatusBadge status={goal.status} />
-              </div>
-            )}
-          </MarketingKpiCard>
+          <MarketingKpiCard label="Target" icon={Target} value={target?.targetValue ?? null} loading={loading} hint={target ? 'Backlinks to go live this month' : `No backlink target for ${current.period.label}`} aside={goal && <TargetStatusBadge status={goal.status} />} />
         )}
         <MarketingKpiCard label="Submitted" icon={Send} value={current.submitted} previous={comparison.submitted} previousLabel={compareLabel} loading={loading} />
         <MarketingKpiCard label="Approved" icon={CircleCheck} value={current.approved} previous={comparison.approved} previousLabel={compareLabel} loading={loading} />
-        <MarketingKpiCard label="Live" icon={Link2} value={current.live} previous={comparison.live} previousLabel={compareLabel} loading={loading}>
-          {goal && (
-            <div className="mt-2 space-y-1">
-              <TargetBar label="Live against target" achievementPct={goal.achievementPct} status={goal.status} />
-              <p className="text-xs text-muted-foreground tabular-nums">{formatPercent(goal.achievementPct)} of target live</p>
-            </div>
-          )}
-        </MarketingKpiCard>
+        <MarketingKpiCard label="Live" icon={Link2} value={current.live} previous={comparison.live} previousLabel={compareLabel} loading={loading}
+          hint={goal ? `${formatPercent(goal.achievementPct)} of target live` : undefined}
+          progress={goal && <TargetBar label="Live against target" achievementPct={goal.achievementPct} status={goal.status} className="h-1" />}
+        />
         {targetsVisible && <MarketingKpiCard label="Remaining" icon={Hourglass} value={target?.remaining ?? null} loading={loading} hint="Target − submitted: still to submit" />}
       </section>
       <p className="text-sm text-muted-foreground">

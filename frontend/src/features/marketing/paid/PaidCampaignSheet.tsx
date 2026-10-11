@@ -25,7 +25,7 @@ import { formatCount, formatInr, formatPercent, periodLabel } from '../marketing
 import { usePaidCampaign, useSavePaidMonth, type PaidCampaignDetail, type PaidMonth } from './api';
 import { PaidCampaignFormDialog } from './PaidCampaignFormDialog';
 import { BudgetBar, PaidStatusBadge } from './PaidBadges';
-import { moneyField, OBJECTIVE_LABELS, PAID_RATE_HINTS, paidCountField, parseNumber, PLATFORM_LABELS, recordableMonths, SOURCE_LABELS, type Period } from './paid-meta';
+import { budgetUsedText, moneyField, OBJECTIVE_LABELS, PAID_RATE_HINTS, paidCountField, parseNumber, PLATFORM_LABELS, recordableMonths, SOURCE_LABELS, type Period } from './paid-meta';
 
 const dayFormat = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -111,14 +111,17 @@ function CampaignBody({ campaignId, month, year, onClose }: { campaignId: number
         )}
       </DialogHeader>
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
-        <section aria-label="Campaign totals" className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+        <section aria-label="Campaign totals" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <MarketingKpiCard label="Budget" icon={Wallet} value={progress.budget} format="currency" />
-          <MarketingKpiCard label="Spent" icon={ReceiptIndianRupee} value={progress.spent} format="currency">
-            <BudgetBar label={`${campaign.name} budget used`} progress={progress} className="mt-2" compact />
-          </MarketingKpiCard>
-          <MarketingKpiCard label="Remaining" icon={PiggyBank} value={progress.remaining} format="currency" hint="Budget − spent">
-            {progress.overBudget && <p className="mt-1 text-xs font-medium text-status-danger">Over budget</p>}
-          </MarketingKpiCard>
+          <MarketingKpiCard
+            label="Spent"
+            icon={ReceiptIndianRupee}
+            value={progress.spent}
+            format="currency"
+            hint={budgetUsedText(progress)}
+            progress={<BudgetBar label={`${campaign.name} budget used`} progress={progress} bare />}
+          />
+          <MarketingKpiCard label="Remaining" icon={PiggyBank} value={progress.remaining} format="currency" critical={progress.overBudget} hint={progress.overBudget ? 'Over budget' : 'Budget − spent'} />
           <MarketingKpiCard label="Leads" icon={UserPlus} value={results.leads} hint={`${formatCount(results.clicks)} clicks · CTR ${formatPercent(campaign.lifetime.rates.ctr)}`} />
           <MarketingKpiCard label="Cost per lead" icon={IndianRupee} value={campaign.lifetime.rates.costPerLead} format="currency" hint={PAID_RATE_HINTS.costPerLead} />
         </section>

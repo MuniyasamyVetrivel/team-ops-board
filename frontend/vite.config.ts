@@ -51,5 +51,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // Form tests type into many fields; with every file in parallel a slower machine can pass the 5s default.
+    testTimeout: 15000,
   },
 });

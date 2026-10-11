@@ -39,7 +39,7 @@ export function ContentSummary({ filters }: { filters: MarketingFilters }) {
   }
   if (!summary.data) {
     return (
-      <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5" role="status" aria-label="Loading the monthly summary">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" role="status" aria-label="Loading the monthly summary">
         {Array.from({ length: 5 }, (_, i) => (
           <Skeleton key={i} className="h-28 rounded-xl" />
         ))}
@@ -62,24 +62,14 @@ export function ContentSummary({ filters }: { filters: MarketingFilters }) {
           <option value="lastYear">Compare with the same month last year</option>
         </Select>
       </div>
-      <section aria-label={`Blog target for ${current.period.label}`} className={cn('grid gap-3 sm:grid-cols-2', targetsVisible ? 'xl:grid-cols-5' : 'xl:grid-cols-3')}>
+      <section aria-label={`Blog target for ${current.period.label}`} className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {targetsVisible && (
-          <MarketingKpiCard label="Blog target" icon={Target} value={blogTarget?.targetValue ?? null} loading={loading} hint={blogTarget ? 'Blogs to publish this month' : `No blog target for ${current.period.label}`}>
-            {target && (
-              <div className="mt-1">
-                <TargetStatusBadge status={target.status} />
-              </div>
-            )}
-          </MarketingKpiCard>
+          <MarketingKpiCard label="Blog target" icon={Target} value={blogTarget?.targetValue ?? null} loading={loading} hint={blogTarget ? 'Blogs to publish this month' : `No blog target for ${current.period.label}`} aside={target && <TargetStatusBadge status={target.status} />} />
         )}
-        <MarketingKpiCard label="Published" icon={CircleCheck} value={current.publishedBlogs} previous={comparison.publishedBlogs} previousLabel={compareLabel} loading={loading}>
-          {target && (
-            <div className="mt-2 space-y-1">
-              <TargetBar label="Blog target achievement" achievementPct={target.achievementPct} status={target.status} />
-              <p className="text-xs text-muted-foreground tabular-nums">{formatPercent(target.achievementPct)} of target</p>
-            </div>
-          )}
-        </MarketingKpiCard>
+        <MarketingKpiCard label="Published" icon={CircleCheck} value={current.publishedBlogs} previous={comparison.publishedBlogs} previousLabel={compareLabel} loading={loading}
+          hint={target ? `${formatPercent(target.achievementPct)} of target` : undefined}
+          progress={target && <TargetBar label="Blog target achievement" achievementPct={target.achievementPct} status={target.status} className="h-1" />}
+        />
         {targetsVisible && <MarketingKpiCard label="Remaining" icon={Hourglass} value={blogTarget?.remaining ?? null} loading={loading} hint="Target − published" />}
         <MarketingKpiCard label="Leads" icon={UserPlus} value={current.leads} previous={comparison.leads} previousLabel={compareLabel} loading={loading} hint="Leads that name content" />
         <MarketingKpiCard label="Planned" icon={CalendarClock} value={current.plannedBlogs} previous={comparison.plannedBlogs} previousLabel={compareLabel} better={null} loading={loading} hint="Blogs planned for the month" />

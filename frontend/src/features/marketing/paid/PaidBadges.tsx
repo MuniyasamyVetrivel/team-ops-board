@@ -29,9 +29,10 @@ const NEARLY_SPENT_PCT = 90;
 
 /**
  * Spend against budget as a bar (capped at 100%) with the figures in words: "84% used · ₹8,000 left", or
- * "Over budget by ₹3,000" with an icon. All values come from the server.
+ * "Over budget by ₹3,000" with an icon. All values come from the server. {@code bare} is the 4px bar alone, for a KPI
+ * tile's last row, where {@link budgetUsedText} is the tile's helper line.
  */
-export function BudgetBar({ label, progress, className, compact = false }: { label: string; progress: BudgetProgress; className?: string; compact?: boolean }) {
+export function BudgetBar({ label, progress, className, compact = false, bare = false }: { label: string; progress: BudgetProgress; className?: string; compact?: boolean; bare?: boolean }) {
   const used = progress.usedPct ?? 0;
   const filled = Math.min(Math.max(used, 0), 100);
   const tone = progress.overBudget ? 'bg-status-danger' : used >= NEARLY_SPENT_PCT ? 'bg-status-warning' : 'bg-primary';
@@ -45,11 +46,11 @@ export function BudgetBar({ label, progress, className, compact = false }: { lab
         aria-valuemax={100}
         aria-valuenow={Math.round(filled)}
         aria-valuetext={progress.overBudget ? `Over budget, ${formatPercent(progress.usedPct)} used` : `${formatPercent(progress.usedPct)} used`}
-        className="h-2 overflow-hidden rounded-full bg-muted"
+        className={cn('overflow-hidden rounded-full bg-muted', bare ? 'h-1' : 'h-2')}
       >
         <div className={cn('h-full rounded-full', tone)} style={{ width: `${filled}%` }} />
       </div>
-      {progress.overBudget ? (
+      {bare ? null : progress.overBudget ? (
         <p className="flex items-center gap-1 text-xs font-medium text-status-danger">
           <CircleAlert className="size-3.5" aria-hidden />
           Over budget by {formatInr(Math.abs(remaining))}

@@ -90,13 +90,13 @@ describe('MarketingReportPage', () => {
     const headlines = await screen.findByRole('region', { name: 'September 2026 to October 2026' });
     expect(screen.getByText('September 2026 → October 2026')).toBeInTheDocument();
     expect(requests[0]?.params).toEqual({ month: 10, year: 2026 });
-    const leads = within(headlines).getByText('Leads').parentElement!;
+    const leads = within(headlines).getByText('Leads').closest('div')!;
     expect(leads).toHaveTextContent('180');
     expect(leads).toHaveTextContent('200');
     expect(within(leads).getByText('11.11%')).toHaveClass('text-status-success');
-    expect(within(headlines).getByText('Top 10 keywords').parentElement).toHaveTextContent('Up 20%');
-    expect(within(headlines).getByText('Backlinks live').parentElement).toHaveTextContent('Up 22.22%');
-    expect(within(headlines).getByText('Email open rate').parentElement).toHaveTextContent('Up 3.84 pts');
+    expect(within(headlines).getByText('Top 10 keywords').closest('div')).toHaveTextContent('Up 20%');
+    expect(within(headlines).getByText('Backlinks live').closest('div')).toHaveTextContent('Up 22.22%');
+    expect(within(headlines).getByText('Email open rate').closest('div')).toHaveTextContent('Up 3.84 pts');
 
     // A lower average position is good news; a drop in completed activities is bad news, in words too.
     const seo = screen.getByRole('table', { name: 'SEO summary' });

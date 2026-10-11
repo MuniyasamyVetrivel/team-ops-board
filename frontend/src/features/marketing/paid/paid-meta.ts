@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 import { parseLocalDate } from '@/features/tasks/task-meta';
 
-import type { AdDataSource, AdPlatform, CampaignObjective, PaidCampaign, PaidCampaignStatus, PaidMonth } from './api';
+import { formatInr, formatPercent } from '../marketing-format';
+import type { AdDataSource, AdPlatform, BudgetProgress, CampaignObjective, PaidCampaign, PaidCampaignStatus, PaidMonth } from './api';
 
 export const PLATFORM_LABELS: Record<AdPlatform, string> = {
   LINKEDIN: 'LinkedIn',
@@ -86,4 +87,9 @@ export function recordableMonths(campaign: PaidCampaign, months: PaidMonth[], to
     if (!recorded.has(`${period.year}-${period.month}`)) periods.push(period);
   }
   return periods;
+}
+
+/** A budget's use in words: "84% used", or "Over budget by ₹3,000" (the helper line under a spend tile). */
+export function budgetUsedText(progress: BudgetProgress): string {
+  return progress.overBudget ? `Over budget by ${formatInr(Math.abs(progress.remaining ?? 0))}` : `${formatPercent(progress.usedPct)} used`;
 }

@@ -66,7 +66,7 @@ export default function WorkloadPage() {
     <div className="space-y-6">
       <PageHeader title="Workload" description="Who is overloaded, who has capacity, and what needs attention." />
 
-      <section aria-label="Workload summary" className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 2xl:grid-cols-6">
+      <section aria-label="Workload summary" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {LEVELS.map((level) => {
           const meta = LEVEL_META[level];
           return (
@@ -76,13 +76,31 @@ export default function WorkloadPage() {
               icon={meta.icon}
               tone={level === 'OVERLOADED' ? 'text-status-danger' : level === 'HIGH' ? 'text-status-warning' : level === 'NORMAL' ? 'text-status-success' : 'text-status-neutral'}
               value={data?.summary.byLevel[level]}
+              muted={data?.summary.byLevel[level] === 0}
               hint={`${meta.range} of capacity`}
               loading={!data}
             />
           );
         })}
-        <KpiTile label="Overdue tasks" icon={AlarmClock} tone="text-status-danger" value={data?.summary.overdue} alert={(data?.summary.overdue ?? 0) > 0} loading={!data} />
-        <KpiTile label="Due today" icon={CalendarClock} tone="text-status-warning" value={data?.summary.dueToday} loading={!data} />
+        <KpiTile
+          label="Overdue tasks"
+          icon={AlarmClock}
+          tone="text-status-danger"
+          value={data?.summary.overdue}
+          muted={data?.summary.overdue === 0}
+          critical={(data?.summary.overdue ?? 0) > 0}
+          hint={data?.summary.overdue === 0 ? 'Nothing overdue' : 'Across the people shown'}
+          loading={!data}
+        />
+        <KpiTile
+          label="Due today"
+          icon={CalendarClock}
+          tone="text-status-warning"
+          value={data?.summary.dueToday}
+          muted={data?.summary.dueToday === 0}
+          hint={data?.summary.dueToday === 0 ? 'Nothing due today' : 'Across the people shown'}
+          loading={!data}
+        />
       </section>
 
       <Card>

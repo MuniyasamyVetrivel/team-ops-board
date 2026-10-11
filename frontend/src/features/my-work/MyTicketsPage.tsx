@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
+import { FilterTab, FilterTabs } from '@/components/common/FilterTab';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Pagination } from '@/components/common/Pagination';
 import { Button } from '@/components/ui/button';
@@ -33,12 +34,14 @@ interface TabDefinition {
 }
 
 /** Each card is also a tab: "Waiting on you" lists exactly the tickets that need your reply. */
+const HISTORY_QUERY: TicketQuery = { view: 'REQUESTED_BY_ME', sort: 'created,desc' };
+
 const TABS: TabDefinition[] = [
   { id: 'raised', label: 'Raised by me', icon: Inbox, tone: 'text-primary', count: (s) => s.requestedOpen, query: { view: 'REQUESTED_BY_ME', status: OPEN_TICKET_STATUSES, sort: 'created,desc' }, empty: 'You have no open tickets.' },
   { id: 'waiting', label: 'Waiting on me', icon: MessageCircleQuestion, tone: 'text-status-warning', count: (s) => s.waitingOnMe, query: { view: 'REQUESTED_BY_ME', status: ['WAITING_FOR_REQUESTER'], sort: 'updated,desc' }, empty: 'Nobody is waiting for your reply.' },
   { id: 'confirm', label: 'Resolved, to confirm', icon: CircleCheck, tone: 'text-status-success', count: (s) => s.resolvedToConfirm, query: { view: 'REQUESTED_BY_ME', status: ['RESOLVED'], sort: 'updated,desc' }, empty: 'Nothing to confirm.' },
   { id: 'assigned', label: 'Assigned to me', icon: UserCheck, tone: 'text-primary', count: (s) => s.assignedOpen, query: { view: 'ASSIGNED_TO_ME', status: OPEN_TICKET_STATUSES, sort: 'due,asc' }, empty: 'No tickets are assigned to you.', agent: true },
-  { id: 'history', label: 'All my requests', icon: History, tone: 'text-muted-foreground', query: { view: 'REQUESTED_BY_ME', sort: 'created,desc' }, empty: "You haven't raised any tickets yet." },
+  { id: 'history', label: 'All my requests', icon: History, tone: 'text-muted-foreground', query: HISTORY_QUERY, empty: "You haven't raised any tickets yet." },
 ];
 
 const PAGE_SIZE = 20;
@@ -54,6 +57,8 @@ export default function MyTicketsPage() {
   const tabs = TABS.filter((t) => !t.agent || hasPermission(user, 'TICKET_EDIT'));
   const active = tabs.find((t) => t.id === tab) ?? tabs[0]!;
   const tickets = useTickets({ ...active.query, page, size: PAGE_SIZE });
+  // "All my requests" has no summary figure: its count is the total of the same list, read from a one-row page.
+  const allRequests = useTickets({ ...HISTORY_QUERY, page: 0, size: 1 });
 
   return (
     <div className="space-y-6">
@@ -70,42 +75,23 @@ export default function MyTicketsPage() {
         }
       />
 
-      <div className={cn('grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6', tabs.length > 4 ? '2xl:grid-cols-5' : 'xl:grid-cols-4')} role="tablist" aria-label="Ticket views">
+      <FilterTabs columns={tabs.length === 5 ? 5 : 4} aria-label="Ticket views">
         {tabs.map((t) => (
-          <button
+          <FilterTab
             key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={active.id === t.id}
-            onClick={() => {
+            label={t.label}
+            icon={<t.icon className={cn('size-4 shrink-0', t.tone)} aria-hidden />}
+            count={t.count ? (summary.data ? t.count(summary.data) : null) : (allRequests.data?.totalElements ?? null)}
+            countTone={t.id === 'waiting' ? 'text-status-warning' : undefined}
+            loading={t.count ? summary.isPending : allRequests.isPending}
+            active={active.id === t.id}
+            onSelect={() => {
               setTab(t.id);
               setPage(0);
             }}
-            className={cn(
-              'flex h-full flex-col rounded-xl border bg-card p-5 text-left shadow-card transition-[border-color,box-shadow] hover:border-primary/40 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none',
-              active.id === t.id && 'border-primary ring-1 ring-primary',
-            )}
-          >
-            <span className="flex items-start gap-2.5">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">
-                <t.icon className={cn('size-4', t.tone)} aria-hidden />
-              </span>
-              <span className="pt-1.5 text-label font-medium text-muted-foreground">{t.label}</span>
-            </span>
-            {t.count ? (
-              summary.isPending ? (
-                <Skeleton className="mt-4 h-10 w-12" />
-              ) : (
-                <span className={cn('mt-4 block text-kpi font-semibold tracking-tight tabular-nums', t.id === 'waiting' && (summary.data?.waitingOnMe ?? 0) > 0 && 'text-status-warning')}>
-                  {summary.data ? t.count(summary.data) : '—'}
-                </span>
-              )
-            ) : (
-              <span className="mt-1 block text-sm text-muted-foreground">Open and closed</span>
-            )}
-          </button>
+          />
         ))}
-      </div>
+      </FilterTabs>
 
       <Card>
         <div className="flex items-center gap-2 border-b px-4 py-3">

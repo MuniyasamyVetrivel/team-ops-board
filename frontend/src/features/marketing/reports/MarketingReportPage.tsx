@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { CHART_HIGHLIGHT } from '@/components/charts/chart-theme';
 import { ComboChart } from '@/components/charts/ComboChart';
 import { ErrorState } from '@/components/common/ErrorState';
+import { KpiTile } from '@/components/common/KpiCard';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Panel } from '@/components/common/Panel';
 import { Button } from '@/components/ui/button';
@@ -107,7 +108,7 @@ export default function MarketingReportPage() {
         </Card>
       ) : !data ? (
         <div className="space-y-4" role="status" aria-label="Loading the monthly report">
-          <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 6 }, (_, i) => (
               <Skeleton key={i} className="h-24 rounded-xl" />
             ))}
@@ -175,17 +176,16 @@ function Headlines({ report }: { report: MonthlyReport }) {
   const items = headlines(report);
   if (items.length === 0) return null;
   return (
-    <section aria-label={`${report.comparisonPeriod.label} to ${report.period.label}`} className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+    <section aria-label={`${report.comparisonPeriod.label} to ${report.period.label}`} className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {items.map(({ title, line }) => (
-        <div key={title} className="flex h-full flex-col rounded-xl border bg-card p-5 shadow-card">
-          <p className="text-label font-medium text-muted-foreground">{title}</p>
-          <p className="mt-4 flex flex-wrap items-baseline gap-1.5 tabular-nums">
-            <span className="text-sm text-muted-foreground">{formatReportValue(line.previous, line.unit)}</span>
-            <ArrowRight className="size-3.5 self-center text-muted-foreground" aria-label="to" />
-            <span className="text-kpi font-semibold tracking-tight">{formatReportValue(line.current, line.unit)}</span>
-          </p>
-          <ReportChange line={line} className="mt-1" />
-        </div>
+        <KpiTile
+          key={title}
+          label={title}
+          value={formatReportValue(line.current, line.unit)}
+          muted={!line.current}
+          delta={<ReportChange line={line} variant="chip" />}
+          hint={`From ${formatReportValue(line.previous, line.unit)} in ${report.comparisonPeriod.label}`}
+        />
       ))}
     </section>
   );

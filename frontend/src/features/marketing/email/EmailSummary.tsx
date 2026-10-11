@@ -60,7 +60,7 @@ export function EmailSummary({ filters }: { filters: MarketingFilters }) {
   if (!summary.data) {
     return (
       <div className="space-y-4" role="status" aria-label="Loading the monthly summary">
-        <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 6 }, (_, i) => (
             <Skeleton key={i} className="h-28 rounded-xl" />
           ))}
@@ -77,7 +77,7 @@ export function EmailSummary({ filters }: { filters: MarketingFilters }) {
 
   return (
     <div className="space-y-6">
-      <section aria-label={`Email results for ${current.period.label}`} className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+      <section aria-label={`Email results for ${current.period.label}`} className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MarketingKpiCard label="Campaigns sent" icon={Send} value={current.campaigns} previous={comparison.campaigns} previousLabel={compareLabel} loading={loading} />
         <MarketingKpiCard label="Emails sent" icon={Mail} value={current.counts.emailsSent} previous={comparison.counts.emailsSent} previousLabel={compareLabel} loading={loading} />
         <MarketingKpiCard label="Open rate" icon={MailOpen} value={current.rates.openRate} format="percent" previous={comparison.rates.openRate} previousLabel={compareLabel} loading={loading} hint={RATE_LABELS.openRate.formula} />

@@ -30,7 +30,7 @@ export default function ActivityDetailPage() {
     return (
       <div className="space-y-6" role="status" aria-label="Loading activity">
         <Skeleton className="h-10 w-1/2" />
-        <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }, (_, i) => (
             <Skeleton key={i} className="h-24 rounded-xl" />
           ))}
@@ -76,7 +76,7 @@ export default function ActivityDetailPage() {
         </div>
       </div>
 
-      <section aria-label="Activity summary" className="grid gap-4 sm:gap-6 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="Activity summary" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Next due" icon={CalendarClock}>
           {a.nextOccurrence ? (
             <>

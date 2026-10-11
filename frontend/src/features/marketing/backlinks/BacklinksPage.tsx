@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
+import { FilterTab, FilterTabs } from '@/components/common/FilterTab';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Pagination } from '@/components/common/Pagination';
 import { SearchInput } from '@/components/common/SearchInput';
@@ -24,7 +25,7 @@ import { useImportDefinitions } from '../api';
 import { CsvImportDialog } from '../components/CsvImportDialog';
 import { MarketingFilterBar } from '../components/MarketingFilterBar';
 import type { MarketingFilters } from '../filter-memory';
-import { formatCount, periodLabel } from '../marketing-format';
+import { periodLabel } from '../marketing-format';
 import { useMarketingFilters } from '../use-marketing-filters';
 import {
   BACKLINK_IMPORT_TYPE,
@@ -178,27 +179,24 @@ function BacklinkList({ filters, canEdit, onOpen }: { filters: MarketingFilters;
         </Button>
       </div>
 
-      <div role="group" aria-label="Pipeline" className="grid grid-cols-2 gap-2 border-b px-6 py-4 sm:grid-cols-3 lg:grid-cols-6">
+      <FilterTabs role="group" columns={6} aria-label="Pipeline" className="border-b px-6 py-4">
         {BACKLINK_STATUSES.map((s) => {
           const { icon: Icon } = BACKLINK_STATUS_STYLE[s];
           const active = status === s;
           return (
-            <button
+            <FilterTab
               key={s}
-              type="button"
-              aria-pressed={active}
-              onClick={() => filter(setStatus)(active ? '' : s)}
-              className={cn('rounded-lg border px-3 py-2 text-left transition-colors hover:bg-accent', active && 'border-primary bg-accent')}
-            >
-              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Icon className="size-3.5" aria-hidden />
-                {BACKLINK_STATUS_LABELS[s]}
-              </span>
-              <span className="mt-0.5 block text-lg font-semibold tabular-nums">{summary.data ? formatCount(counts.get(s) ?? 0) : '…'}</span>
-            </button>
+              toggle
+              label={BACKLINK_STATUS_LABELS[s]}
+              icon={<Icon className="size-4 shrink-0" aria-hidden />}
+              count={summary.data ? (counts.get(s) ?? 0) : null}
+              loading={summary.isPending}
+              active={active}
+              onSelect={() => filter(setStatus)(active ? '' : s)}
+            />
           );
         })}
-      </div>
+      </FilterTabs>
 
       <div className="flex flex-col gap-3 border-b px-6 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:*:w-auto! sm:*:min-w-40 sm:[&>*:first-child]:min-w-64 sm:[&>*:first-child]:flex-1">
         <SearchInput placeholder="Search domain, URL, anchor or code" aria-label="Search backlinks" value={search} onChange={(e) => filter(setSearch)(e.target.value)} />

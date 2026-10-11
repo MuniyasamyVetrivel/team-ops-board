@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
+import { FilterTab, FilterTabs } from '@/components/common/FilterTab';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Pagination } from '@/components/common/Pagination';
 import { Button } from '@/components/ui/button';
@@ -70,38 +71,23 @@ export default function MyTasksPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 2xl:grid-cols-6" role="tablist" aria-label="Task views">
+      <FilterTabs columns={6} aria-label="Task views">
         {TABS.map((t) => (
-          <button
+          <FilterTab
             key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            onClick={() => {
+            label={t.label}
+            icon={<t.icon className={cn('size-4 shrink-0', t.tone)} aria-hidden />}
+            count={summary.data ? t.count(summary.data) : null}
+            countTone={t.id === 'overdue' ? 'text-status-danger' : undefined}
+            loading={summary.isPending}
+            active={tab === t.id}
+            onSelect={() => {
               setTab(t.id);
               setPage(0);
             }}
-            className={cn(
-              'flex h-full flex-col rounded-xl border bg-card p-5 text-left shadow-card transition-[border-color,box-shadow] hover:border-primary/40 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none',
-              tab === t.id && 'border-primary ring-1 ring-primary',
-            )}
-          >
-            <span className="flex items-start gap-2.5">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">
-                <t.icon className={cn('size-4', t.tone)} aria-hidden />
-              </span>
-              <span className="pt-1.5 text-label font-medium text-muted-foreground">{t.label}</span>
-            </span>
-            {summary.isPending ? (
-              <Skeleton className="mt-4 h-10 w-12" />
-            ) : (
-              <span className={cn('mt-4 block text-kpi font-semibold tracking-tight tabular-nums', t.id === 'overdue' && (summary.data?.overdue ?? 0) > 0 && 'text-status-danger')}>
-                {summary.data ? t.count(summary.data) : '—'}
-              </span>
-            )}
-          </button>
+          />
         ))}
-      </div>
+      </FilterTabs>
 
       <Card>
         <div className="flex items-center gap-2 border-b px-4 py-3">

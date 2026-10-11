@@ -61,11 +61,11 @@
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
 
-  /* Type scale: page title 28px, KPI value 32px, card title 16px, labels 13px. */
+  /* Type scale: page title 28px, KPI value 28px, card title 16px, labels 13px. */
   --text-page-title: 1.75rem;
   --text-page-title--line-height: 2.25rem;
-  --text-kpi: 2rem;
-  --text-kpi--line-height: 2.5rem;
+  --text-kpi: 1.75rem;
+  --text-kpi--line-height: 2.25rem;
   --text-card-title: 1rem;
   --text-card-title--line-height: 1.5rem;
   --text-label: 0.8125rem;

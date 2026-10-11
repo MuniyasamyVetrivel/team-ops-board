@@ -71,8 +71,8 @@ describe('MarketingKpiCard', () => {
       </>,
     );
     expect(screen.getByText('35.42%')).toBeInTheDocument();
-    expect(screen.getByText('18.1% vs September')).toHaveClass('text-status-success');
-    expect(screen.getByText('25% vs September')).toHaveClass('text-status-danger');
+    expect(screen.getByText('18.1%')).toHaveClass('text-status-success');
+    expect(screen.getByText('25%')).toHaveClass('text-status-danger');
     expect(screen.getByText('No comparison with September')).toBeInTheDocument();
   });
 });

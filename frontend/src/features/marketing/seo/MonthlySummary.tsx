@@ -53,7 +53,7 @@ export function MonthlySummary({ filters }: { filters: MarketingFilters }) {
       </div>
       {report.isPending ? (
         <div className="space-y-3 p-4" role="status" aria-label="Loading the monthly summary">
-          <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 5 }, (_, i) => (
               <Skeleton key={i} className="h-24 rounded-xl" />
             ))}
@@ -75,7 +75,7 @@ function SummaryBody({ stats, previous, label, previousLabel, previousFull, dimm
   const widest = Math.max(1, ...BANDS.map((band) => Math.max(band.value(stats), band.value(previous))));
   return (
     <div className={cn('space-y-6 p-6', dimmed && 'opacity-60')}>
-      <section aria-label={`SEO summary for ${label}`} className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+      <section aria-label={`SEO summary for ${label}`} className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MarketingKpiCard label="Total keywords" icon={KeyRound} value={stats.totalKeywords} hint={stats.notRecorded > 0 ? `${stats.notRecorded} without a ranking for ${label}` : 'All recorded this month'} />
         <MarketingKpiCard label="Top 10 keywords" icon={Trophy} value={stats.top10} previous={previous.top10} previousLabel={previousLabel} />
         <MarketingKpiCard label="Average position" icon={Gauge} value={stats.averagePosition} format="decimal" previous={previous.averagePosition} previousLabel={previousLabel} better="lower" hint="Ranked keywords only" />
