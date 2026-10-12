@@ -22,7 +22,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * A team event, meeting, important date or leave. Times are UTC instants; all-day events run from the business-zone
+ * A team event, meeting or important date. Times are UTC instants; all-day events run from the business-zone
  * midnight of the first day to the midnight after the last day. A null department means company-wide.
  */
 @Getter
@@ -54,10 +54,6 @@ public class CalendarEvent extends BaseEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "department_id")
 	private Department department;
-
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "user_id")
-	private User user;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "created_by")

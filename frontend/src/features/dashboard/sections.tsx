@@ -176,10 +176,10 @@ function eventWhen(item: CalendarItem): string {
   return item.endDate !== item.startDate ? `${start} – ${dayFormat.format(parseLocalDate(item.endDate))}` : start;
 }
 
-/** Upcoming events and leave from the calendar API (task deadlines have their own list). */
+/** Upcoming team events from the calendar API (task deadlines have their own list). */
 export function UpcomingEvents({ items }: { items: CalendarItem[] }) {
   const events = items.filter((item) => item.kind === 'EVENT');
-  if (events.length === 0) return <EmptyState icon={CalendarDays} title="Nothing scheduled" description="Team events, meetings and leave for the next two weeks appear here." className="py-10" />;
+  if (events.length === 0) return <EmptyState icon={CalendarDays} title="Nothing scheduled" description="Team events and meetings for the next two weeks appear here." className="py-10" />;
   return (
     <ul className="divide-y divide-border/70">
       {events.map((item) => (
@@ -191,7 +191,7 @@ export function UpcomingEvents({ items }: { items: CalendarItem[] }) {
               {item.department && ` · ${item.department.name}`}
             </p>
           </div>
-          <Badge tone={item.eventType === 'LEAVE' ? 'warning' : item.eventType === 'IMPORTANT_DATE' ? 'primary' : 'neutral'}>
+          <Badge tone={item.eventType === 'IMPORTANT_DATE' ? 'primary' : 'neutral'}>
             {item.eventType ? EVENT_TYPE_LABELS[item.eventType] : 'Event'}
           </Badge>
         </li>

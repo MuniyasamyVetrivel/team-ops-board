@@ -40,6 +40,7 @@ const MARKETING_PAIRS: readonly (readonly [PermissionCode, PermissionCode])[] = 
   ['LEAD_EDIT', 'LEAD_VIEW'],
   ['BACKLINK_EDIT', 'BACKLINK_VIEW'],
   ['CONTENT_EDIT', 'CONTENT_VIEW'],
+  ['CELEBRATIONS_EDIT', 'MARKETING_VIEW'],
 ];
 
 const MARKETING_PERMISSIONS = new Set<PermissionCode>(MARKETING_PAIRS.flat());

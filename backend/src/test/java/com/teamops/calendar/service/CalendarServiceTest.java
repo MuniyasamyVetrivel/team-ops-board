@@ -10,21 +10,33 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.teamops.approval.service.ApprovalService;
+import com.teamops.calendar.dto.CalendarDtos.CalendarItem;
+import com.teamops.calendar.dto.CalendarDtos.CalendarResponse;
 import com.teamops.calendar.dto.CalendarDtos.EventDetail;
+import com.teamops.calendar.dto.CalendarDtos.ItemKind;
 import com.teamops.calendar.dto.CalendarDtos.SaveEvent;
 import com.teamops.calendar.entity.CalendarEvent;
 import com.teamops.calendar.entity.CalendarEventType;
 import com.teamops.calendar.repository.CalendarEventRepository;
+import com.teamops.celebration.dto.CelebrationDtos.OccasionInfo;
+import com.teamops.celebration.entity.OccasionCategory;
+import com.teamops.celebration.entity.OccasionKind;
+import com.teamops.celebration.service.OccasionCalendar;
 import com.teamops.common.config.BusinessCalendar;
 import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AccessScope;
@@ -35,6 +47,7 @@ import com.teamops.department.repository.DepartmentRepository;
 import com.teamops.project.repository.ProjectMilestoneRepository;
 import com.teamops.support.SliceAuth;
 import com.teamops.support.TestFixtures;
+import com.teamops.task.entity.Task;
 import com.teamops.task.repository.TaskRepository;
 import com.teamops.user.entity.User;
 import com.teamops.user.repository.UserRepository;
@@ -55,6 +68,10 @@ class CalendarServiceTest {
 
 	private final AccessScopeService scopes = mock(AccessScopeService.class);
 
+	private final TaskRepository taskRepository = mock(TaskRepository.class);
+
+	private final OccasionCalendar occasions = mock(OccasionCalendar.class);
+
 	private final Department webDev = TestFixtures.department(5L, "WEBDEV", "Web Development");
 
 	private final Department marketing = TestFixtures.department(7L, "DM", "Digital Marketing");
@@ -63,8 +80,8 @@ class CalendarServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		service = new CalendarService(eventRepository, mock(TaskRepository.class), departmentRepository,
-				userRepository, scopes, mock(ProjectMilestoneRepository.class), mock(ApprovalService.class),
+		service = new CalendarService(eventRepository, taskRepository, departmentRepository,
+				userRepository, scopes, mock(ProjectMilestoneRepository.class), mock(ApprovalService.class), occasions,
 				new BusinessCalendar(Clock.fixed(NOW, ZoneOffset.UTC), "Asia/Kolkata"));
 		when(scopes.scopeFor(MANAGER)).thenReturn(AccessScope.departments(3L, Set.of(5L)));
 		when(scopes.scopeFor(SliceAuth.EMPLOYEE)).thenReturn(AccessScope.own(4L));
@@ -83,7 +100,7 @@ class CalendarServiceTest {
 
 	@Test
 	void allDayEventsSpanBusinessZoneMidnights() {
-		EventDetail detail = service.create(allDay(CalendarEventType.TEAM_EVENT, 5L, null), MANAGER);
+		EventDetail detail = service.create(allDay(CalendarEventType.TEAM_EVENT, 5L), MANAGER);
 
 		assertThat(detail.startAt()).as("00:00 IST").isEqualTo(Instant.parse("2026-10-14T18:30:00Z"));
 		assertThat(detail.endAt()).as("midnight after the last day").isEqualTo(Instant.parse("2026-10-16T18:30:00Z"));
@@ -94,37 +111,40 @@ class CalendarServiceTest {
 
 	@Test
 	void onlySuperAdminCreatesCompanyWideEvents() {
-		assertError(() -> service.create(allDay(CalendarEventType.IMPORTANT_DATE, null, null), MANAGER),
+		assertError(() -> service.create(allDay(CalendarEventType.IMPORTANT_DATE, null), MANAGER),
 				HttpStatus.FORBIDDEN, "FORBIDDEN");
-		assertThat(service.create(allDay(CalendarEventType.IMPORTANT_DATE, null, null), SliceAuth.SUPER_ADMIN)
+		assertThat(service.create(allDay(CalendarEventType.IMPORTANT_DATE, null), SliceAuth.SUPER_ADMIN)
 			.department()).isNull();
 	}
 
 	@Test
 	void managersCannotCreateEventsForOtherDepartments() {
-		assertError(() -> service.create(allDay(CalendarEventType.MEETING, 7L, null), MANAGER), HttpStatus.FORBIDDEN,
+		assertError(() -> service.create(allDay(CalendarEventType.MEETING, 7L), MANAGER), HttpStatus.FORBIDDEN,
 				"FORBIDDEN");
 	}
 
 	@Test
-	void leaveNeedsAPersonAndIsFiledUnderTheirDepartment() {
-		assertError(() -> service.create(allDay(CalendarEventType.LEAVE, 5L, null), MANAGER), HttpStatus.BAD_REQUEST,
-				"LEAVE_NEEDS_USER");
+	void celebrationsAndMarketingEventsAreMergedIntoTheRange() {
+		LocalDate day = LocalDate.of(2026, 10, 14);
+		OccasionInfo info = new OccasionInfo(OccasionCategory.BIRTHDAY, OccasionKind.BIRTHDAY, 12L, "SEO Executive",
+				null, null, null, null, null, null, null);
+		CalendarItem birthday = new CalendarItem("BIRTHDAY-12-2026-10-14", ItemKind.BIRTHDAY, 12L,
+				"Arun Kumar's birthday", null, true, day, day, null, null, null, null, null, null, null, info);
+		when(taskRepository.findAll(ArgumentMatchers.<Specification<Task>>any(), any(Pageable.class)))
+			.thenReturn(Page.empty());
+		when(occasions.items(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31), MANAGER)).thenReturn(List.of(birthday));
 
-		User karthik = user(4L, webDev);
-		when(userRepository.findWithDepartmentById(4L)).thenReturn(Optional.of(karthik));
-		when(scopes.canViewWorkOf(MANAGER, 4L, 5L)).thenReturn(true);
+		CalendarResponse response = service.range(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31), false, MANAGER);
 
-		EventDetail leave = service.create(allDay(CalendarEventType.LEAVE, 7L, 4L), MANAGER);
-		assertThat(leave.department().code()).isEqualTo("WEBDEV");
-		assertThat(leave.user().id()).isEqualTo(4L);
+		assertThat(response.items()).extracting(CalendarItem::key).containsExactly("BIRTHDAY-12-2026-10-14");
+		assertThat(response.items().get(0).occasion().category()).isEqualTo(OccasionCategory.BIRTHDAY);
 	}
 
 	@Test
 	void timedEventsMustEndAfterTheyStart() {
 		Instant start = Instant.parse("2026-10-15T05:00:00Z");
 		assertError(() -> service.create(new SaveEvent("Standup", null, CalendarEventType.MEETING, false, null, null,
-				start, start, 5L, null, null), MANAGER), HttpStatus.BAD_REQUEST, "INVALID_DATES");
+				start, start, 5L, null), MANAGER), HttpStatus.BAD_REQUEST, "INVALID_DATES");
 	}
 
 	@Test
@@ -146,13 +166,13 @@ class CalendarServiceTest {
 		event.setVersion(2);
 		when(eventRepository.findDetailedById(11L)).thenReturn(Optional.of(event));
 
-		assertError(() -> service.update(11L, allDay(CalendarEventType.TEAM_EVENT, 5L, null), MANAGER),
+		assertError(() -> service.update(11L, allDay(CalendarEventType.TEAM_EVENT, 5L), MANAGER),
 				HttpStatus.CONFLICT, "STALE_UPDATE");
 	}
 
-	private static SaveEvent allDay(CalendarEventType type, Long departmentId, Long userId) {
+	private static SaveEvent allDay(CalendarEventType type, Long departmentId) {
 		return new SaveEvent("Offsite", null, type, true, LocalDate.of(2026, 10, 15), LocalDate.of(2026, 10, 16),
-				null, null, departmentId, userId, null);
+				null, null, departmentId, null);
 	}
 
 	private static CalendarEvent event(Department department) {

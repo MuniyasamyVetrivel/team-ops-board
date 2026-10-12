@@ -25,8 +25,8 @@ import com.teamops.calendar.dto.CalendarDtos.ItemKind;
 import com.teamops.calendar.dto.CalendarDtos.SaveEvent;
 import com.teamops.calendar.dto.CalendarDtos.TaskInfo;
 import com.teamops.calendar.entity.CalendarEvent;
-import com.teamops.calendar.entity.CalendarEventType;
 import com.teamops.calendar.repository.CalendarEventRepository;
+import com.teamops.celebration.service.OccasionCalendar;
 import com.teamops.common.config.BusinessCalendar;
 import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AccessScope;
@@ -45,19 +45,20 @@ import com.teamops.task.entity.TaskStatus;
 import com.teamops.task.repository.TaskRepository;
 import com.teamops.task.repository.TaskSpecifications;
 import com.teamops.user.dto.UserSummary;
-import com.teamops.user.entity.User;
 import com.teamops.user.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
 /**
- * The calendar merges stored events with task deadlines, open project milestones and pending approval due dates at
- * query time (brief section 19). Each follows its own module's visibility rules. Events are visible when company-wide, in the viewer's own or managed departments, about the viewer,
- * or created by them. Events the viewer cannot see are reported as not found.
+ * The calendar merges stored events with task deadlines, open project milestones, pending approval due dates, and
+ * birthdays, work anniversaries, important days, marketing events and scheduled email campaigns
+ * ({@link OccasionCalendar}) at query time (brief section 19). Each follows its own module's visibility rules. Events
+ * are visible when company-wide, in the viewer's own or managed departments, or created by them. Events the viewer
+ * cannot see are reported as not found.
  * <p>
- * Changing an event needs CALENDAR_EDIT plus: Super Admin for company-wide events, department management
- * ({@link AccessScopeService#canManageDepartment}) for department events, and scope over the person for leave. The
- * creator may always change their own event.
+ * Changing an event needs CALENDAR_EDIT plus: Super Admin for company-wide events and department management
+ * ({@link AccessScopeService#canManageDepartment}) for department events. The creator may always change their own
+ * event.
  */
 @Service
 @RequiredArgsConstructor
@@ -84,10 +85,12 @@ public class CalendarService {
 
 	private final ApprovalService approvalService;
 
+	private final OccasionCalendar occasionCalendar;
+
 	private final BusinessCalendar calendar;
 
 	/**
-	 * @param mine only the viewer's own deadlines (My Calendar); events are unchanged
+	 * @param mine only the viewer's own deadlines (My Calendar); events and occasions are unchanged
 	 */
 	@Transactional(readOnly = true)
 	public CalendarResponse range(LocalDate from, LocalDate to, boolean mine, AuthenticatedUser actor) {
@@ -121,6 +124,7 @@ public class CalendarService {
 		if (actor.hasPermission("APPROVAL_VIEW")) {
 			approvalService.pendingDueBetween(from, to, actor).forEach(approval -> items.add(toItem(approval)));
 		}
+		items.addAll(occasionCalendar.items(from, to, actor));
 
 		items.sort(Comparator.comparing(CalendarItem::startDate)
 			.thenComparing(item -> item.kind() == ItemKind.TASK_DEADLINE)
@@ -168,23 +172,14 @@ public class CalendarService {
 	// --- helpers --------------------------------------------------------------------------------------------
 
 	private void apply(CalendarEvent event, SaveEvent request, AccessScope scope, AuthenticatedUser actor) {
-		User person = null;
 		Department department = null;
-		if (request.userId() != null) {
-			person = userRepository.findWithDepartmentById(request.userId())
-				.orElseThrow(() -> ApiException.badRequest("UNKNOWN_USER", "User not found"));
-			department = person.getDepartment();
-		}
-		else if (request.departmentId() != null) {
+		if (request.departmentId() != null) {
 			department = departmentRepository.findById(request.departmentId())
 				.orElseThrow(() -> ApiException.badRequest("UNKNOWN_DEPARTMENT", "Department not found"));
 		}
-		if (request.eventType() == CalendarEventType.LEAVE && person == null) {
-			throw ApiException.badRequest("LEAVE_NEEDS_USER", "Leave must name the person who is away");
-		}
-		if (!canManage(department, person, scope, actor)) {
+		if (!canManage(department, scope, actor)) {
 			throw ApiException.forbidden("FORBIDDEN", department == null
-					? "Only a Super Admin can add company-wide events" : "You cannot add events for this team or person");
+					? "Only a Super Admin can add company-wide events" : "You cannot add events for this team");
 		}
 
 		event.setTitle(request.title().trim());
@@ -192,7 +187,6 @@ public class CalendarService {
 		event.setEventType(request.eventType());
 		event.setAllDay(request.allDay());
 		event.setDepartment(department);
-		event.setUser(person);
 		if (request.allDay()) {
 			if (request.startDate() == null || request.endDate() == null
 					|| request.endDate().isBefore(request.startDate())) {
@@ -218,8 +212,7 @@ public class CalendarService {
 	}
 
 	static boolean canView(CalendarEvent event, AccessScope scope, AuthenticatedUser actor) {
-		if (scope.isAll() || event.getDepartment() == null || event.isCreatedBy(actor.id())
-				|| (event.getUser() != null && event.getUser().getId().equals(actor.id()))) {
+		if (scope.isAll() || event.getDepartment() == null || event.isCreatedBy(actor.id())) {
 			return true;
 		}
 		Long departmentId = event.getDepartment().getId();
@@ -228,7 +221,7 @@ public class CalendarService {
 
 	private boolean canEdit(CalendarEvent event, AccessScope scope, AuthenticatedUser actor) {
 		return actor.hasPermission("CALENDAR_EDIT")
-				&& (event.isCreatedBy(actor.id()) || canManage(event.getDepartment(), event.getUser(), scope, actor));
+				&& (event.isCreatedBy(actor.id()) || canManage(event.getDepartment(), scope, actor));
 	}
 
 	private void requireEdit(CalendarEvent event, AccessScope scope, AuthenticatedUser actor) {
@@ -237,12 +230,9 @@ public class CalendarService {
 		}
 	}
 
-	private boolean canManage(Department department, User person, AccessScope scope, AuthenticatedUser actor) {
+	private boolean canManage(Department department, AccessScope scope, AuthenticatedUser actor) {
 		if (scope.isAll()) {
 			return true;
-		}
-		if (person != null) {
-			return accessScopeService.canViewWorkOf(actor, person.getId(), person.getDepartment().getId());
 		}
 		return department != null && accessScopeService.canManageDepartment(actor, department.getId());
 	}
@@ -257,8 +247,8 @@ public class CalendarService {
 		return new CalendarItem("EVENT-" + event.getId(), ItemKind.EVENT, event.getId(), event.getTitle(),
 				event.getEventType(), event.isAllDay(), startDate(event), endDate(event),
 				event.isAllDay() ? null : event.getStartAt(), event.isAllDay() ? null : event.getEndAt(),
-				event.getDepartment() == null ? null : DepartmentSummary.of(event.getDepartment()),
-				UserSummary.of(event.getUser()), null, null, null);
+				event.getDepartment() == null ? null : DepartmentSummary.of(event.getDepartment()), null, null, null,
+				null, null);
 	}
 
 	private static CalendarItem toItem(Task task, LocalDate today) {
@@ -266,7 +256,7 @@ public class CalendarService {
 				true, task.getDueDate(), task.getDueDate(), null, null, DepartmentSummary.of(task.getDepartment()),
 				UserSummary.of(task.getAssignee()), new TaskInfo(task.getCode(), task.getStatus(), task.getPriority(),
 						DueState.of(task.getDueDate(), task.getStatus(), today)),
-				task.getCode(), null);
+				task.getCode(), null, null);
 	}
 
 	private static CalendarItem toItem(ProjectMilestone milestone) {
@@ -274,22 +264,21 @@ public class CalendarService {
 		return new CalendarItem("MILESTONE-" + milestone.getId(), ItemKind.MILESTONE, milestone.getId(),
 				milestone.getName(), null, true, milestone.getDueDate(), milestone.getDueDate(), null, null,
 				DepartmentSummary.of(project.getDepartment()), UserSummary.of(project.getOwner()), null,
-				project.getCode(), project.getId());
+				project.getCode(), project.getId(), null);
 	}
 
 	private static CalendarItem toItem(Approval approval) {
 		return new CalendarItem("APPROVAL-" + approval.getId(), ItemKind.APPROVAL_DUE, approval.getId(),
 				approval.getTitle(), null, true, approval.getDueDate(), approval.getDueDate(), null, null,
 				DepartmentSummary.of(approval.getDepartment()), UserSummary.of(approval.getRequester()), null,
-				approval.getCode(), null);
+				approval.getCode(), null, null);
 	}
 
 	private EventDetail toDetail(CalendarEvent event, AccessScope scope, AuthenticatedUser actor) {
 		return new EventDetail(event.getId(), event.getTitle(), event.getDescription(), event.getEventType(),
 				event.isAllDay(), startDate(event), endDate(event), event.getStartAt(), event.getEndAt(),
 				event.getDepartment() == null ? null : DepartmentSummary.of(event.getDepartment()),
-				UserSummary.of(event.getUser()), UserSummary.of(event.getCreatedBy()), event.getVersion(),
-				canEdit(event, scope, actor));
+				UserSummary.of(event.getCreatedBy()), event.getVersion(), canEdit(event, scope, actor));
 	}
 
 	private LocalDate startDate(CalendarEvent event) {

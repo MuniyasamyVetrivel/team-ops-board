@@ -14,7 +14,7 @@ import com.teamops.common.security.UserPrincipalService;
 /** Test principals and bearer tokens for {@link SecuritySliceTest}s. */
 public final class SliceAuth {
 
-	/** Every permission seeded by V2, as the backend resolves them for SUPER_ADMIN. */
+	/** Every permission (V2 and later migrations), as the backend resolves them for SUPER_ADMIN. */
 	public static final Set<String> ALL_PERMISSIONS = Set.of("DASHBOARD_VIEW", "TASK_VIEW", "TASK_CREATE",
 			"TASK_EDIT", "TASK_ASSIGN", "TASK_DELETE", "WORKLOAD_VIEW", "PROJECT_VIEW", "PROJECT_EDIT", "TICKET_VIEW",
 			"TICKET_CREATE", "TICKET_EDIT", "TICKET_ASSIGN", "SLA_MANAGE", "APPROVAL_VIEW", "APPROVAL_DECIDE",
@@ -22,7 +22,8 @@ public final class SliceAuth {
 			"TEAM_VIEW", "CALENDAR_VIEW", "CALENDAR_EDIT", "REPORT_VIEW", "REPORT_EXPORT", "USER_MANAGE",
 			"DEPARTMENT_MANAGE", "SETTINGS_MANAGE", "PERMISSION_MANAGE", "AUDIT_VIEW", "MARKETING_VIEW",
 			"MARKETING_EDIT", "SEO_VIEW", "SEO_EDIT", "CAMPAIGN_VIEW", "CAMPAIGN_EDIT", "TARGET_VIEW", "TARGET_EDIT",
-			"LEAD_VIEW", "LEAD_EDIT", "BACKLINK_VIEW", "BACKLINK_EDIT", "CONTENT_VIEW", "CONTENT_EDIT");
+			"LEAD_VIEW", "LEAD_EDIT", "BACKLINK_VIEW", "BACKLINK_EDIT", "CONTENT_VIEW", "CONTENT_EDIT",
+			"CELEBRATIONS_EDIT");
 
 	/** EMPLOYEE role permissions from V2. */
 	public static final Set<String> EMPLOYEE_PERMISSIONS = Set.of("DASHBOARD_VIEW", "TASK_VIEW", "TASK_CREATE",

@@ -241,7 +241,7 @@ Human-readable codes (`TSK-000001`, `TKT-000001`, `PRJ-0001`, `APR-000001`, `LEA
 
 ### Cross-cutting
 - **notifications**: user_id, type, title, body, entity_type, entity_id, read_at, created_at, INDEX(user_id, read_at)
-- **calendar_events**: title, description, event_type TEAM_EVENT/LEAVE/IMPORTANT_DATE/MEETING, start_at, end_at, all_day, department_id NULL, user_id NULL (for leave), created_by. Task deadlines, milestones and approval due dates are **merged in at query time**, not copied here.
+- **calendar_events**: title, description, event_type TEAM_EVENT/IMPORTANT_DATE/MEETING, start_at, end_at, all_day, department_id NULL, created_by. Task deadlines, milestones and approval due dates are **merged in at query time**, not copied here. Leave is managed in Zoho People (removed in V22); celebrations, important days and marketing events are in `docs/CALENDAR_FEATURES_BRIEF.md`.
 - **audit_logs**: actor_id NULL, action (LOGIN, TASK_CREATED, TARGET_UPDATED, …), entity_type, entity_id, details JSON (before/after), ip_address, user_agent, created_at. Indexes: (entity_type, entity_id) and (created_at).
 
 ### Digital Marketing

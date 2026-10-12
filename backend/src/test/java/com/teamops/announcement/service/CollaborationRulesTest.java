@@ -96,7 +96,7 @@ class CollaborationRulesTest {
 
 	private static Document document(Department department, User uploader) {
 		Document document = new Document();
-		document.setName("Leave policy");
+		document.setName("Security policy");
 		document.setDepartment(department);
 		document.setUploadedBy(uploader);
 		return document;

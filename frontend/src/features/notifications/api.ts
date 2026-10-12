@@ -3,7 +3,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { api } from '@/lib/api/client';
 import type { PageResponse } from '@/lib/api/types';
 
-export type NotificationType = 'TASK_ASSIGNED' | 'TASK_DUE_SOON' | 'TASK_OVERDUE' | 'TICKET_ASSIGNED' | 'TICKET_UPDATED' | 'TICKET_REPLY' | 'APPROVAL_REQUIRED' | 'APPROVAL_DECIDED' | 'ANNOUNCEMENT_PUBLISHED';
+export type NotificationType = 'TASK_ASSIGNED' | 'TASK_DUE_SOON' | 'TASK_OVERDUE' | 'TICKET_ASSIGNED' | 'TICKET_UPDATED' | 'TICKET_REPLY' | 'APPROVAL_REQUIRED' | 'APPROVAL_DECIDED' | 'ANNOUNCEMENT_PUBLISHED' | 'OCCASION_REMINDER';
 
 /** Mirrors com.teamops.notification.dto.NotificationResponse. */
 export interface AppNotification {
@@ -29,6 +29,7 @@ export function notificationHref(notification: AppNotification): string | null {
   if (notification.entityType === 'APPROVAL') return `/approvals?approval=${notification.entityId}`;
   if (notification.entityType === 'ANNOUNCEMENT') return '/announcements';
   if (notification.entityType === 'MARKETING_ACTIVITY') return `/digital-marketing/activities/${notification.entityId}`;
+  if (notification.entityType === 'EMPLOYEE' || notification.entityType === 'IMPORTANT_DAY' || notification.entityType === 'MARKETING_EVENT') return '/calendar';
   return null;
 }
 

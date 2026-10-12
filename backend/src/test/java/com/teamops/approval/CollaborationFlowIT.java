@@ -283,7 +283,7 @@ class CollaborationFlowIT {
 
 		String before = as(employeeToken, get("/api/announcements/unread-count")).andReturn().getResponse().getContentAsString();
 		String created = as(managerToken, post("/api/announcements").contentType(MediaType.APPLICATION_JSON)
-			.content("{\"title\":\"New leave policy %s\",\"body\":\"Please read.\",\"targetDepartmentId\":%d,\"priority\":\"IMPORTANT\",\"ackRequired\":true}"
+			.content("{\"title\":\"New security policy %s\",\"body\":\"Please read.\",\"targetDepartmentId\":%d,\"priority\":\"IMPORTANT\",\"ackRequired\":true}"
 				.formatted(unique, departmentId)))
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.state").value("ACTIVE"))
@@ -346,7 +346,7 @@ class CollaborationFlowIT {
 	@Test
 	void documentsKeepEveryVersionAndFollowDepartmentScope() throws Exception {
 		String uploaded = as(managerToken, multipart("/api/documents").file(file("v1 content"))
-			.param("name", "Leave policy " + unique)
+			.param("name", "Security policy " + unique)
 			.param("departmentId", String.valueOf(departmentId))).andExpect(status().isCreated())
 			.andExpect(jsonPath("$.versions.length()").value(1))
 			.andReturn()
@@ -466,7 +466,7 @@ class CollaborationFlowIT {
 	}
 
 	private static MockMultipartFile file(String text) {
-		return new MockMultipartFile("file", "leave-policy.txt", "text/plain", text.getBytes(StandardCharsets.UTF_8));
+		return new MockMultipartFile("file", "security-policy.txt", "text/plain", text.getBytes(StandardCharsets.UTF_8));
 	}
 
 	private ResultActions as(String token, AbstractMockHttpServletRequestBuilder<?> request) throws Exception {

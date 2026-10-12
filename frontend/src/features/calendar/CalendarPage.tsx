@@ -35,7 +35,8 @@ const weekday = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 const time = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
 
 /**
- * Team calendar (brief section 19): events, leave, task deadlines, project milestones and approval due dates, in
+ * Team calendar (brief section 19): events, task deadlines, project milestones, approval due dates, birthdays, work
+ * anniversaries, important days and marketing events, in
  * month, week and agenda views. "Today" is highlighted from the server's business date.
  */
 export default function CalendarPage() {
@@ -63,8 +64,12 @@ export default function CalendarPage() {
       case 'APPROVAL_DUE':
         void navigate(`/approvals?approval=${item.id}`);
         break;
-      default:
+      case 'EVENT':
         setEventTarget({ eventId: item.id });
+        break;
+      default:
+        // Birthdays, anniversaries, important days and marketing events get their own drawer in the Calendar UI phase.
+        break;
     }
   }
 
@@ -77,7 +82,7 @@ export default function CalendarPage() {
     <div className="space-y-6">
       <PageHeader
         title="Calendar"
-        description="Deadlines, milestones, approvals, events and leave."
+        description="Deadlines, milestones, approvals, events and celebrations."
         actions={
           canEdit && (
             <Button onClick={() => setEventTarget({ day: today ?? anchor })}>

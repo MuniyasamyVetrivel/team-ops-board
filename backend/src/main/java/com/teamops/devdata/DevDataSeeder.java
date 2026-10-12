@@ -37,7 +37,7 @@ public class DevDataSeeder implements ApplicationRunner {
 
 	static final Set<String> ALL_MARKETING_PERMISSIONS = Set.of("MARKETING_VIEW", "MARKETING_EDIT", "SEO_VIEW",
 			"SEO_EDIT", "CAMPAIGN_VIEW", "CAMPAIGN_EDIT", "TARGET_VIEW", "TARGET_EDIT", "LEAD_VIEW", "LEAD_EDIT",
-			"BACKLINK_VIEW", "BACKLINK_EDIT", "CONTENT_VIEW", "CONTENT_EDIT");
+			"BACKLINK_VIEW", "BACKLINK_EDIT", "CONTENT_VIEW", "CONTENT_EDIT", "CELEBRATIONS_EDIT");
 
 	private static final String RAKESH = "rakesh@teamops.local";
 
@@ -112,6 +112,8 @@ public class DevDataSeeder implements ApplicationRunner {
 	private final DevBacklinkSeeder devBacklinkSeeder;
 
 	private final DevContentSeeder devContentSeeder;
+
+	private final DevCelebrationSeeder devCelebrationSeeder;
 
 	@Override
 	public void run(ApplicationArguments args) {
@@ -192,6 +194,7 @@ public class DevDataSeeder implements ApplicationRunner {
 		if (backlinks > 0) {
 			log.info("Development seed: {} backlinks created", backlinks);
 		}
+		log.info("Development seed: {}", devCelebrationSeeder.seed());
 	}
 
 	record SeedUser(String email, String firstName, String lastName, String jobTitle, String departmentCode,

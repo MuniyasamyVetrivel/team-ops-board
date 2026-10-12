@@ -19,8 +19,8 @@ public final class AuditCatalog {
 		SIGN_IN("Sign-in"), USERS("Users and access"), DEPARTMENTS("Departments"), TASKS("Tasks"),
 		TICKETS("Help desk"), PROJECTS("Projects"), APPROVALS("Approvals"), COLLABORATION("Collaboration"),
 		IMPORTS("CSV imports"), SEO("SEO"), TARGETS("Marketing targets"), ACTIVITIES("Marketing activities"),
-		CAMPAIGNS("Campaigns"), LEADS("Leads"), BACKLINKS("Backlinks"), CONTENT("Content"), REPORTS("Reports"),
-		SETTINGS("Settings");
+		CAMPAIGNS("Campaigns"), LEADS("Leads"), BACKLINKS("Backlinks"), CONTENT("Content"),
+		CELEBRATIONS("Celebrations and events"), REPORTS("Reports"), SETTINGS("Settings");
 
 		private final String label;
 
@@ -118,6 +118,10 @@ public final class AuditCatalog {
 			case LEAD_CREATED, LEAD_UPDATED, LEAD_STATUS_CHANGED, LEAD_DELETED -> Module.LEADS;
 			case BACKLINK_CREATED, BACKLINK_UPDATED, BACKLINK_STATUS_CHANGED, BACKLINK_DELETED -> Module.BACKLINKS;
 			case CONTENT_CREATED, CONTENT_UPDATED, CONTENT_STATUS_CHANGED, CONTENT_DELETED -> Module.CONTENT;
+			case EMPLOYEE_CREATED, EMPLOYEE_UPDATED, EMPLOYEE_DELETED, IMPORTANT_DAY_CREATED, IMPORTANT_DAY_UPDATED,
+					IMPORTANT_DAY_DELETED, MARKETING_EVENT_CREATED, MARKETING_EVENT_UPDATED, MARKETING_EVENT_DELETED,
+					LINKEDIN_POST_UPDATED ->
+				Module.CELEBRATIONS;
 			case MARKETING_REPORT_FROZEN -> Module.REPORTS;
 			case SETTING_UPDATED -> Module.SETTINGS;
 		};

@@ -87,43 +87,34 @@ class DevDashboardSeeder {
 		User rakesh = userRepository.findByEmailIgnoreCase("rakesh@teamops.local").orElse(null);
 		LocalDate today = calendar.today();
 
-		allDay("Quarterly town hall", CalendarEventType.TEAM_EVENT, today.plusDays(6), today.plusDays(6), null, null,
+		allDay("Quarterly town hall", CalendarEventType.TEAM_EVENT, today.plusDays(6), today.plusDays(6), null,
 				rakesh);
 		allDay("Company holiday", CalendarEventType.IMPORTANT_DATE, today.plusDays(13), today.plusDays(13), null,
-				null, rakesh);
+				rakesh);
 		allDay("Q4 planning deadline", CalendarEventType.IMPORTANT_DATE, today.plusDays(20), today.plusDays(20),
-				null, null, rakesh);
+				null, rakesh);
 		timed("Sprint review", CalendarEventType.MEETING, today.plusDays(2), LocalTime.of(15, 0), 60,
 				departments.get("WEBDEV"), rakesh);
 		timed("Content planning", CalendarEventType.MEETING, today.plusDays(1), LocalTime.of(11, 0), 45,
 				departments.get("DM"), rakesh);
 		timed("Security awareness session", CalendarEventType.TEAM_EVENT, today.plusDays(9), LocalTime.of(16, 0), 90,
 				departments.get("CYBERSEC"), rakesh);
-		leave("karthik.raj@teamops.local", today.plusDays(3), today.plusDays(4), rakesh);
-		leave("priya.menon@teamops.local", today.plusDays(10), today.plusDays(12), rakesh);
-		leave("vignesh.raman@teamops.local", today.minusDays(1), today, rakesh);
 		return (int) eventRepository.count();
 	}
 
-	private void leave(String email, LocalDate from, LocalDate to, User createdBy) {
-		userRepository.findByEmailIgnoreCase(email)
-			.ifPresent(user -> allDay(user.getFullName() + " on leave", CalendarEventType.LEAVE, from, to,
-					user.getDepartment(), user, createdBy));
-	}
-
 	private void allDay(String title, CalendarEventType type, LocalDate from, LocalDate to, Department department,
-			User user, User createdBy) {
-		save(title, type, true, calendar.startOf(from), calendar.startOf(to.plusDays(1)), department, user, createdBy);
+			User createdBy) {
+		save(title, type, true, calendar.startOf(from), calendar.startOf(to.plusDays(1)), department, createdBy);
 	}
 
 	private void timed(String title, CalendarEventType type, LocalDate day, LocalTime start, int minutes,
 			Department department, User createdBy) {
 		Instant startAt = day.atTime(start).atZone(calendar.zone()).toInstant();
-		save(title, type, false, startAt, startAt.plusSeconds(minutes * 60L), department, null, createdBy);
+		save(title, type, false, startAt, startAt.plusSeconds(minutes * 60L), department, createdBy);
 	}
 
 	private void save(String title, CalendarEventType type, boolean allDay, Instant start, Instant end,
-			Department department, User user, User createdBy) {
+			Department department, User createdBy) {
 		CalendarEvent event = new CalendarEvent();
 		event.setTitle(title);
 		event.setEventType(type);
@@ -131,7 +122,6 @@ class DevDashboardSeeder {
 		event.setStartAt(start);
 		event.setEndAt(end);
 		event.setDepartment(department);
-		event.setUser(user);
 		event.setCreatedBy(createdBy);
 		eventRepository.save(event);
 	}

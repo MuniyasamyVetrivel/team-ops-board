@@ -29,6 +29,7 @@ function item(overrides: Partial<CalendarItem>): CalendarItem {
     task: null,
     reference: null,
     parentId: null,
+    occasion: null,
     ...overrides,
   };
 }

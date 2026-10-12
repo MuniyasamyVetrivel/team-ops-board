@@ -176,14 +176,14 @@ class CollaborationApiSecurityTest {
 	void documentUploadsNeedDocumentEditAndBindTheirFields() throws Exception {
 		MockMultipartFile file = new MockMultipartFile("file", "policy.pdf", "application/pdf", new byte[] { 1, 2 });
 		mvc.perform(multipart("/api/documents").file(file)
-			.param("name", "Leave policy")
+			.param("name", "Security policy")
 			.header(HttpHeaders.AUTHORIZATION, bearer(SliceAuth.EMPLOYEE))).andExpect(status().isForbidden());
 
 		mvc.perform(multipart("/api/documents").file(file)
-			.param("name", "Leave policy")
+			.param("name", "Security policy")
 			.param("departmentId", "5")
 			.header(HttpHeaders.AUTHORIZATION, bearer(MANAGER))).andExpect(status().isCreated());
-		verify(documentService).upload(any(), eq("Leave policy"), isNull(), eq(5L), isNull(), eq(MANAGER), any());
+		verify(documentService).upload(any(), eq("Security policy"), isNull(), eq(5L), isNull(), eq(MANAGER), any());
 	}
 
 }

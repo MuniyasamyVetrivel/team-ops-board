@@ -44,6 +44,8 @@ change is a new migration. See [architecture.md](architecture.md) for how the ap
 | V19 marketing_monthly_reports | `marketing_monthly_reports` (frozen monthly reports, JSON payload) |
 | V20 admin_settings_roles | `version` on `app_settings`, `approval_types` and `roles`; default weekly capacity setting; audit indexes |
 | V21 performance_indexes | Indexes for task KPIs and reports, and for the newest-first lead, backlink and content lists (Phase 24) |
+| V22 remove_leave_and_hr_policy_content | Leave moved to Zoho People: deletes `LEAVE` calendar events, drops `calendar_events.user_id`, removes the leave-policy announcement, article, document, ticket and task from earlier dev seeds |
+| V23 celebrations_important_days_events | `CELEBRATIONS_EDIT`, the reminder days-before setting, `employees`, `important_days`, `marketing_events`, `linkedin_posts`, `occasion_attachments` |
 
 Never edit an applied migration; add `V{n+1}__description.sql` instead, in the phase that first needs it.
 
@@ -73,7 +75,20 @@ Never edit an applied migration; add `V{n+1}__description.sql` instead, in the p
 | `files`, `task_attachments` | Stored file metadata and its links to tasks (also used by tickets, projects, KB and content) | Unique `storage_key` |
 | `projects`, `project_members`, `project_milestones`, `project_risks`, `project_dependencies`, `project_attachments` | Projects and their parts | Unique project `code` |
 | `notifications` | In-app notifications | Unique `(user_id, dedup_key)` so reminders are sent once |
-| `calendar_events` | Company, department and personal events and leave | — |
+| `calendar_events` | Company and department events, meetings and important dates | — |
+
+### Celebrations, important days and events
+
+Birthdays and work anniversaries are computed from the employee's dates every year (29 February falls on 28 February
+otherwise); occurrences are never stored.
+
+| Table | Purpose | Notable constraints |
+|---|---|---|
+| `employees` | Staff and consultants (most never sign in): employee ID, names, date of birth, designation, reporting manager, joining date, department, work email, office, photo, optional app user, `ACTIVE`/`LEFT` | Unique `employee_code`, unique `user_id` |
+| `important_days` | Festivals, national and industry days, company milestones per region; `YEARLY` or `ONE_OFF` | Unique `(name, day_date, region)` |
+| `marketing_events` | Events, webinars, event and email marketing with owner, links, status and optional email campaign | Index on `start_at` |
+| `linkedin_posts` | Post tracking per occurrence (`subject_type`, `subject_id`, `occurrence_date`) | **Unique `(subject_type, subject_id, occurrence_date)`** |
+| `occasion_attachments` | Files on important days and events | Unique `file_id` |
 
 ### Help desk
 

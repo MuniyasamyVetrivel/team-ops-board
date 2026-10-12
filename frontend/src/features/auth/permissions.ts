@@ -49,6 +49,7 @@ export const PERMISSION_CODES = [
   'BACKLINK_EDIT',
   'CONTENT_VIEW',
   'CONTENT_EDIT',
+  'CELEBRATIONS_EDIT',
 ] as const;
 
 export type PermissionCode = (typeof PERMISSION_CODES)[number];

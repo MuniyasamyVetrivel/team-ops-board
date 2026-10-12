@@ -29,6 +29,15 @@ class MarketingPermissionRulesTest {
 	}
 
 	@Test
+	void celebrationEditorsAreDigitalMarketingUsers() {
+		assertThatThrownBy(() -> MarketingPermissionRules.assertConsistent(Set.of("CELEBRATIONS_EDIT", "CALENDAR_VIEW")))
+			.extracting("code")
+			.isEqualTo("MARKETING_VIEW_REQUIRED");
+		assertThatCode(() -> MarketingPermissionRules.assertConsistent(Set.of("MARKETING_VIEW", "CELEBRATIONS_EDIT")))
+			.doesNotThrowAnyException();
+	}
+
+	@Test
 	void editPermissionsNeedTheirViewPermission() {
 		assertThatThrownBy(() -> MarketingPermissionRules
 			.assertConsistent(Set.of("MARKETING_VIEW", "SEO_EDIT", "LEAD_EDIT", "LEAD_VIEW", "CONTENT_EDIT")))

@@ -40,6 +40,12 @@ public class AppSettingsService {
 
 	public static final String UPLOAD_MAX_SIZE_MB = "upload.maxSizeMb";
 
+	public static final String CELEBRATION_REMINDER_DAYS_BEFORE = "celebrations.reminderDaysBefore";
+
+	public static final int DEFAULT_REMINDER_DAYS_BEFORE = 2;
+
+	public static final int MAX_REMINDER_DAYS_BEFORE = 30;
+
 	private final AppSettingRepository repository;
 
 	/** Days ahead (plus overdue) counted towards workload %. */
@@ -71,6 +77,15 @@ public class AppSettingsService {
 		BigDecimal hours = decimal(DEFAULT_WEEKLY_CAPACITY_HOURS, DEFAULT_CAPACITY_HOURS);
 		return hours.compareTo(BigDecimal.ONE) < 0 || hours.compareTo(BigDecimal.valueOf(80)) > 0
 				? DEFAULT_CAPACITY_HOURS : hours;
+	}
+
+	/**
+	 * Days before a birthday, work anniversary, important day or event that its reminder goes out (0–30; 0 sends only
+	 * the on-the-day reminder).
+	 */
+	public int celebrationReminderDaysBefore() {
+		int days = decimal(CELEBRATION_REMINDER_DAYS_BEFORE, BigDecimal.valueOf(DEFAULT_REMINDER_DAYS_BEFORE)).intValue();
+		return days < 0 || days > MAX_REMINDER_DAYS_BEFORE ? DEFAULT_REMINDER_DAYS_BEFORE : days;
 	}
 
 	/**

@@ -1,19 +1,38 @@
-import { CalendarHeart, Flag, ListTodo, Plane, Presentation, Star, Users, Workflow, type LucideIcon } from 'lucide-react';
+import { Award, Cake, CalendarHeart, Flag, ListTodo, Mail, Megaphone, MonitorPlay, Presentation, Sparkles, Star, Users, Workflow, type LucideIcon } from 'lucide-react';
 
-import type { CalendarEventType, CalendarItem } from './api';
+import type { CalendarEventType, CalendarItem, OccasionCategory } from './api';
 
 export const EVENT_TYPE_LABELS: Record<CalendarEventType, string> = {
   TEAM_EVENT: 'Team event',
   MEETING: 'Meeting',
   IMPORTANT_DATE: 'Important date',
-  LEAVE: 'Leave',
 };
 
 const EVENT_ICONS: Record<CalendarEventType, LucideIcon> = {
   TEAM_EVENT: Users,
   MEETING: Presentation,
   IMPORTANT_DATE: Star,
-  LEAVE: Plane,
+};
+
+/** Celebration and marketing categories: each has its own icon and label (colour is never the only signal). */
+export const OCCASION_LABELS: Record<OccasionCategory, string> = {
+  BIRTHDAY: 'Birthday',
+  WORK_ANNIVERSARY: 'Work anniversary',
+  IMPORTANT_DAY: 'Important day',
+  EVENT: 'Event',
+  WEBINAR: 'Webinar',
+  EVENT_MARKETING: 'Event marketing',
+  EMAIL_MARKETING: 'Email marketing',
+};
+
+const OCCASION_ICONS: Record<OccasionCategory, LucideIcon> = {
+  BIRTHDAY: Cake,
+  WORK_ANNIVERSARY: Award,
+  IMPORTANT_DAY: Sparkles,
+  EVENT: CalendarHeart,
+  WEBINAR: MonitorPlay,
+  EVENT_MARKETING: Megaphone,
+  EMAIL_MARKETING: Mail,
 };
 
 /**
@@ -21,6 +40,10 @@ const EVENT_ICONS: Record<CalendarEventType, LucideIcon> = {
  * Overdue task deadlines are shown in the danger colour.
  */
 export function itemVisual(item: CalendarItem): { icon: LucideIcon; label: string; className: string } {
+  if (item.occasion) {
+    const category = item.occasion.category;
+    return { icon: OCCASION_ICONS[category], label: OCCASION_LABELS[category], className: 'border-primary/20 bg-accent text-accent-foreground' };
+  }
   switch (item.kind) {
     case 'TASK_DEADLINE': {
       const overdue = item.task?.dueState === 'OVERDUE';
@@ -39,7 +62,7 @@ export function itemVisual(item: CalendarItem): { icon: LucideIcon; label: strin
       return {
         icon: EVENT_ICONS[type] ?? CalendarHeart,
         label: EVENT_TYPE_LABELS[type],
-        className: type === 'LEAVE' ? 'border-border bg-muted text-muted-foreground' : 'border-border bg-card text-foreground',
+        className: 'border-border bg-card text-foreground',
       };
     }
   }

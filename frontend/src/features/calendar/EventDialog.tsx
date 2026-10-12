@@ -18,7 +18,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { isSuperAdmin } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
 import { useDepartments } from '@/features/departments/api';
-import { useTeamDirectory } from '@/features/team/api';
 import { errorMessage } from '@/lib/api/errors';
 import { applyServerErrors } from '@/lib/api/form-errors';
 
@@ -30,14 +29,13 @@ const eventSchema = z
   .object({
     title: z.string().trim().min(1, 'Title is required').max(200),
     description: z.string().max(5000),
-    eventType: z.enum(['TEAM_EVENT', 'MEETING', 'IMPORTANT_DATE', 'LEAVE']),
+    eventType: z.enum(['TEAM_EVENT', 'MEETING', 'IMPORTANT_DATE']),
     allDay: z.boolean(),
     startDate: z.string(),
     endDate: z.string(),
     startAt: z.string(),
     endAt: z.string(),
     departmentId: z.string(),
-    userId: z.string(),
   })
   .superRefine((v, ctx) => {
     if (v.allDay) {
@@ -49,7 +47,6 @@ const eventSchema = z
       if (!v.endAt) ctx.addIssue({ code: 'custom', path: ['endAt'], message: 'End time is required' });
       if (v.startAt && v.endAt && v.endAt <= v.startAt) ctx.addIssue({ code: 'custom', path: ['endAt'], message: 'The end must be after the start' });
     }
-    if (v.eventType === 'LEAVE' && !v.userId) ctx.addIssue({ code: 'custom', path: ['userId'], message: 'Choose who is on leave' });
   });
 
 type EventValues = z.infer<typeof eventSchema>;
@@ -101,7 +98,6 @@ function ExistingEvent({ id, onDone }: { id: number; onDone: () => void }) {
 function EventForm({ event, day, onDone }: { event: CalendarEventDetail | null; day: string; onDone: () => void }) {
   const { user } = useAuth();
   const departments = useDepartments();
-  const people = useTeamDirectory({ status: 'ACTIVE', size: 100, sort: 'name,asc' });
   const save = useSaveEvent(event?.id ?? null);
   const remove = useDeleteEvent();
   const [banner, setBanner] = useState<string | null>(null);
@@ -120,11 +116,9 @@ function EventForm({ event, day, onDone }: { event: CalendarEventDetail | null; 
       startAt: event && !event.allDay ? toLocalInput(event.startAt) : `${day}T10:00`,
       endAt: event && !event.allDay ? toLocalInput(event.endAt) : `${day}T11:00`,
       departmentId: event?.department ? String(event.department.id) : event || companyWide ? '' : String(user?.department.id ?? ''),
-      userId: event?.user ? String(event.user.id) : '',
     },
   });
   const allDay = useWatch({ control, name: 'allDay' });
-  const eventType = useWatch({ control, name: 'eventType' });
 
   const onSubmit = handleSubmit(async (values) => {
     setBanner(null);
@@ -140,7 +134,6 @@ function EventForm({ event, day, onDone }: { event: CalendarEventDetail | null; 
         startAt: values.allDay ? null : new Date(values.startAt).toISOString(),
         endAt: values.allDay ? null : new Date(values.endAt).toISOString(),
         departmentId: values.departmentId ? Number(values.departmentId) : null,
-        userId: values.eventType === 'LEAVE' && values.userId ? Number(values.userId) : null,
       });
       toast.success(event ? 'Event updated' : 'Event added');
       onDone();
@@ -165,7 +158,7 @@ function EventForm({ event, day, onDone }: { event: CalendarEventDetail | null; 
       <DialogHeader>
         <DialogTitle>{event ? (readOnly ? event.title : 'Edit event') : 'New event'}</DialogTitle>
         <DialogDescription>
-          {readOnly ? `${EVENT_TYPE_LABELS[event.eventType]}${event.createdBy ? ` · added by ${event.createdBy.fullName}` : ''}` : 'Leave needs the person who is away; company-wide events are for Super Admins.'}
+          {readOnly ? `${EVENT_TYPE_LABELS[event.eventType]}${event.createdBy ? ` · added by ${event.createdBy.fullName}` : ''}` : 'Company-wide events are for Super Admins.'}
         </DialogDescription>
       </DialogHeader>
       <DialogBody className="space-y-4">
@@ -184,31 +177,18 @@ function EventForm({ event, day, onDone }: { event: CalendarEventDetail | null; 
                 ))}
               </Select>
             </FormField>
-            {eventType === 'LEAVE' ? (
-              <FormField id="event-user" label="Who is on leave" required error={errors.userId?.message}>
-                <Select id="event-user" aria-invalid={errors.userId ? true : undefined} {...register('userId')}>
-                  <option value="">Choose a person…</option>
-                  {people.data?.content.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.fullName} — {p.department.name}
+            <FormField id="event-department" label="Audience">
+              <Select id="event-department" {...register('departmentId')}>
+                {(companyWide || (event && !event.department)) && <option value="">Company-wide</option>}
+                {departments.data
+                  ?.filter((d) => d.status === 'ACTIVE')
+                  .map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
                     </option>
                   ))}
-                </Select>
-              </FormField>
-            ) : (
-              <FormField id="event-department" label="Audience">
-                <Select id="event-department" {...register('departmentId')}>
-                  {(companyWide || (event && !event.department)) && <option value="">Company-wide</option>}
-                  {departments.data
-                    ?.filter((d) => d.status === 'ACTIVE')
-                    .map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
-                      </option>
-                    ))}
-                </Select>
-              </FormField>
-            )}
+              </Select>
+            </FormField>
           </div>
           <div className="flex items-center gap-2">
             <Checkbox id="event-all-day" {...register('allDay')} />

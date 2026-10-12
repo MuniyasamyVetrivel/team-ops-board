@@ -74,7 +74,7 @@ class DevTaskSeeder {
 					"Access review for finance systems", "Security awareness training deck",
 					"Pen test remediation follow-up", "SIEM alert tuning", "Vendor security questionnaire",
 					"MFA enforcement for admins"),
-			"HR", List.of("Onboarding plan for November joiners", "Update leave policy", "Performance review calendar",
+			"HR", List.of("Onboarding plan for November joiners", "Performance review calendar",
 					"Employee engagement survey", "Exit interview summary", "Health insurance renewal",
 					"Policy handbook refresh", "Training needs analysis", "Holiday calendar 2027",
 					"Payroll inputs for October", "Wellness week planning", "Manager feedback workshop"),

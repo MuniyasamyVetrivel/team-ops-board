@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
 import com.teamops.department.repository.DepartmentRepository;
+import com.teamops.support.SliceAuth;
 import com.teamops.user.repository.PermissionRepository;
 import com.teamops.user.repository.RoleRepository;
 
@@ -32,7 +33,8 @@ class TeamOpsApplicationIT {
 	void contextLoadsAndReferenceDataIsPresent() {
 		assertThat(roleRepository.count()).isEqualTo(3);
 		assertThat(permissionRepository.findAllCodes()).contains("TASK_VIEW", "MARKETING_VIEW", "AUDIT_VIEW")
-			.hasSize(46);
+			.as("the slice tests' Super Admin holds the whole catalogue")
+			.containsExactlyInAnyOrderElementsOf(SliceAuth.ALL_PERMISSIONS);
 		assertThat(departmentRepository.count()).isGreaterThanOrEqualTo(10);
 		assertThat(departmentRepository.findByCode("DM")).isPresent();
 	}

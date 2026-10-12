@@ -258,7 +258,7 @@ export default function DashboardPage() {
               <RecentActivity items={data.recentActivity} onOpenTask={setTaskId} />
             </Panel>
             {canSeeCalendar && (
-              <Panel title="Coming up" description={`Events and leave in the next ${EVENTS_DAYS} days`} className="col-span-12 xl:col-span-5">
+              <Panel title="Coming up" description={`Events in the next ${EVENTS_DAYS} days`} className="col-span-12 xl:col-span-5">
                 {events.isPending ? (
                   <div className="space-y-2 p-6" role="status" aria-label="Loading events">
                     {Array.from({ length: 3 }, (_, i) => (

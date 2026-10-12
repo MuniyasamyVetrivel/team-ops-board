@@ -14,8 +14,8 @@ const originalAdapter = api.defaults.adapter;
 function announcement(overrides: Partial<Announcement>): Announcement {
   return {
     id: 1,
-    title: 'Updated leave policy',
-    body: 'Please read the new carry-over rules.',
+    title: 'Updated security guidelines',
+    body: 'Please read the new password and MFA rules.',
     priority: 'IMPORTANT',
     targetDepartment: null,
     publishAt: '2026-10-07T05:00:00Z',
@@ -48,7 +48,7 @@ describe('AnnouncementsPage', () => {
 
     renderPage(<AnnouncementsPage />, webEmployee);
 
-    const policy = (await screen.findByRole('heading', { name: 'Updated leave policy' })).closest('article')!;
+    const policy = (await screen.findByRole('heading', { name: 'Updated security guidelines' })).closest('article')!;
     expect(within(policy).getByText('Important')).toBeInTheDocument();
     expect(within(policy).getByText('New')).toBeInTheDocument();
     expect(within(policy).getByText('Everyone')).toBeInTheDocument();

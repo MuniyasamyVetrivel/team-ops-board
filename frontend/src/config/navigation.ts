@@ -69,7 +69,7 @@ export const NAVIGATION: NavSection[] = [
     items: [
       { label: 'My Tasks', path: '/my/tasks', icon: ListTodo, permission: 'TASK_VIEW', description: 'Everything assigned to you, by due date.' },
       { label: 'My Tickets', path: '/my/tickets', icon: Ticket, permission: 'TICKET_VIEW', description: 'Tickets you raised or are working on.' },
-      { label: 'My Calendar', path: '/my/calendar', icon: CalendarDays, permission: 'CALENDAR_VIEW', description: 'Your deadlines, events and leave.' },
+      { label: 'My Calendar', path: '/my/calendar', icon: CalendarDays, permission: 'CALENDAR_VIEW', description: 'Your deadlines, events and celebrations.' },
     ],
   },
   {

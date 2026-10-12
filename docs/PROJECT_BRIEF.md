@@ -797,8 +797,9 @@ Calendar should display:
 - Project milestones
 - Team events
 - Important dates
-- Leave
 - Approval deadlines
+
+(Leave is managed in Zoho People, not in this app.)
 
 Views:
 

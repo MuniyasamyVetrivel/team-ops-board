@@ -15,6 +15,8 @@ public enum NotificationType {
 	APPROVAL_REQUIRED,
 	/** Your request was approved or rejected. */
 	APPROVAL_DECIDED,
-	ANNOUNCEMENT_PUBLISHED
+	ANNOUNCEMENT_PUBLISHED,
+	/** A birthday, work anniversary, important day or event is coming up (or is today). */
+	OCCASION_REMINDER
 
 }

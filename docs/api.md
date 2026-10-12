@@ -196,9 +196,42 @@ Notifications are created for task and ticket assignment, task due-soon and over
 
 | Method | Path | Permission | Description |
 |---|---|---|---|
-| GET | `/api/calendar?from&to&mine` | `CALENDAR_VIEW` | At most 100 days. Merges stored events and leave with the task deadlines, open project milestones and pending approval due dates the viewer can see |
+| GET | `/api/calendar?from&to&mine` | `CALENDAR_VIEW` | At most 100 days. Merges stored events with the task deadlines, open project milestones and pending approval due dates the viewer can see, plus birthdays, work anniversaries, important days and marketing events (everyone) and scheduled email campaigns (`CAMPAIGN_VIEW`). Those items carry an `occasion` (category, detail, region, event status, LinkedIn post status) |
 | GET | `/api/calendar/events/{id}` | `CALENDAR_VIEW` | One event |
-| POST / PUT / DELETE | `/api/calendar/events[/{id}]` | `CALENDAR_EDIT` | Company-wide events need a Super Admin, department events need department management, and leave needs scope over the person |
+| POST / PUT / DELETE | `/api/calendar/events[/{id}]` | `CALENDAR_EDIT` | Company-wide events need a Super Admin, and department events need department management |
+
+Leave is managed in Zoho People and is not part of the calendar.
+
+## Celebrations, important days and events: `/api/celebrations`
+
+Every signed-in user can read these: names, and the day and month of birthdays and anniversaries. Changes need
+`CELEBRATIONS_EDIT`, a Digital Marketing permission granted to people (with `MARKETING_VIEW`). A Super Admin holds it
+too. Only those users see birth years (`dateOfBirth`) and people who have left. Every change is audited.
+
+| Method | Path | Permission | Description |
+|---|---|---|---|
+| GET | `/api/celebrations/employees?search&status&departmentId` | signed in | Paged (`sort` = `name`, `code`, `joined`, `updated`). Non-editors get active employees only and no `dateOfBirth` |
+| GET | `/api/celebrations/employees/{id}` | signed in | One employee, with next birthday, next anniversary and its years |
+| GET | `/api/celebrations/employees/export` | `CELEBRATIONS_EDIT` | CSV in the import's columns (holds full birth dates) |
+| POST / PUT / DELETE | `/api/celebrations/employees[/{id}]` | `CELEBRATIONS_EDIT` | Linking `userId` fills blank names, designation, reporting manager, department and work email. 409 `EMPLOYEE_CODE_TAKEN`, `EMPLOYEE_USER_TAKEN` |
+| GET / PUT / DELETE | `/api/celebrations/employees/{id}/photo` | read: signed in; change: `CELEBRATIONS_EDIT` | PNG, JPG, GIF or WebP; served as a download |
+| GET | `/api/celebrations/important-days?search&category&region&recurrence&year` | signed in | Paged (`sort` = `date`, `name`, `updated`), with next occurrence and its LinkedIn post |
+| GET | `/api/celebrations/important-days/export` | signed in | CSV in the import's columns |
+| POST / PUT / DELETE | `/api/celebrations/important-days[/{id}]` | `CELEBRATIONS_EDIT` | `YEARLY` repeats on the same date, `ONE_OFF` is entered per year. 409 `IMPORTANT_DAY_EXISTS` for the same name, date and region |
+| GET / POST / DELETE | `/api/celebrations/important-days/{id}/attachments[/{fileId}]` | read: signed in; change: `CELEBRATIONS_EDIT` | Creatives |
+| GET | `/api/celebrations/events?search&type&status&from&to&ownerId` | signed in | Paged (`sort` = `start`, `title`, `updated`). The linked email campaign's details only for `CAMPAIGN_VIEW` |
+| POST / PUT / DELETE | `/api/celebrations/events[/{id}]` | `CELEBRATIONS_EDIT` | Types `UPCOMING_EVENT`, `WEBINAR`, `EVENT_MARKETING`, `EMAIL_MARKETING`; links must be http(s) (400 `INVALID_LINK`) |
+| GET / POST / DELETE | `/api/celebrations/events/{id}/attachments[/{fileId}]` | read: signed in; change: `CELEBRATIONS_EDIT` | Event files |
+| GET | `/api/celebrations/upcoming?days` | signed in | "Coming up": birthdays, anniversaries, important days and events from today through the next `days` (14, at most 90) |
+| GET | `/api/celebrations/linkedin-posts?from&to&status&needed&kind` | signed in | Every occurrence in the range (today + 60 days by default, at most 366) with its post status |
+| PUT | `/api/celebrations/linkedin-posts` | `CELEBRATIONS_EDIT` | `{ subjectType, subjectId, occurrenceDate, postNeeded, ownerId, status, postDate, postLink, version }`. 404 `OCCURRENCE_NOT_FOUND` when nothing falls on that date |
+
+CSV imports: `employees` and `important-days` through `/api/marketing/imports` (with `CELEBRATIONS_EDIT`).
+
+Reminders: a daily job (`CELEBRATION_REMINDER_CRON`, run and dated in `CELEBRATION_TIME_ZONE`, default
+Australia/Sydney) notifies every active Super Admin and `CELEBRATIONS_EDIT` holder "Reminder days before" days ahead
+(setting, default 2) and on the day. Each reminder is sent once (`OCCASION_REMINDER`, deduplicated per occurrence,
+lead time and recipient). It is in-app only, because no email sender is configured.
 
 ## Tickets: `/api/tickets`
 
@@ -317,6 +350,7 @@ Each report needs `REPORT_VIEW` plus the module's view permission; each `/export
 | `sla.warningThresholdPct` | 1–99 % | 75 |
 | `marketing.target.behindThresholdPct` | 0–100 % | 60 |
 | `upload.maxSizeMb` | 1 MB up to the server's multipart limit (`FILE_MAX_SIZE_MB`) | 20 |
+| `celebrations.reminderDaysBefore` | 0–30 days (0 = only on the day) | 2 |
 
 ### Roles and permissions
 
@@ -343,7 +377,7 @@ Every `/api/marketing/**` endpoint needs `MARKETING_VIEW` (a URL rule) in additi
 |---|---|---|---|
 | GET | `/api/marketing/context` | `MARKETING_VIEW` | Business today, default month, selectable years, possible owners, behind threshold |
 | GET | `/api/marketing/integrations` | `MARKETING_VIEW` | The data source behind each provider seam (manual for now) |
-| GET | `/api/marketing/imports` | `MARKETING_VIEW` | Imports you may run: `seo-rankings`, `email-campaigns`, `paid-campaign-results`, `marketing-leads`, `backlinks` (each also needs its module's edit permission) |
+| GET | `/api/marketing/imports` | `MARKETING_VIEW` | Imports you may run: `seo-rankings`, `email-campaigns`, `paid-campaign-results`, `marketing-leads`, `backlinks`, `employees`, `important-days` (each also needs its module's edit permission) |
 | GET | `/api/marketing/imports/{type}/template` | `MARKETING_VIEW` | CSV template |
 | POST | `/api/marketing/imports/{type}/preview` | `MARKETING_VIEW` | Multipart `file`. Valid rows, invalid rows with errors, and a `checksum`. Saves nothing |
 | POST | `/api/marketing/imports/{type}/commit` | `MARKETING_VIEW` | Multipart `file` + `checksum` (+ `skipInvalid`). Re-validates and imports in one transaction |

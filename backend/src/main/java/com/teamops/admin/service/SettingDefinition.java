@@ -28,6 +28,9 @@ public enum SettingDefinition {
 	MARKETING_BEHIND_THRESHOLD_PCT(AppSettingsService.MARKETING_BEHIND_THRESHOLD_PCT, "Digital Marketing",
 			"Target behind threshold", "%", ValueType.DECIMAL, 0, 100),
 
+	CELEBRATION_REMINDER_DAYS_BEFORE(AppSettingsService.CELEBRATION_REMINDER_DAYS_BEFORE, "Calendar",
+			"Reminder days before", "days", ValueType.INTEGER, 0, AppSettingsService.MAX_REMINDER_DAYS_BEFORE),
+
 	/** The maximum is the multipart limit the server runs with (see {@link #max(int)}). */
 	UPLOAD_MAX_SIZE_MB(AppSettingsService.UPLOAD_MAX_SIZE_MB, "Files", "Maximum upload size", "MB", ValueType.INTEGER, 1,
 			-1);

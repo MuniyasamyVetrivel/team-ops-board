@@ -65,8 +65,8 @@ const calendar: CalendarResponse = {
   from: '2026-10-08',
   to: '2026-10-21',
   items: [
-    { key: 'EVENT-1', kind: 'EVENT', id: 1, title: 'Karthik Raj on leave', eventType: 'LEAVE', allDay: true, startDate: '2026-10-11', endDate: '2026-10-12', startAt: null, endAt: null, department: { id: 5, name: 'Web Development', code: 'WEBDEV' }, user: null, task: null, reference: null, parentId: null },
-    { key: 'TASK-9', kind: 'TASK_DEADLINE', id: 9, title: 'A deadline', eventType: null, allDay: true, startDate: '2026-10-09', endDate: '2026-10-09', startAt: null, endAt: null, department: null, user: null, task: null, reference: null, parentId: null },
+    { key: 'EVENT-1', kind: 'EVENT', id: 1, title: 'Quarterly town hall', eventType: 'TEAM_EVENT', allDay: true, startDate: '2026-10-11', endDate: '2026-10-11', startAt: null, endAt: null, department: null, user: null, task: null, reference: null, parentId: null, occasion: null },
+    { key: 'TASK-9', kind: 'TASK_DEADLINE', id: 9, title: 'A deadline', eventType: null, allDay: true, startDate: '2026-10-09', endDate: '2026-10-09', startAt: null, endAt: null, department: null, user: null, task: null, reference: null, parentId: null, occasion: null },
   ],
 };
 
@@ -117,8 +117,8 @@ describe('DashboardPage', () => {
     const workload = (await screen.findByRole('heading', { name: 'Employee workload' })).closest('[data-slot="card"]') as HTMLElement;
     expect(within(workload).getByRole('meter')).toHaveAttribute('aria-valuenow', '120');
     expect(screen.getByText(/changed status to/)).toHaveTextContent('Completed');
-    expect(await screen.findByText('Karthik Raj on leave')).toBeInTheDocument();
-    expect(screen.getByText('Leave')).toBeInTheDocument();
+    expect(await screen.findByText('Quarterly town hall')).toBeInTheDocument();
+    expect(screen.getByText('Team event')).toBeInTheDocument();
     expect(screen.queryByText('A deadline')).not.toBeInTheDocument();
   });
 

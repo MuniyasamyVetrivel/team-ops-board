@@ -1,5 +1,6 @@
 package com.teamops.marketing.email.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,4 +35,15 @@ public interface EmailCampaignRepository extends JpaRepository<EmailCampaign, Lo
 			order by c.campaignDate desc, c.id desc
 			""")
 	List<EmailCampaign> findLinkable(@Param("pattern") String pattern, Pageable pageable);
+
+	/** Scheduled campaigns sending in [from, to], for the calendar. */
+	@EntityGraph(attributePaths = "owner")
+	@Query("""
+			select c from EmailCampaign c
+			where c.status = com.teamops.marketing.email.entity.EmailCampaignStatus.SCHEDULED
+			  and c.campaignDate between :from and :to
+			order by c.campaignDate, c.id
+			""")
+	List<EmailCampaign> findScheduledBetween(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
 }

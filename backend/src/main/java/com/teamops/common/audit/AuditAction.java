@@ -100,6 +100,20 @@ public enum AuditAction {
 	/** An admin setting changed ({@code changes} holds from/to). */
 	SETTING_UPDATED,
 	/** A role's permissions changed ({@code added}, {@code removed}); brief section 63: "User permission change". */
-	ROLE_PERMISSIONS_CHANGED
+	ROLE_PERMISSIONS_CHANGED,
+	EMPLOYEE_CREATED,
+	/** Details, dates, status, link or photo changed ({@code changes} holds from/to). */
+	EMPLOYEE_UPDATED,
+	EMPLOYEE_DELETED,
+	IMPORTANT_DAY_CREATED,
+	/** Details or attachments changed ({@code changes} holds from/to). */
+	IMPORTANT_DAY_UPDATED,
+	IMPORTANT_DAY_DELETED,
+	MARKETING_EVENT_CREATED,
+	/** Details, status or attachments changed ({@code changes} holds from/to). */
+	MARKETING_EVENT_UPDATED,
+	MARKETING_EVENT_DELETED,
+	/** LinkedIn post tracking of a birthday, anniversary, important day or event changed. */
+	LINKEDIN_POST_UPDATED
 
 }

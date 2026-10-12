@@ -266,9 +266,6 @@ class DevCollaborationSeeder {
 		}
 		Instant now = calendar.now();
 		User rakesh = users.get("rakesh@teamops.local");
-		announcement("Updated leave policy for 2027",
-				"The leave policy has been updated for 2027. Please read the new carry-over rules in the HR section of the knowledge base and acknowledge.",
-				null, AnnouncementPriority.IMPORTANT, now.minus(Duration.ofDays(1)), null, true, rakesh);
 		announcement("Office closed for Diwali",
 				"The office will be closed on the festival days. Urgent IT issues: raise a ticket marked Urgent.", null,
 				AnnouncementPriority.NORMAL, now.minus(Duration.ofHours(5)), now.plus(Duration.ofDays(20)), false,
@@ -305,7 +302,6 @@ class DevCollaborationSeeder {
 			.stream()
 			.collect(Collectors.toMap(KnowledgeCategory::getSlug, Function.identity()));
 		User suresh = users.get("suresh.babu@teamops.local");
-		User lakshmi = users.get("lakshmi.priya@teamops.local");
 		User anitha = users.get("anitha.raj@teamops.local");
 		User priya = users.get("priya.menon@teamops.local");
 		article("Connect to the office VPN", categories.get("it"), suresh, List.of("vpn", "remote-work"), """
@@ -322,13 +318,6 @@ class DevCollaborationSeeder {
 		article("Reset your password", categories.get("it"), suresh, List.of("password", "account"), """
 				Use the self-service portal to reset your password. Passwords must be at least 12 characters and
 				are checked against known breaches. After resetting, sign out of every device and sign back in.
-				""");
-		article("Leave policy and carry-over rules", categories.get("hr"), lakshmi, List.of("leave", "policy"), """
-				## Annual leave
-				Everyone gets 18 days of annual leave a year. Up to **5 days** can be carried over to the next year.
-
-				## Applying for leave
-				Apply at least two weeks ahead for leave longer than three days.
 				""");
 		article("Report a phishing email", categories.get("security"), anitha, List.of("phishing", "security"), """
 				Do not click links or open attachments. Forward the email to the security team and raise a
@@ -367,12 +356,9 @@ class DevCollaborationSeeder {
 			return 0;
 		}
 		User rakesh = users.get("rakesh@teamops.local");
-		User lakshmi = users.get("lakshmi.priya@teamops.local");
 		User suresh = users.get("suresh.babu@teamops.local");
 		document("Employee handbook", "Company-wide policies and conduct.", null, rakesh,
 				List.of("Employee handbook v1", "Employee handbook v2: updated remote-work section"));
-		document("Leave application form", "Template for leave requests.", departments.get("HR"), lakshmi,
-				List.of("Leave form"));
 		document("Network diagram", "Office network layout.", departments.get("IT"), suresh,
 				List.of("Network diagram v1", "Network diagram v2", "Network diagram v3: new Wi-Fi access points"));
 		return (int) documentRepository.count();

@@ -57,7 +57,6 @@ class DevTicketSeeder {
 			new Seed("Outlook keeps asking for password", "Software", TicketPriority.MEDIUM, "meena.sekar@teamops.local", "vignesh.raman@teamops.local", TicketStatus.WAITING_FOR_REQUESTER, 900, 60, 120),
 			new Seed("Install Figma on design laptop", "Software", TicketPriority.LOW, "pooja.lakshman@teamops.local", null, TicketStatus.NEW, 300, null, null),
 			new Seed("Suspicious email asking for OTP", "Security Incident", TicketPriority.URGENT, "swetha.bala@teamops.local", "deepak.nair@teamops.local", TicketStatus.IN_PROGRESS, 150, 20, null),
-			new Seed("Clarify new leave policy for probation", "HR Query", TicketPriority.LOW, "nithya.ganesh@teamops.local", "meena.sekar@teamops.local", TicketStatus.OPEN, 2_600, 400, null),
 			new Seed("September reimbursement not received", "Payroll", TicketPriority.HIGH, "arun.kumar@teamops.local", "manoj.thomas@teamops.local", TicketStatus.OPEN, 200, 100, null),
 			new Seed("Contact form returns 500 error", "Website Issue", TicketPriority.URGENT, "priya.menon@teamops.local", "karthik.raj@teamops.local", TicketStatus.IN_PROGRESS, 330, 30, null),
 			new Seed("Banner for Diwali campaign", "Design Request", TicketPriority.MEDIUM, "kavya.suresh@teamops.local", "pooja.lakshman@teamops.local", TicketStatus.OPEN, 600, 90, null),
