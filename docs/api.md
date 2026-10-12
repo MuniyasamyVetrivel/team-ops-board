@@ -134,6 +134,12 @@ These rules are enforced by the service, so they apply even to someone who holds
 |---|---|---|---|
 | GET | `/api/team` | `TEAM_VIEW` | Directory. Filters: `search`, `departmentId`, `status` (default `ACTIVE`). Sort fields: `name`, `department`, `jobTitle` |
 | GET | `/api/team/{id}` | `TEAM_VIEW` | Profile with roles, manager and direct reports. `canViewWork` says whether the viewer may see this person's tasks, workload and tickets (Super Admin, their department manager, or the person themselves) |
+| GET | `/api/team/{id}/tasks` | `TEAM_VIEW` + `TASK_VIEW` | Work history: tasks assigned to the person, paged. Rows: code, title, project, priority, status, start, due and completed dates, estimated and actual hours, `overdue`, `onTime` (completed on or before the due date) and `daysLate`. Sort: `due`, `completed`, `priority` (urgent first when `desc`), `updated` (default `updated,desc`) |
+| GET | `/api/team/{id}/tasks/summary` | `TEAM_VIEW` + `TASK_VIEW` | Same filters: `total`, `byStatus`, `overdue`, `completed`, `completedOnTimePct`, `averageDaysToComplete` (from start, else creation), `totalActualHours`, `completedPerWeek` (weeks of the range, or the last 12) |
+| GET | `/api/team/{id}/tasks/export` | `TEAM_VIEW` + `TASK_VIEW` | The filtered list as CSV (at most 10,000 rows), with "Yes", "Late by N days" or "Overdue by N days" |
+| GET | `/api/team/{id}/tickets`, `/tickets/summary`, `/tickets/export` | `TEAM_VIEW` + `TICKET_VIEW` | The same for tickets assigned to the person; `onTime` is the resolution SLA, `categoryId` replaces `projectId`, and there are no hours |
+
+Work history filters (all optional): `status` (several; task or ticket statuses plus `OVERDUE`: open and past the due date, or for tickets the SLA clock running past its pause-adjusted due time), `dateField` (`COMPLETED` by default, `DUE`, `START`, `CREATED`; for tickets resolved, resolution due, created) with `from` and `to` (inclusive business dates), `projectId` / `categoryId`, `priority` (several) and `search`. A Super Admin sees everyone's history, a department manager the people in the departments they manage, an employee only their own (403 `WORK_NOT_VISIBLE` otherwise); each task and ticket still follows its module's visibility.
 
 ## Tasks: `/api/tasks`
 

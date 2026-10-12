@@ -1,5 +1,6 @@
 package com.teamops.task.repository;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Locale;
 import java.util.Set;
@@ -104,6 +105,72 @@ public final class TaskSpecifications {
 				case NO_DUE_DATE -> cb.isNull(root.get("dueDate"));
 			};
 			return cb.and(active, condition);
+		};
+	}
+
+	/**
+	 * Tasks in any of {@code statuses}, or overdue (active and due before {@code today}) when {@code overdue} is set.
+	 * Nothing selected matches every task.
+	 */
+	public static Specification<Task> statusOrOverdue(Set<TaskStatus> statuses, boolean overdue, LocalDate today) {
+		if (statuses.isEmpty() && !overdue) {
+			return all();
+		}
+		return (root, query, cb) -> {
+			Predicate overdueNow = cb.and(root.get("status").in(TaskStatus.ACTIVE), cb.lessThan(root.get("dueDate"), today));
+			if (statuses.isEmpty()) {
+				return overdueNow;
+			}
+			Predicate inStatus = root.get("status").in(statuses);
+			return overdue ? cb.or(inStatus, overdueNow) : inStatus;
+		};
+	}
+
+	/** Active and due before {@code today}. */
+	public static Specification<Task> overdue(LocalDate today) {
+		return statusOrOverdue(Set.of(), true, today);
+	}
+
+	/** {@code field} (a LocalDate attribute) within [from, to]; either end may be open. */
+	public static Specification<Task> dateBetween(String field, LocalDate from, LocalDate to) {
+		if (from == null && to == null) {
+			return all();
+		}
+		return (root, query, cb) -> {
+			if (from == null) {
+				return cb.lessThanOrEqualTo(root.get(field), to);
+			}
+			return to == null ? cb.greaterThanOrEqualTo(root.get(field), from) : cb.between(root.get(field), from, to);
+		};
+	}
+
+	/** {@code field} (an Instant attribute) within [from, to); either end may be open. */
+	public static Specification<Task> instantBetween(String field, Instant from, Instant to) {
+		if (from == null && to == null) {
+			return all();
+		}
+		return (root, query, cb) -> {
+			Predicate after = from == null ? cb.conjunction() : cb.greaterThanOrEqualTo(root.get(field), from);
+			Predicate before = to == null ? cb.conjunction() : cb.lessThan(root.get(field), to);
+			return cb.and(after, before);
+		};
+	}
+
+	/**
+	 * Orders by priority rank (URGENT highest), then due date. Priorities are stored as text, so a plain sort would be
+	 * alphabetical. Count queries are left unordered.
+	 */
+	public static Specification<Task> orderByPriority(boolean urgentFirst) {
+		return (root, query, cb) -> {
+			if (query != null && !Long.class.equals(query.getResultType())) {
+				var rank = cb.selectCase(root.get("priority"))
+					.when(TaskPriority.URGENT, 4)
+					.when(TaskPriority.HIGH, 3)
+					.when(TaskPriority.MEDIUM, 2)
+					.otherwise(1);
+				query.orderBy(urgentFirst ? cb.desc(rank) : cb.asc(rank), cb.asc(root.get("dueDate")), cb.asc(root.get("id")));
+			}
+			return cb.conjunction();
 		};
 	}
 

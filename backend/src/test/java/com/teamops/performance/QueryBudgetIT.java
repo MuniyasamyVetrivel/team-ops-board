@@ -78,6 +78,12 @@ class QueryBudgetIT {
 			"/api/tickets/", "/api/tickets", "/api/projects/", "/api/projects", "/api/marketing/pages/",
 			"/api/marketing/pages");
 
+	/** A team member's work history, opened on the first person in the directory, plain and filtered. */
+	private static final List<String> WORK_HISTORY = List.of("/tasks", "/tasks/summary",
+			"/tasks?status=OVERDUE&status=COMPLETED&dateField=COMPLETED&from=2026-01-01&to=2026-12-31&sort=priority,desc",
+			"/tasks/summary?dateField=DUE&from=2026-09-10&to=2026-09-20", "/tickets", "/tickets/summary",
+			"/tickets?status=OVERDUE&dateField=COMPLETED&from=2026-01-01&to=2026-12-31");
+
 	@Autowired
 	private MockMvc mvc;
 
@@ -174,6 +180,11 @@ class QueryBudgetIT {
 			if (id != null) {
 				paths.add(detail.getKey() + id);
 			}
+		}
+
+		String member = firstId("/api/team");
+		if (member != null) {
+			WORK_HISTORY.forEach(suffix -> paths.add("/api/team/" + member + suffix));
 		}
 
 		StringBuilder report = new StringBuilder();

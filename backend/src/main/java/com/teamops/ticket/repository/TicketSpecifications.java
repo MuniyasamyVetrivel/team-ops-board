@@ -1,10 +1,13 @@
 package com.teamops.ticket.repository;
 
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Set;
 
 import org.springframework.data.jpa.domain.Specification;
+import org.hibernate.query.common.TemporalUnit;
+import org.hibernate.query.criteria.HibernateCriteriaBuilder;
 import org.springframework.util.StringUtils;
 
 import com.teamops.ticket.dto.TicketView;
@@ -13,10 +16,14 @@ import com.teamops.ticket.entity.TicketPriority;
 import com.teamops.ticket.entity.TicketStatus;
 import com.teamops.ticket.service.TicketAccess;
 
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 
 /** Composable ticket filters, mirroring {@link TicketAccess} for visibility. */
 public final class TicketSpecifications {
+
+	/** Statuses in which the SLA clock runs. */
+	private static final Set<TicketStatus> RUNNING = EnumSet.of(TicketStatus.NEW, TicketStatus.OPEN, TicketStatus.IN_PROGRESS);
 
 	private TicketSpecifications() {
 	}
@@ -77,6 +84,44 @@ public final class TicketSpecifications {
 
 	public static Specification<Ticket> assignee(Long assigneeId) {
 		return assigneeId == null ? all() : (root, query, cb) -> cb.equal(root.get("assignee").get("id"), assigneeId);
+	}
+
+	/**
+	 * Tickets in any of {@code statuses}, or overdue when {@code overdue} is set: the SLA clock is running and the
+	 * resolution due time, moved on by the minutes spent paused, has passed. Nothing selected matches every ticket.
+	 */
+	public static Specification<Ticket> statusOrOverdue(Set<TicketStatus> statuses, boolean overdue, Instant now) {
+		if (statuses.isEmpty() && !overdue) {
+			return all();
+		}
+		return (root, query, cb) -> {
+			HibernateCriteriaBuilder hcb = (HibernateCriteriaBuilder) cb;
+			Expression<Instant> due = hcb.addDuration(root.<Instant>get("resolutionDueAt"),
+					hcb.durationScaled(root.<Integer>get("slaPausedMinutes"), hcb.duration(1, TemporalUnit.MINUTE)));
+			Predicate overdueNow = cb.and(root.get("status").in(RUNNING), cb.lessThan(due, now));
+			if (statuses.isEmpty()) {
+				return overdueNow;
+			}
+			Predicate inStatus = root.get("status").in(statuses);
+			return overdue ? cb.or(inStatus, overdueNow) : inStatus;
+		};
+	}
+
+	/** SLA clock running and past the (pause-adjusted) resolution due time. */
+	public static Specification<Ticket> overdue(Instant now) {
+		return statusOrOverdue(Set.of(), true, now);
+	}
+
+	/** {@code field} (an Instant attribute) within [from, to); either end may be open. */
+	public static Specification<Ticket> instantBetween(String field, Instant from, Instant to) {
+		if (from == null && to == null) {
+			return all();
+		}
+		return (root, query, cb) -> {
+			Predicate after = from == null ? cb.conjunction() : cb.greaterThanOrEqualTo(root.get(field), from);
+			Predicate before = to == null ? cb.conjunction() : cb.lessThan(root.get(field), to);
+			return cb.and(after, before);
+		};
 	}
 
 	/** Open tickets, plus any ticket created since {@code since} (the SLA reporting window). */

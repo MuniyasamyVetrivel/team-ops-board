@@ -46,6 +46,7 @@ change is a new migration. See [architecture.md](architecture.md) for how the ap
 | V21 performance_indexes | Indexes for task KPIs and reports, and for the newest-first lead, backlink and content lists (Phase 24) |
 | V22 remove_leave_and_hr_policy_content | Leave moved to Zoho People: deletes `LEAVE` calendar events, drops `calendar_events.user_id`, removes the leave-policy announcement, article, document, ticket and task from earlier dev seeds |
 | V23 celebrations_important_days_events | `CELEBRATIONS_EDIT`, the reminder days-before setting, `employees`, `important_days`, `marketing_events`, `linkedin_posts`, `occasion_attachments` |
+| V24 work_history_indexes | Team member work history: `tasks (assignee_id, status, completed_at)` and `(assignee_id, due_date)`, `tickets (assignee_id, status, resolved_at)` and `(assignee_id, resolution_due_at)`, replacing the `(assignee_id, status)` indexes |
 
 Never edit an applied migration; add `V{n+1}__description.sql` instead, in the phase that first needs it.
 
@@ -69,7 +70,7 @@ Never edit an applied migration; add `V{n+1}__description.sql` instead, in the p
 
 | Table | Purpose | Notable constraints |
 |---|---|---|
-| `tasks` | Task with department, project/milestone, assignee, creator, priority, status, dates, estimate/actual hours, source | Unique `code`; indexes on `(assignee_id, status)`, `(department_id, status)`, `(due_date, status)`, `(status, completed_at)`, `created_at`, `completed_at` |
+| `tasks` | Task with department, project/milestone, assignee, creator, priority, status, dates, estimate/actual hours, source | Unique `code`; indexes on `(assignee_id, status, completed_at)`, `(assignee_id, due_date)`, `(department_id, status)`, `(due_date, status)`, `(status, completed_at)`, `created_at`, `completed_at` |
 | `task_comments`, `task_checklists`, `task_watchers`, `task_dependencies`, `task_tags` | Task detail collections | — |
 | `task_history` | Field-level change history shown on the task | — |
 | `files`, `task_attachments` | Stored file metadata and its links to tasks (also used by tickets, projects, KB and content) | Unique `storage_key` |
