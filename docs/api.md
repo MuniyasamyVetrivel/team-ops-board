@@ -228,8 +228,8 @@ too. Only those users see birth years (`dateOfBirth`) and people who have left. 
 
 CSV imports: `employees` and `important-days` through `/api/marketing/imports` (with `CELEBRATIONS_EDIT`).
 
-Reminders: a daily job (`CELEBRATION_REMINDER_CRON`, run and dated in `CELEBRATION_TIME_ZONE`, default
-Australia/Sydney) notifies every active Super Admin and `CELEBRATIONS_EDIT` holder "Reminder days before" days ahead
+Reminders: a daily job (`CELEBRATION_REMINDER_CRON`, run and dated in `APP_TIME_ZONE` like the rest of the app)
+notifies every active Super Admin and `CELEBRATIONS_EDIT` holder "Reminder days before" days ahead
 (setting, default 2) and on the day. Each reminder is sent once (`OCCASION_REMINDER`, deduplicated per occurrence,
 lead time and recipient). It is in-app only, because no email sender is configured.
 

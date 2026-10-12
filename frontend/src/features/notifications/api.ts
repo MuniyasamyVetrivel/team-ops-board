@@ -29,7 +29,9 @@ export function notificationHref(notification: AppNotification): string | null {
   if (notification.entityType === 'APPROVAL') return `/approvals?approval=${notification.entityId}`;
   if (notification.entityType === 'ANNOUNCEMENT') return '/announcements';
   if (notification.entityType === 'MARKETING_ACTIVITY') return `/digital-marketing/activities/${notification.entityId}`;
-  if (notification.entityType === 'EMPLOYEE' || notification.entityType === 'IMPORTANT_DAY' || notification.entityType === 'MARKETING_EVENT') return '/calendar';
+  if (notification.entityType === 'EMPLOYEE') return `/celebrations/employees?employee=${notification.entityId}`;
+  if (notification.entityType === 'IMPORTANT_DAY') return `/celebrations/important-days?day=${notification.entityId}`;
+  if (notification.entityType === 'MARKETING_EVENT') return `/celebrations/events?event=${notification.entityId}`;
   return null;
 }
 

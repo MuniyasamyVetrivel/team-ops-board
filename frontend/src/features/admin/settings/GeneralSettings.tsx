@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Briefcase, Gauge, LifeBuoy, LoaderCircle, Paperclip, SlidersHorizontal, Target, UsersRound, type LucideIcon } from 'lucide-react';
+import { Briefcase, CalendarHeart, Gauge, LifeBuoy, LoaderCircle, Paperclip, SlidersHorizontal, Target, UsersRound, type LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -23,6 +23,7 @@ const GROUP_ICONS: Record<string, LucideIcon> = {
   'Help desk': LifeBuoy,
   'Digital Marketing': Target,
   Files: Paperclip,
+  Calendar: CalendarHeart,
 };
 
 /** What each setting changes, in the words of the people who rely on it. */
@@ -32,6 +33,7 @@ const EFFECTS: Record<string, string> = {
   'users.defaultWeeklyCapacityHours': 'Weekly capacity given to new users when none is entered.',
   'sla.warningThresholdPct': 'Tickets show a warning once this share of their SLA time has passed. Applies to new tickets.',
   'marketing.target.behindThresholdPct': 'Targets below this achievement are BEHIND (red). Target types may override it.',
+  'celebrations.reminderDaysBefore': 'Super Admins and celebration editors are reminded this many days before each birthday, work anniversary, important day and event, and again on the day. 0 sends only the on-the-day reminder.',
   'upload.maxSizeMb': "Largest file people can attach. It can't exceed the limit the server was started with.",
 };
 

@@ -22,6 +22,7 @@ import { errorMessage } from '@/lib/api/errors';
 import { applyServerErrors } from '@/lib/api/form-errors';
 
 import { useCalendarEvent, useDeleteEvent, useSaveEvent, type CalendarEventDetail } from './api';
+import { toLocalInput } from './calendar-dates';
 import { EVENT_TYPE_LABELS } from './calendar-meta';
 
 /** Mirrors CalendarDtos.SaveEvent. Timed events are entered in local time and sent as instants. */
@@ -50,12 +51,6 @@ const eventSchema = z
   });
 
 type EventValues = z.infer<typeof eventSchema>;
-
-function toLocalInput(iso: string): string {
-  const date = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 
 interface EventDialogProps {
   /** null = closed; { day } = create on that day; { eventId } = open an existing event. */

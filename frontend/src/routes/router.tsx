@@ -46,6 +46,10 @@ const BacklinksPage = lazy(() => import('@/features/marketing/backlinks/Backlink
 const ContentPage = lazy(() => import('@/features/marketing/content/ContentPage'));
 const SettingsPage = lazy(() => import('@/features/admin/settings/SettingsPage'));
 const AuditLogsPage = lazy(() => import('@/features/admin/audit/AuditLogsPage'));
+const EmployeesPage = lazy(() => import('@/features/celebrations/EmployeesPage'));
+const ImportantDaysPage = lazy(() => import('@/features/celebrations/ImportantDaysPage'));
+const EventsPage = lazy(() => import('@/features/celebrations/EventsPage'));
+const LinkedInPostsPage = lazy(() => import('@/features/celebrations/LinkedInPostsPage'));
 
 /** The page for every sidebar entry, by path. */
 const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
@@ -64,6 +68,10 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
   '/announcements': AnnouncementsPage,
   '/knowledge-base': KnowledgeBasePage,
   '/documents': DocumentsPage,
+  '/celebrations/employees': EmployeesPage,
+  '/celebrations/important-days': ImportantDaysPage,
+  '/celebrations/events': EventsPage,
+  '/celebrations/linkedin-posts': LinkedInPostsPage,
   '/my/calendar': CalendarPage,
   '/digital-marketing': MarketingDashboardPage,
   '/digital-marketing/seo': SeoRankingsPage,

@@ -1,6 +1,8 @@
 import {
   BookOpen,
   Building,
+  Cake,
+  CalendarHeart,
   CalendarDays,
   ChartColumn,
   ChartLine,
@@ -19,6 +21,8 @@ import {
   ScrollText,
   Search,
   Settings,
+  Share2,
+  Sparkles,
   SquarePen,
   Target,
   Ticket,
@@ -98,6 +102,11 @@ export const NAVIGATION: NavSection[] = [
       { label: 'Knowledge Base', path: '/knowledge-base', icon: BookOpen, permission: 'KB_VIEW', description: 'SOPs, FAQs and how-to articles.' },
       { label: 'Documents', path: '/documents', icon: FileText, permission: 'DOCUMENT_VIEW', description: 'Versioned department documents.' },
       { label: 'Team', path: '/team', icon: Users, permission: 'TEAM_VIEW', description: 'Team directory and employee profiles.' },
+      // Celebrations, important days and events: everyone signed in can see them (CELEBRATIONS_EDIT changes them).
+      { label: 'Employees & celebrations', path: '/celebrations/employees', icon: Cake, description: 'Birthdays and work anniversaries.' },
+      { label: 'Important days', path: '/celebrations/important-days', icon: Sparkles, description: 'Festivals, national and industry days for marketing.' },
+      { label: 'Events', path: '/celebrations/events', icon: CalendarHeart, description: 'Events, webinars, event and email marketing.' },
+      { label: 'LinkedIn posts', path: '/celebrations/linkedin-posts', icon: Share2, description: 'Posts for everything coming up, so nothing is missed.' },
     ],
   },
   {

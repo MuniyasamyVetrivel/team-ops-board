@@ -20,6 +20,7 @@ const settings: SettingItem[] = [
   { key: 'workload.windowDays', group: 'Workload', label: 'Workload window', description: 'Days ahead', valueType: 'INTEGER', value: '14', unit: 'days', min: 1, max: 90, updatedBy: rakesh, updatedAt: '2026-10-01T05:00:00Z', version: 2 },
   { key: 'workload.defaultTaskHours', group: 'Workload', label: 'Hours for a task without an estimate', description: null, valueType: 'DECIMAL', value: '4', unit: 'hours', min: 0, max: 40, updatedBy: null, updatedAt: '2026-09-01T05:00:00Z', version: 0 },
   { key: 'sla.warningThresholdPct', group: 'Help desk', label: 'SLA warning threshold', description: null, valueType: 'INTEGER', value: '75', unit: '%', min: 1, max: 99, updatedBy: null, updatedAt: '2026-09-01T05:00:00Z', version: 0 },
+  { key: 'celebrations.reminderDaysBefore', group: 'Calendar', label: 'Reminder days before', description: null, valueType: 'INTEGER', value: '2', unit: 'days', min: 0, max: 30, updatedBy: null, updatedAt: '2026-10-12T05:00:00Z', version: 0 },
 ];
 
 const permissions: PermissionResponse[] = [
@@ -106,6 +107,33 @@ describe('SettingsPage', () => {
     expect(puts).toHaveLength(1);
     expect(body(puts[0]!)).toEqual({ version: 2, value: '21' });
     expect(await screen.findByLabelText('Workload window')).toHaveValue('21');
+  }, 15_000);
+
+  it('sets how many days ahead celebration reminders go out (0 to 30)', async () => {
+    const user = userEvent.setup();
+    const puts: InternalAxiosRequestConfig[] = [];
+    mockApi(
+      routes({
+        'PUT /admin/settings/celebrations.reminderDaysBefore': (config) => {
+          puts.push(config);
+          return { ...settings[3], value: '3', version: 1 };
+        },
+      }),
+    );
+    renderPage(<SettingsPage />, superAdmin);
+
+    const input = await screen.findByLabelText('Reminder days before');
+    expect(screen.getByRole('heading', { name: 'Calendar' })).toBeInTheDocument();
+    expect(screen.getByText(/reminded this many days before each birthday/)).toBeInTheDocument();
+    await user.clear(input);
+    await user.type(input, '31');
+    await user.click(screen.getByRole('button', { name: 'Save Reminder days before' }));
+    expect(await screen.findByText('Reminder days before must be between 0 and 30 days')).toBeInTheDocument();
+
+    await user.clear(input);
+    await user.type(input, '3');
+    await user.click(screen.getByRole('button', { name: 'Save Reminder days before' }));
+    expect(body(puts[0]!)).toEqual({ version: 0, value: '3' });
   }, 15_000);
 
   it('explains a conflicting edit', async () => {

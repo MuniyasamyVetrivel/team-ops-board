@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,16 +27,18 @@ import com.teamops.user.entity.User;
 import com.teamops.user.entity.UserStatus;
 import com.teamops.user.repository.UserRepository;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * Daily reminders for birthdays, work anniversaries, important days and events: the "Reminder days before" setting
- * (default 2) ahead, and again on the day, to every active Super Admin and CELEBRATIONS_EDIT holder. "Today" is the
- * date in the celebration time zone (Australia/Sydney by default). Each reminder has a dedup key of occurrence, lead
+ * (default 2) ahead, and again on the day, to every active Super Admin and CELEBRATIONS_EDIT holder. "Today" comes
+ * from {@link BusinessCalendar} (APP_TIME_ZONE), like everywhere else. Each reminder has a dedup key of occurrence, lead
  * time and recipient, so re-running the job never sends one twice. In-app only: no email sender is configured.
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class CelebrationReminderService {
 
 	private static final DateTimeFormatter DAY_MONTH = DateTimeFormatter.ofPattern("d MMMM", Locale.ENGLISH);
@@ -62,26 +63,10 @@ public class CelebrationReminderService {
 
 	private final BusinessCalendar calendar;
 
-	private final ZoneId zone;
-
-	public CelebrationReminderService(OccasionFinder finder, LinkedInPostService linkedInPosts,
-			UserRepository userRepository, NotificationRepository notificationRepository,
-			NotificationService notificationService, AppSettingsService settings, BusinessCalendar calendar,
-			@Value("${app.celebrations.time-zone:Australia/Sydney}") String zone) {
-		this.finder = finder;
-		this.linkedInPosts = linkedInPosts;
-		this.userRepository = userRepository;
-		this.notificationRepository = notificationRepository;
-		this.notificationService = notificationService;
-		this.settings = settings;
-		this.calendar = calendar;
-		this.zone = ZoneId.of(zone);
-	}
-
 	/** Sends today's reminders and returns how many notifications were created. */
 	@Transactional
 	public int sendReminders() {
-		LocalDate today = calendar.today(zone);
+		LocalDate today = calendar.today();
 		List<User> recipients = recipients();
 		if (recipients.isEmpty()) {
 			return 0;
@@ -160,11 +145,12 @@ public class CelebrationReminderService {
 		};
 	}
 
-	/** The full date, and for events the start time (in the reminder time zone) and location. */
+	/** The full date, and for events the start time (in the business time zone) and location. */
 	private String body(Occasion o) {
 		if (o.startAt() == null) {
 			return FULL_DATE.format(o.date());
 		}
+		ZoneId zone = calendar.zone();
 		var start = o.startAt().atZone(zone);
 		String text = FULL_DATE.format(start) + ", " + TIME.format(start).toLowerCase(Locale.ENGLISH) + " ("
 				+ zone.getId() + ")";

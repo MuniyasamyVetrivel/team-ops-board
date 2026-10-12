@@ -99,11 +99,12 @@ export const marketingKeys = {
   imports: () => [...marketingKeys.all, 'imports'] as const,
 };
 
-export function useMarketingContext() {
+export function useMarketingContext(enabled = true) {
   return useQuery({
     queryKey: marketingKeys.context(),
     queryFn: async () => (await api.get<MarketingContext>('/marketing/context')).data,
     staleTime: 5 * 60_000,
+    enabled,
   });
 }
 
@@ -116,11 +117,12 @@ export function useMarketingIntegrations() {
 }
 
 /** Imports the viewer may run (each needs its module's edit permission). */
-export function useImportDefinitions() {
+export function useImportDefinitions(enabled = true) {
   return useQuery({
     queryKey: marketingKeys.imports(),
     queryFn: async () => (await api.get<ImportDefinition[]>('/marketing/imports')).data,
     staleTime: 5 * 60_000,
+    enabled,
   });
 }
 
@@ -136,7 +138,10 @@ export function usePreviewImport(type: string) {
   });
 }
 
-/** Commits the previewed file. Every marketing figure may change, so all marketing queries are refreshed. */
+/**
+ * Commits the previewed file. Every marketing figure may change, so all marketing queries are refreshed, and so are
+ * celebrations and the calendar (employees and important days import here too).
+ */
 export function useCommitImport(type: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -146,7 +151,11 @@ export function useCommitImport(type: string) {
           params: { checksum, skipInvalid },
         })
       ).data,
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: marketingKeys.all }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: marketingKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ['celebrations'] });
+      void queryClient.invalidateQueries({ queryKey: ['calendar'] });
+    },
   });
 }
 

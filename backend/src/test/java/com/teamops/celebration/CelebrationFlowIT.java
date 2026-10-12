@@ -13,7 +13,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.List;
@@ -291,8 +290,7 @@ class CelebrationFlowIT {
 	@Test
 	void remindersGoToEditorsOnceWithTheDaysBeforeSetting() throws Exception {
 		jdbc.update("UPDATE app_settings SET setting_value = '3' WHERE setting_key = ?", DAYS_BEFORE);
-		LocalDate sydneyToday = calendar.today(ZoneId.of("Australia/Sydney"));
-		LocalDate birthday = sydneyToday.plusDays(3);
+		LocalDate birthday = today.plusDays(3);
 		Long arun = id(createEmployee(code(3), "Arun", birthday.minusYears(28), null).andExpect(status().isCreated()));
 		employees.add(arun);
 

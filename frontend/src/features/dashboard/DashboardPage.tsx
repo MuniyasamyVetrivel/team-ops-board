@@ -10,6 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { hasPermission } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
 import { useCalendar } from '@/features/calendar/api';
+import { addDays } from '@/features/calendar/calendar-dates';
+import { COMING_UP_DAYS, ComingUp } from '@/features/celebrations/ComingUp';
 import { TaskDrawer } from '@/features/tasks/TaskDrawer';
 import { parseLocalDate } from '@/features/tasks/task-meta';
 import { useTaskParam } from '@/features/tasks/use-task-param';
@@ -19,7 +21,7 @@ import { cn } from '@/lib/utils';
 import { useDashboard, type DashboardResponse } from './api';
 import { MarketingSummaryPanel } from './MarketingSummaryPanel';
 import { DepartmentWorkloadChart, OnTimeTrendChart, StatusDonut, WeeklyCompletionChart } from './charts';
-import { DepartmentPerformanceTable, EmployeeWorkloadTable, RecentActivity, TaskList, UpcomingEvents } from './sections';
+import { DepartmentPerformanceTable, EmployeeWorkloadTable, RecentActivity, TaskList } from './sections';
 
 function greeting(date: Date): string {
   const hour = date.getHours();
@@ -37,13 +39,6 @@ const SCOPE_TEXT: Record<DashboardResponse['scope'], string> = {
   OWN: 'Your work',
 };
 
-const EVENTS_DAYS = 14;
-
-function addDays(isoDate: string, days: number): string {
-  const date = parseLocalDate(isoDate);
-  date.setDate(date.getDate() + days);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
 
 function DashboardSkeleton() {
   return (
@@ -106,7 +101,7 @@ export default function DashboardPage() {
   const [taskId, setTaskId] = useTaskParam();
   const canSeeCalendar = hasPermission(user, 'CALENDAR_VIEW');
   const today = dashboard.data?.today;
-  const events = useCalendar({ from: today ?? '', to: today ? addDays(today, EVENTS_DAYS - 1) : '' }, canSeeCalendar && Boolean(today));
+  const events = useCalendar({ from: today ?? '', to: today ? addDays(today, COMING_UP_DAYS - 1) : '' }, canSeeCalendar && Boolean(today));
   if (!user) return null;
 
   const title = `${greeting(new Date())}, ${user.firstName}`;
@@ -254,24 +249,12 @@ export default function DashboardPage() {
               </div>
             )}
 
-            <Panel title="Recent activity" className={cn('col-span-12', canSeeCalendar && 'xl:col-span-7')}>
+            <Panel title="Recent activity" className="col-span-12 xl:col-span-7">
               <RecentActivity items={data.recentActivity} onOpenTask={setTaskId} />
             </Panel>
-            {canSeeCalendar && (
-              <Panel title="Coming up" description={`Events in the next ${EVENTS_DAYS} days`} className="col-span-12 xl:col-span-5">
-                {events.isPending ? (
-                  <div className="space-y-2 p-6" role="status" aria-label="Loading events">
-                    {Array.from({ length: 3 }, (_, i) => (
-                      <Skeleton key={i} className="h-12" />
-                    ))}
-                  </div>
-                ) : events.isError ? (
-                  <ErrorState error={events.error} title="Couldn't load events" onRetry={() => void events.refetch()} />
-                ) : (
-                  <UpcomingEvents items={events.data.items} />
-                )}
-              </Panel>
-            )}
+            <Panel title="Coming up in the next 14 days" description="Birthdays, work anniversaries, important days and events" className="col-span-12 xl:col-span-5">
+              <ComingUp teamEvents={events.data?.items} />
+            </Panel>
           </div>
         </>
       )}

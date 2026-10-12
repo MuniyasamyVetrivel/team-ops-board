@@ -55,9 +55,8 @@ app:
     # Daily recurring-activity job: creates the current period's occurrences and their tasks (app.time-zone).
     activity-cron: ${MARKETING_ACTIVITY_CRON:0 10 0 * * *}
   celebrations:
-    # Daily birthday, work anniversary, important day and event reminders, run and dated in this zone.
+    # Daily birthday, work anniversary, important day and event reminders (app.time-zone).
     reminder-cron: ${CELEBRATION_REMINDER_CRON:0 0 8 * * *}
-    time-zone: ${CELEBRATION_TIME_ZONE:Australia/Sydney}
     # Shown on work anniversaries ("5 years at Tritusa").
     company-name: ${COMPANY_NAME:Tritusa}
   storage:

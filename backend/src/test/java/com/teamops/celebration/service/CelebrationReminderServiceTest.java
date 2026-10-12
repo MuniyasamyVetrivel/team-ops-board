@@ -39,10 +39,10 @@ import com.teamops.user.repository.UserRepository;
 
 class CelebrationReminderServiceTest {
 
-	/** 01:00 on 13 October in Sydney, still 12 October in India. */
-	private static final Instant NOW = Instant.parse("2026-10-12T14:00:00Z");
+	/** 00:30 on 13 October in India (APP_TIME_ZONE), still 12 October in UTC. */
+	private static final Instant NOW = Instant.parse("2026-10-12T19:00:00Z");
 
-	private static final LocalDate SYDNEY_TODAY = LocalDate.of(2026, 10, 13);
+	private static final LocalDate TODAY = LocalDate.of(2026, 10, 13);
 
 	private final OccasionFinder finder = mock(OccasionFinder.class);
 
@@ -66,7 +66,7 @@ class CelebrationReminderServiceTest {
 	void setUp() {
 		service = new CelebrationReminderService(finder, linkedInPosts, userRepository, notificationRepository,
 				notificationService, settings,
-				new BusinessCalendar(Clock.fixed(NOW, ZoneOffset.UTC), "Asia/Kolkata"), "Australia/Sydney");
+				new BusinessCalendar(Clock.fixed(NOW, ZoneOffset.UTC), "Asia/Kolkata"));
 		when(settings.celebrationReminderDaysBefore()).thenReturn(2);
 		when(userRepository.findByRoleAndStatus("SUPER_ADMIN", UserStatus.ACTIVE)).thenReturn(List.of(admin));
 		when(userRepository.findActiveWithPermission("CELEBRATIONS_EDIT", UserStatus.ACTIVE))
@@ -100,11 +100,11 @@ class CelebrationReminderServiceTest {
 	}
 
 	@Test
-	void remindsEditorsAndSuperAdminsDaysBeforeAndOnTheDayInSydneyTime() {
-		Occasion soon = birthday(SYDNEY_TODAY.plusDays(2));
-		Occasion today = diwali(SYDNEY_TODAY);
-		when(finder.between(SYDNEY_TODAY.plusDays(2), SYDNEY_TODAY.plusDays(2), false)).thenReturn(List.of(soon));
-		when(finder.between(SYDNEY_TODAY, SYDNEY_TODAY, false)).thenReturn(List.of(today));
+	void remindsEditorsAndSuperAdminsDaysBeforeAndOnTheDayInBusinessTime() {
+		Occasion soon = birthday(TODAY.plusDays(2));
+		Occasion today = diwali(TODAY);
+		when(finder.between(TODAY.plusDays(2), TODAY.plusDays(2), false)).thenReturn(List.of(soon));
+		when(finder.between(TODAY, TODAY, false)).thenReturn(List.of(today));
 		when(notificationRepository.findExistingDedupKeys(anyCollection())).thenReturn(Set.of());
 
 		assertThat(service.sendReminders()).as("2 occasions × 2 recipients (the admin once)").isEqualTo(4);
@@ -119,8 +119,8 @@ class CelebrationReminderServiceTest {
 
 	@Test
 	void neverSendsTheSameReminderTwice() {
-		Occasion soon = birthday(SYDNEY_TODAY.plusDays(2));
-		when(finder.between(SYDNEY_TODAY.plusDays(2), SYDNEY_TODAY.plusDays(2), false)).thenReturn(List.of(soon));
+		Occasion soon = birthday(TODAY.plusDays(2));
+		when(finder.between(TODAY.plusDays(2), TODAY.plusDays(2), false)).thenReturn(List.of(soon));
 		when(notificationRepository.findExistingDedupKeys(anyCollection()))
 			.thenReturn(Set.of("OCCASION:BIRTHDAY:1:2026-10-15:2:1", "OCCASION:BIRTHDAY:1:2026-10-15:2:5"));
 
@@ -131,8 +131,8 @@ class CelebrationReminderServiceTest {
 	@Test
 	void theDaysBeforeSettingDecidesTheLeadTime() {
 		when(settings.celebrationReminderDaysBefore()).thenReturn(5);
-		Occasion inFive = birthday(SYDNEY_TODAY.plusDays(5));
-		when(finder.between(SYDNEY_TODAY.plusDays(5), SYDNEY_TODAY.plusDays(5), false)).thenReturn(List.of(inFive));
+		Occasion inFive = birthday(TODAY.plusDays(5));
+		when(finder.between(TODAY.plusDays(5), TODAY.plusDays(5), false)).thenReturn(List.of(inFive));
 		when(notificationRepository.findExistingDedupKeys(anyCollection())).thenReturn(Set.of());
 
 		assertThat(service.sendReminders()).isEqualTo(2);

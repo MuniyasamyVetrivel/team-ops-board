@@ -8,8 +8,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Daily job in the celebration time zone (Australia/Sydney by default): birthday, work anniversary, important day and
- * event reminders. Idempotent; off with APP_SCHEDULING_ENABLED=false.
+ * Daily job in the business time zone (APP_TIME_ZONE): birthday, work anniversary, important day and event
+ * reminders. Idempotent; off with APP_SCHEDULING_ENABLED=false.
  */
 @Slf4j
 @Component
@@ -19,7 +19,7 @@ class CelebrationReminderScheduler {
 
 	private final CelebrationReminderService reminders;
 
-	@Scheduled(cron = "${app.celebrations.reminder-cron:0 0 8 * * *}", zone = "${app.celebrations.time-zone:Australia/Sydney}")
+	@Scheduled(cron = "${app.celebrations.reminder-cron:0 0 8 * * *}", zone = "${app.time-zone:Asia/Kolkata}")
 	public void run() {
 		int sent = reminders.sendReminders();
 		if (sent > 0) {

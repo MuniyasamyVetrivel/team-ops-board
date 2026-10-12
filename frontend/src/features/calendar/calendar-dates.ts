@@ -66,3 +66,10 @@ export function daysBetween(from: string, to: string): string[] {
 export function covers(start: string, end: string, day: string): boolean {
   return start <= day && day <= end;
 }
+
+/** An instant as a datetime-local input value (the browser's zone, which the person enters times in). */
+export function toLocalInput(iso: string): string {
+  const date = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { api } from '@/lib/api/client';
 import { superAdmin, webEmployee } from '@/test/fixtures';
+import { celebrationEditor, linkedInPost, occasionItem, page } from '@/test/celebration-fixtures';
 import { mockApi, renderPage } from '@/test/render';
 
 import type { CalendarItem, CalendarResponse } from './api';
@@ -94,13 +95,11 @@ describe('CalendarPage', () => {
         startAt: '2026-10-07T18:30:00Z',
         endAt: '2026-10-08T18:30:00Z',
         department: null,
-        user: null,
         createdBy: null,
         version: 0,
         canEdit: false,
       }),
       'GET /departments': () => [],
-      'GET /team': () => ({ content: [], page: 0, size: 100, totalElements: 0, totalPages: 0 }),
     });
 
     renderPage(<CalendarPage />, webEmployee);
@@ -110,5 +109,42 @@ describe('CalendarPage', () => {
     expect(await within(dialog).findByRole('heading', { name: 'Sprint review' })).toBeInTheDocument();
     expect(within(dialog).getByLabelText(/Title/)).toBeDisabled();
     expect(within(dialog).getByRole('button', { name: 'Done' })).toBeInTheDocument();
+  });
+
+  it('shows celebrations with their own label, hides a category with its chip and opens the drawer', async () => {
+    const today = toIsoDate(new Date());
+    const diwali = occasionItem(
+      today,
+      { key: `IMPORTANT_DAY-4-${today}`, kind: 'IMPORTANT_DAY', id: 4, title: 'Diwali', department: null },
+      { category: 'IMPORTANT_DAY', subjectType: 'IMPORTANT_DAY', subjectId: 4, detail: 'India', region: 'INDIA', dayCategory: 'FESTIVAL', linkedIn: linkedInPost() },
+    );
+    mockApi({
+      'GET /calendar': () => ({ ...response(), items: [...response().items, occasionItem(today), diwali] }),
+      'GET /team': () => page([]),
+    });
+    const user = userEvent.setup();
+    renderPage(<CalendarPage />, celebrationEditor);
+    await screen.findByRole('button', { name: 'Milestone: Beta launch' });
+    // The week view shows every item of a day.
+    await user.click(screen.getByRole('button', { name: 'Week' }));
+
+    const birthday = await screen.findByRole('button', { name: "Birthday: Priya Menon's birthday" });
+    expect(screen.getByRole('list', { name: 'Legend' })).toHaveTextContent('Work anniversary');
+
+    const chip = screen.getByRole('button', { name: /^Birthday/, pressed: true });
+    await user.click(chip);
+    expect(birthday).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Birthday/, pressed: false })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^Work and team events/ }));
+    expect(screen.queryByRole('button', { name: 'Milestone: Beta launch' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Important day: Diwali' }));
+    const drawer = await screen.findByRole('dialog');
+    expect(within(drawer).getByText('India')).toBeInTheDocument();
+    expect(within(drawer).getByText('Festival')).toBeInTheDocument();
+    expect(within(drawer).getByText('Not started')).toBeInTheDocument();
+    expect(within(drawer).getByRole('link', { name: /Open the important day/ })).toHaveAttribute('href', '/celebrations/important-days?day=4');
+    await user.click(within(drawer).getByRole('button', { name: 'Update LinkedIn post' }));
+    expect(await screen.findByRole('heading', { name: 'LinkedIn post' })).toBeInTheDocument();
   });
 });

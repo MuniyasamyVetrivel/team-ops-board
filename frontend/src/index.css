@@ -117,6 +117,15 @@
   --status-danger: #c92a2a;
   --status-neutral: var(--color-gray-600);
 
+  /* Calendar categories (birthdays, anniversaries, important days, event kinds). Always shown with an icon and label. */
+  --occasion-birthday: #be185d;
+  --occasion-anniversary: #6d28d9;
+  --occasion-day: #a16207;
+  --occasion-event: #0f766e;
+  --occasion-webinar: #1d4ed8;
+  --occasion-event-marketing: #c2410c;
+  --occasion-email: #4338ca;
+
   /* One chart palette built from the brand colours. Never used for status, which has its own tokens. */
   --chart-1: var(--color-blue-600);
   --chart-2: var(--color-amber-500);
@@ -171,6 +180,14 @@
   --status-danger: #f87171;
   --status-neutral: #a0a6cc;
 
+  --occasion-birthday: #f472b6;
+  --occasion-anniversary: #c4b5fd;
+  --occasion-day: #facc15;
+  --occasion-event: #2dd4bf;
+  --occasion-webinar: #93c5fd;
+  --occasion-event-marketing: #fb923c;
+  --occasion-email: #a5b4fc;
+
   --chart-1: #7b91f3;
   --chart-2: var(--color-amber-400);
   --chart-3: #c3cefb;
@@ -213,6 +230,13 @@
   --color-status-warning: var(--status-warning);
   --color-status-danger: var(--status-danger);
   --color-status-neutral: var(--status-neutral);
+  --color-occasion-birthday: var(--occasion-birthday);
+  --color-occasion-anniversary: var(--occasion-anniversary);
+  --color-occasion-day: var(--occasion-day);
+  --color-occasion-event: var(--occasion-event);
+  --color-occasion-webinar: var(--occasion-webinar);
+  --color-occasion-event-marketing: var(--occasion-event-marketing);
+  --color-occasion-email: var(--occasion-email);
 
   --shadow-card: var(--card-shadow);
   --shadow-popover: var(--popover-shadow);

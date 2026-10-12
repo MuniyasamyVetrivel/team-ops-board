@@ -1,14 +1,11 @@
-import { CalendarDays, History, type LucideIcon } from 'lucide-react';
+import { History, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { EmptyState } from '@/components/common/EmptyState';
 import { UserAvatar, UserCell } from '@/components/common/UserAvatar';
-import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { CalendarItem } from '@/features/calendar/api';
-import { EVENT_TYPE_LABELS } from '@/features/calendar/calendar-meta';
 import { DueBadge, PriorityIndicator } from '@/features/tasks/TaskBadges';
-import { historyLabel, historyValue, parseLocalDate } from '@/features/tasks/task-meta';
+import { historyLabel, historyValue } from '@/features/tasks/task-meta';
 import type { TaskListItem } from '@/features/tasks/types';
 import type { WorkloadRow } from '@/features/workload/api';
 import { WorkloadLevelBadge, WorkloadMeter } from '@/features/workload/WorkloadMeter';
@@ -163,39 +160,5 @@ export function RecentActivity({ items, onOpenTask }: { items: ActivityItem[]; o
         </li>
       ))}
     </ol>
-  );
-}
-
-
-const dayFormat = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
-const timeFormat = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
-
-function eventWhen(item: CalendarItem): string {
-  const start = dayFormat.format(parseLocalDate(item.startDate));
-  if (!item.allDay && item.startAt) return `${start}, ${timeFormat.format(new Date(item.startAt))}`;
-  return item.endDate !== item.startDate ? `${start} – ${dayFormat.format(parseLocalDate(item.endDate))}` : start;
-}
-
-/** Upcoming team events from the calendar API (task deadlines have their own list). */
-export function UpcomingEvents({ items }: { items: CalendarItem[] }) {
-  const events = items.filter((item) => item.kind === 'EVENT');
-  if (events.length === 0) return <EmptyState icon={CalendarDays} title="Nothing scheduled" description="Team events and meetings for the next two weeks appear here." className="py-10" />;
-  return (
-    <ul className="divide-y divide-border/70">
-      {events.map((item) => (
-        <li key={item.key} className="flex min-h-16 items-center gap-3 px-6 py-3">
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{item.title}</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {eventWhen(item)}
-              {item.department && ` · ${item.department.name}`}
-            </p>
-          </div>
-          <Badge tone={item.eventType === 'IMPORTANT_DATE' ? 'primary' : 'neutral'}>
-            {item.eventType ? EVENT_TYPE_LABELS[item.eventType] : 'Event'}
-          </Badge>
-        </li>
-      ))}
-    </ul>
   );
 }

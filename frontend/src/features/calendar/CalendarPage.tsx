@@ -1,4 +1,4 @@
-import { CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Flag, ListTodo, Plus, Presentation, Star, Users, Workflow, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -12,6 +12,9 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { hasPermission } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
+import type { OccasionCategory } from '@/features/celebrations/api';
+import { OCCASION_CATEGORIES, OCCASION_STYLE } from '@/features/celebrations/celebration-meta';
+import { OccasionDrawer } from '@/features/celebrations/OccasionDrawer';
 import { TaskDrawer } from '@/features/tasks/TaskDrawer';
 import { parseLocalDate } from '@/features/tasks/task-meta';
 import { useTaskParam } from '@/features/tasks/use-task-param';
@@ -27,6 +30,29 @@ const VIEWS: { id: CalendarView; label: string }[] = [
   { id: 'WEEK', label: 'Week' },
   { id: 'AGENDA', label: 'Agenda' },
 ];
+
+/** A filter chip per category; "WORK" covers deadlines, milestones, approvals and team events. */
+type Filter = 'WORK' | OccasionCategory;
+
+const FILTERS: { id: Filter; label: string; icon: LucideIcon; className: string }[] = [
+  { id: 'WORK', label: 'Work and team events', icon: ListTodo, className: 'border-primary/20 bg-accent text-accent-foreground' },
+  ...OCCASION_CATEGORIES.map((category) => ({ id: category, ...OCCASION_STYLE[category] })),
+];
+
+/** The non-celebration kinds, for the legend (the chips show the celebration categories). */
+const WORK_LEGEND: { label: string; icon: LucideIcon; className: string }[] = [
+  { label: 'Task due', icon: ListTodo, className: 'border-primary/20 bg-accent text-accent-foreground' },
+  { label: 'Overdue task', icon: ListTodo, className: 'border-status-danger/30 bg-status-danger/10 text-status-danger' },
+  { label: 'Milestone', icon: Flag, className: 'border-status-success/30 bg-status-success/10 text-status-success' },
+  { label: 'Approval due', icon: Workflow, className: 'border-status-warning/30 bg-status-warning/10 text-status-warning' },
+  { label: 'Team event', icon: Users, className: 'border-border bg-card text-foreground' },
+  { label: 'Meeting', icon: Presentation, className: 'border-border bg-card text-foreground' },
+  { label: 'Important date', icon: Star, className: 'border-border bg-card text-foreground' },
+];
+
+function filterOf(item: CalendarItem): Filter {
+  return item.occasion?.category ?? 'WORK';
+}
 
 const monthTitle = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' });
 const shortDay = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' });
@@ -48,12 +74,31 @@ export default function CalendarPage() {
   const [mine, setMine] = useState(true);
   const [taskId, setTaskId] = useTaskParam();
   const [eventTarget, setEventTarget] = useState<{ eventId: number } | { day: string } | null>(null);
+  const [hidden, setHidden] = useState<ReadonlySet<Filter>>(new Set());
+  const [occasionKey, setOccasionKey] = useState<string | null>(null);
   const range = viewRange(view, anchor);
   const calendar = useCalendar({ ...range, mine });
   const canEdit = hasPermission(user, 'CALENDAR_EDIT');
   const today = calendar.data?.today;
+  const allItems = calendar.data?.items ?? [];
+  const items = allItems.filter((item) => !hidden.has(filterOf(item)));
+  // Looked up again after a refresh, so the drawer shows the current LinkedIn status.
+  const occasion = allItems.find((item) => item.key === occasionKey) ?? null;
+
+  function toggle(filter: Filter) {
+    setHidden((current) => {
+      const next = new Set(current);
+      if (next.has(filter)) next.delete(filter);
+      else next.add(filter);
+      return next;
+    });
+  }
 
   function open(item: CalendarItem) {
+    if (item.occasion) {
+      setOccasionKey(item.key);
+      return;
+    }
     switch (item.kind) {
       case 'TASK_DEADLINE':
         setTaskId(item.id);
@@ -64,12 +109,8 @@ export default function CalendarPage() {
       case 'APPROVAL_DUE':
         void navigate(`/approvals?approval=${item.id}`);
         break;
-      case 'EVENT':
-        setEventTarget({ eventId: item.id });
-        break;
       default:
-        // Birthdays, anniversaries, important days and marketing events get their own drawer in the Calendar UI phase.
-        break;
+        setEventTarget({ eventId: item.id });
     }
   }
 
@@ -124,6 +165,28 @@ export default function CalendarPage() {
             </div>
           </div>
         </div>
+        <div className="flex flex-wrap gap-2 border-b px-6 py-3" role="group" aria-label="Show categories">
+          {FILTERS.map((f) => {
+            const shown = !hidden.has(f.id);
+            const count = allItems.filter((item) => filterOf(item) === f.id).length;
+            return (
+              <button
+                key={f.id}
+                type="button"
+                aria-pressed={shown}
+                onClick={() => toggle(f.id)}
+                className={cn(
+                  'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-[opacity,background-color] focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+                  shown ? f.className : 'border-dashed border-border bg-transparent text-muted-foreground line-through',
+                )}
+              >
+                <f.icon className="size-3.5" aria-hidden />
+                {f.label}
+                {calendar.data && <span className="tabular-nums opacity-80">{count}</span>}
+              </button>
+            );
+          })}
+        </div>
         {calendar.isError ? (
           <ErrorState error={calendar.error} title="Couldn't load the calendar" onRetry={() => void calendar.refetch()} />
         ) : calendar.isPending ? (
@@ -131,11 +194,13 @@ export default function CalendarPage() {
             <Skeleton className="h-[28rem]" />
           </div>
         ) : view === 'AGENDA' ? (
-          <Agenda items={calendar.data.items} from={range.from} to={range.to} today={today} onOpen={open} />
+          <Agenda items={items} from={range.from} to={range.to} today={today} onOpen={open} />
         ) : (
-          <Grid view={view} items={calendar.data.items} from={range.from} to={range.to} anchor={anchor} today={today} onOpen={open} onDay={canEdit ? (day) => setEventTarget({ day }) : undefined} />
+          <Grid view={view} items={items} from={range.from} to={range.to} anchor={anchor} today={today} onOpen={open} onDay={canEdit ? (day) => setEventTarget({ day }) : undefined} />
         )}
+        <Legend />
       </Card>
+      <OccasionDrawer item={occasion} onClose={() => setOccasionKey(null)} />
       <TaskDrawer taskId={taskId} onClose={() => setTaskId(null)} />
       <EventDialog target={eventTarget} onClose={() => setEventTarget(null)} />
     </div>
@@ -260,6 +325,7 @@ function Agenda({ items, from, to, today, onOpen }: { items: CalendarItem[]; fro
                         {item.startAt && ` · ${time.format(new Date(item.startAt))}`}
                         {item.department && ` · ${item.department.name}`}
                         {item.kind === 'TASK_DEADLINE' && item.user && ` · ${item.user.fullName}`}
+                        {item.occasion?.detail && item.occasion.category !== 'BIRTHDAY' && ` · ${item.occasion.detail}`}
                       </span>
                     </span>
                   </button>
@@ -270,5 +336,25 @@ function Agenda({ items, from, to, today, onOpen }: { items: CalendarItem[]; fro
         </li>
       ))}
     </ol>
+  );
+}
+
+/** What each colour and icon means; every item also carries its label for screen readers. */
+function Legend() {
+  const entries = [...WORK_LEGEND, ...OCCASION_CATEGORIES.map((category) => OCCASION_STYLE[category])];
+  return (
+    <div className="border-t px-6 py-3">
+      <h3 className="sr-only">Legend</h3>
+      <ul className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground" aria-label="Legend">
+        {entries.map((entry) => (
+          <li key={entry.label} className="inline-flex items-center gap-1.5">
+            <span className={cn('flex size-5 items-center justify-center rounded border', entry.className)}>
+              <entry.icon className="size-3" aria-hidden />
+            </span>
+            {entry.label}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

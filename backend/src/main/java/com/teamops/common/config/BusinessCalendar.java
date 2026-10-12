@@ -34,11 +34,6 @@ public class BusinessCalendar {
 		return LocalDate.now(clock.withZone(zone));
 	}
 
-	/** Today in another zone, for jobs that run on a different business clock (e.g. celebration reminders). */
-	public LocalDate today(ZoneId otherZone) {
-		return LocalDate.now(clock.withZone(otherZone));
-	}
-
 	public Instant now() {
 		return clock.instant();
 	}

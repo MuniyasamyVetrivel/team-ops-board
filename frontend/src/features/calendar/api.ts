@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import type { OccasionInfo } from '@/features/celebrations/api';
 import type { DueState, TaskPriority, TaskStatus } from '@/features/tasks/types';
 import { api } from '@/lib/api/client';
 import type { UserSummary } from '@/lib/api/types';
@@ -15,37 +16,6 @@ export type CalendarItemKind =
   | 'IMPORTANT_DAY'
   | 'MARKETING_EVENT'
   | 'EMAIL_CAMPAIGN';
-
-/** Mirrors com.teamops.celebration.entity.OccasionCategory: the calendar's celebration and marketing categories. */
-export type OccasionCategory = 'BIRTHDAY' | 'WORK_ANNIVERSARY' | 'IMPORTANT_DAY' | 'EVENT' | 'WEBINAR' | 'EVENT_MARKETING' | 'EMAIL_MARKETING';
-export type OccasionKind = 'BIRTHDAY' | 'WORK_ANNIVERSARY' | 'IMPORTANT_DAY' | 'EVENT';
-export type LinkedInPostStatus = 'NOT_STARTED' | 'DRAFTED' | 'SCHEDULED' | 'POSTED';
-
-/** Mirrors CelebrationDtos.LinkedInPostDto. */
-export interface LinkedInPost {
-  needed: boolean;
-  saved: boolean;
-  status: LinkedInPostStatus;
-  owner: UserSummary | null;
-  postDate: string | null;
-  postLink: string | null;
-  version: number | null;
-}
-
-/** Mirrors CelebrationDtos.OccasionInfo (birthdays, anniversaries, important days, marketing events, email campaigns). */
-export interface OccasionInfo {
-  category: OccasionCategory;
-  subjectType: OccasionKind | null;
-  subjectId: number;
-  detail: string | null;
-  years: number | null;
-  dayCategory: 'FESTIVAL' | 'NATIONAL_DAY' | 'INDUSTRY_DAY' | 'COMPANY_MILESTONE' | 'OTHER' | null;
-  region: 'AUSTRALIA' | 'INDIA' | 'GLOBAL' | null;
-  eventType: 'UPCOMING_EVENT' | 'WEBINAR' | 'EVENT_MARKETING' | 'EMAIL_MARKETING' | null;
-  eventStatus: 'PLANNED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | null;
-  location: string | null;
-  linkedIn: LinkedInPost | null;
-}
 
 /** Mirrors com.teamops.calendar.dto.CalendarDtos.CalendarItem. Dates are business-zone LocalDates. */
 export interface CalendarItem {

@@ -7,6 +7,7 @@ import type { CalendarResponse } from '@/features/calendar/api';
 import { api } from '@/lib/api/client';
 import { superAdmin, webEmployee } from '@/test/fixtures';
 import { marketingDashboard } from '@/test/marketing-fixtures';
+import { occasionItem } from '@/test/celebration-fixtures';
 import { mockApi, renderPage } from '@/test/render';
 import { taskDetail, taskItem } from '@/test/task-fixtures';
 
@@ -73,8 +74,11 @@ const calendar: CalendarResponse = {
 type Handler = (config: InternalAxiosRequestConfig) => unknown;
 
 /** The company-wide (Super Admin) dashboard also loads the Digital Marketing summary. */
+/** "Coming up": a birthday next to the team event from the calendar. */
+const upcoming: CalendarResponse = { today: '2026-10-08', from: '2026-10-08', to: '2026-10-21', items: [occasionItem('2026-10-14')] };
+
 function companyRoutes(extra: Record<string, Handler> = {}): Record<string, Handler> {
-  return { 'GET /dashboard': () => dashboard(), 'GET /calendar': () => calendar, 'GET /marketing/dashboard': () => marketingDashboard, ...extra };
+  return { 'GET /dashboard': () => dashboard(), 'GET /calendar': () => calendar, 'GET /celebrations/upcoming': () => upcoming, 'GET /marketing/dashboard': () => marketingDashboard, ...extra };
 }
 
 describe('DashboardPage', () => {
@@ -118,7 +122,10 @@ describe('DashboardPage', () => {
     expect(within(workload).getByRole('meter')).toHaveAttribute('aria-valuenow', '120');
     expect(screen.getByText(/changed status to/)).toHaveTextContent('Completed');
     expect(await screen.findByText('Quarterly town hall')).toBeInTheDocument();
-    expect(screen.getByText('Team event')).toBeInTheDocument();
+    expect(screen.getByText(/^Team event · /)).toBeInTheDocument();
+    const comingUp = screen.getByRole('heading', { name: 'Coming up in the next 14 days' }).closest('[data-slot="card"]') as HTMLElement;
+    expect(await within(comingUp).findByText("Priya Menon's birthday")).toBeInTheDocument();
+    expect(within(comingUp).getByText(/Birthday · In 6 days/)).toBeInTheDocument();
     expect(screen.queryByText('A deadline')).not.toBeInTheDocument();
   });
 
@@ -136,7 +143,7 @@ describe('DashboardPage', () => {
     mockApi({
       'GET /dashboard': () =>
         dashboard({ scope: 'OWN', departments: [], kpis: { ...dashboard().kpis, teamMembers: null }, workload: { ...dashboard().workload, people: 1 } }),
-      'GET /calendar': () => calendar,
+      'GET /calendar': () => calendar, 'GET /celebrations/upcoming': () => upcoming,
     });
 
     renderPage(<DashboardPage />, webEmployee);
@@ -164,7 +171,7 @@ describe('DashboardPage', () => {
 
   it('adds the Digital Marketing summary to the company-wide dashboard (brief section 8.9)', async () => {
     const requests: InternalAxiosRequestConfig[] = [];
-    mockApi({ 'GET /dashboard': () => dashboard(), 'GET /calendar': () => calendar, 'GET /marketing/dashboard': (config) => (requests.push(config), marketingDashboard) });
+    mockApi({ 'GET /dashboard': () => dashboard(), 'GET /calendar': () => calendar, 'GET /celebrations/upcoming': () => upcoming, 'GET /marketing/dashboard': (config) => (requests.push(config), marketingDashboard) });
     renderPage(<DashboardPage />, superAdmin);
 
     const summary = await screen.findByLabelText('Marketing summary');
@@ -185,7 +192,7 @@ describe('DashboardPage', () => {
   it('leaves the marketing summary off a personal dashboard', async () => {
     const adapter = mockApi({
       'GET /dashboard': () => dashboard({ scope: 'OWN', departments: [], kpis: { ...dashboard().kpis, teamMembers: null }, workload: { ...dashboard().workload, people: 1 } }),
-      'GET /calendar': () => calendar,
+      'GET /calendar': () => calendar, 'GET /celebrations/upcoming': () => upcoming,
     });
     renderPage(<DashboardPage />, webEmployee);
 
