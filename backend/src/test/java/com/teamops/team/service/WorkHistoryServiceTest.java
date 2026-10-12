@@ -50,7 +50,7 @@ class WorkHistoryServiceTest {
 	/** 12 October 2026, 11:30 in India. */
 	private static final Instant NOW = Instant.parse("2026-10-12T06:00:00Z");
 
-	private static final Filter NO_FILTER = new Filter(null, null, null, null, null, null, null);
+	private static final Filter NO_FILTER = new Filter(null, null, null, null, null, null, null, null);
 
 	private final UserRepository users = mock(UserRepository.class);
 
@@ -107,9 +107,9 @@ class WorkHistoryServiceTest {
 	@Test
 	void filtersAreValidated() {
 		when(scopes.canViewWorkOf(SliceAuth.SUPER_ADMIN, 4L, 5L)).thenReturn(true);
-		assertError(() -> service.tasks(4L, new Filter(Set.of("DONE"), null, null, null, null, null, null),
+		assertError(() -> service.tasks(4L, new Filter(Set.of("DONE"), null, null, null, null, null, null, null),
 				PageRequest.of(0, 25), SliceAuth.SUPER_ADMIN), HttpStatus.BAD_REQUEST, "INVALID_FILTER");
-		assertError(() -> service.tasks(4L, new Filter(null, null, LocalDate.of(2026, 9, 20), LocalDate.of(2026, 9, 10),
+		assertError(() -> service.tasks(4L, new Filter(null, null, null, LocalDate.of(2026, 9, 20), LocalDate.of(2026, 9, 10),
 				null, null, null), PageRequest.of(0, 25), SliceAuth.SUPER_ADMIN), HttpStatus.BAD_REQUEST, "INVALID_RANGE");
 	}
 

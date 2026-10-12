@@ -36,6 +36,7 @@ import com.teamops.task.repository.TaskRepository;
 import com.teamops.task.repository.TaskSpecifications;
 import com.teamops.team.dto.WorkHistoryDtos;
 import com.teamops.team.dto.WorkHistoryDtos.DateField;
+import com.teamops.team.dto.WorkHistoryDtos.DatePreset;
 import com.teamops.team.dto.WorkHistoryDtos.TaskRow;
 import com.teamops.team.dto.WorkHistoryDtos.TicketRow;
 import com.teamops.team.dto.WorkHistoryDtos.WorkSummary;
@@ -84,13 +85,34 @@ public class WorkHistoryService {
 
 	private final BusinessCalendar calendar;
 
-	/** Filters shared by tasks and tickets. {@code groupId} is the project (tasks) or the category (tickets). */
-	public record Filter(Set<String> statuses, DateField dateField, LocalDate from, LocalDate to, Long groupId,
-			Set<String> priorities, String search) {
+	/**
+	 * Filters shared by tasks and tickets. {@code groupId} is the project (tasks) or the category (tickets). A
+	 * {@code preset} replaces {@code from}/{@code to}.
+	 */
+	public record Filter(Set<String> statuses, DateField dateField, DatePreset preset, LocalDate from, LocalDate to,
+			Long groupId, Set<String> priorities, String search) {
 
 		/** Without a field, a date range applies to the completed (resolved) date. */
 		DateField field() {
 			return dateField == null ? DateField.COMPLETED : dateField;
+		}
+
+		/** The filter with its preset turned into dates. */
+		Filter resolve(LocalDate today) {
+			if (preset == null) {
+				return this;
+			}
+			LocalDate week = WorkHistoryRules.weekOf(today);
+			LocalDate month = today.withDayOfMonth(1);
+			LocalDate[] range = switch (preset) {
+				case THIS_WEEK -> new LocalDate[] { week, week.plusDays(6) };
+				case LAST_WEEK -> new LocalDate[] { week.minusWeeks(1), week.minusDays(1) };
+				case THIS_MONTH -> new LocalDate[] { month, month.plusMonths(1).minusDays(1) };
+				case LAST_MONTH -> new LocalDate[] { month.minusMonths(1), month.minusDays(1) };
+				case LAST_3_MONTHS -> new LocalDate[] { today.minusMonths(3).plusDays(1), today };
+				case LAST_30_DAYS -> new LocalDate[] { today.minusDays(29), today };
+			};
+			return new Filter(statuses, dateField, null, range[0], range[1], groupId, priorities, search);
 		}
 
 	}
@@ -100,18 +122,14 @@ public class WorkHistoryService {
 	public PageResponse<TaskRow> tasks(Long userId, Filter filter, Pageable pageable, AuthenticatedUser viewer) {
 		User person = person(userId, viewer);
 		LocalDate today = calendar.today();
-		Specification<Task> spec = taskSpec(person, filter, viewer, today);
-		Sort.Order byPriority = pageable.getSort().getOrderFor("priority");
-		if (byPriority != null) {
-			spec = spec.and(TaskSpecifications.orderByPriority(byPriority.isDescending()));
-			pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
-		}
+		Specification<Task> spec = taskSpec(person, filter.resolve(today), viewer, today);
 		return PageResponse.of(taskRepository.findAll(spec, pageable).map(task -> taskRow(task, today)));
 	}
 
-	public WorkSummary taskSummary(Long userId, Filter filter, AuthenticatedUser viewer) {
+	public WorkSummary taskSummary(Long userId, Filter requested, AuthenticatedUser viewer) {
 		User person = person(userId, viewer);
 		LocalDate today = calendar.today();
+		Filter filter = requested.resolve(today);
 		Specification<Task> spec = taskSpec(person, filter, viewer, today);
 
 		Map<TaskStatus, Long> counts = aggregates.countBy(Task.class, spec, "status", TaskStatus.class);
@@ -142,8 +160,8 @@ public class WorkHistoryService {
 				onTime += Boolean.TRUE.equals(WorkHistoryRules.onTime(completed, due)) ? 1 : 0;
 			}
 		}
-		return new WorkSummary(UserSummary.of(person), total, byStatus, overdue, completions.size(),
-				WorkHistoryRules.percent(onTime, withDue), WorkHistoryRules.average(durations), hours,
+		return new WorkSummary(UserSummary.of(person), today, filter.from(), filter.to(), total, byStatus, overdue,
+				completions.size(), WorkHistoryRules.percent(onTime, withDue), WorkHistoryRules.average(durations), hours,
 				WorkHistoryRules.perWeek(WorkHistoryRules.weeks(filter.from(), filter.to(), today), completions));
 	}
 
@@ -167,14 +185,16 @@ public class WorkHistoryService {
 	public PageResponse<TicketRow> tickets(Long userId, Filter filter, Pageable pageable, AuthenticatedUser viewer) {
 		User person = person(userId, viewer);
 		Instant now = calendar.now();
-		return PageResponse.of(ticketRepository.findAll(ticketSpec(person, filter, viewer, now), pageable)
+		Filter resolved = filter.resolve(calendar.today());
+		return PageResponse.of(ticketRepository.findAll(ticketSpec(person, resolved, viewer, now), pageable)
 			.map(ticket -> ticketRow(ticket, now)));
 	}
 
-	public WorkSummary ticketSummary(Long userId, Filter filter, AuthenticatedUser viewer) {
+	public WorkSummary ticketSummary(Long userId, Filter requested, AuthenticatedUser viewer) {
 		User person = person(userId, viewer);
 		Instant now = calendar.now();
 		LocalDate today = calendar.today();
+		Filter filter = requested.resolve(today);
 		Specification<Ticket> spec = ticketSpec(person, filter, viewer, now);
 
 		Map<TicketStatus, Long> counts = aggregates.countBy(Ticket.class, spec, "status", TicketStatus.class);
@@ -203,8 +223,8 @@ public class WorkHistoryService {
 					row.get(4, Integer.class), row.get(5, Integer.class), row.get(6, Instant.class), resolvedAt);
 			met += SlaCalculator.evaluate(clock, now).compliant() ? 1 : 0;
 		}
-		return new WorkSummary(UserSummary.of(person), total, byStatus, overdue, completions.size(),
-				WorkHistoryRules.percent(met, completions.size()), WorkHistoryRules.average(durations), null,
+		return new WorkSummary(UserSummary.of(person), today, filter.from(), filter.to(), total, byStatus, overdue,
+				completions.size(), WorkHistoryRules.percent(met, completions.size()), WorkHistoryRules.average(durations), null,
 				WorkHistoryRules.perWeek(WorkHistoryRules.weeks(filter.from(), filter.to(), today), completions));
 	}
 

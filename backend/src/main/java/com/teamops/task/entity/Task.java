@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -65,6 +66,10 @@ public class Task extends BaseEntity {
 	@JdbcTypeCode(SqlTypes.VARCHAR)
 	@Column(name = "priority", nullable = false, length = 32)
 	private TaskPriority priority = TaskPriority.MEDIUM;
+
+	/** Sortable priority order (URGENT highest); read-only. The column holds text, which would sort alphabetically. */
+	@Formula("case priority when 'URGENT' then 4 when 'HIGH' then 3 when 'MEDIUM' then 2 else 1 end")
+	private int priorityRank;
 
 	@Enumerated(EnumType.STRING)
 	@JdbcTypeCode(SqlTypes.VARCHAR)

@@ -7,8 +7,8 @@ import { cn } from '@/lib/utils';
  * A row of filter tabs: all in one row on desktop ({@code columns} of them), wrapping to 2 or 3 columns on smaller
  * screens. Pass the tab count so the desktop row has no empty cells.
  */
-export function FilterTabs({ columns, className, ...props }: ComponentProps<'div'> & { columns: 3 | 4 | 5 | 6 }) {
-  const desktop = { 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4', 5: 'lg:grid-cols-5', 6: 'lg:grid-cols-6' }[columns];
+export function FilterTabs({ columns, className, ...props }: ComponentProps<'div'> & { columns: 3 | 4 | 5 | 6 | 7 | 8 }) {
+  const desktop = { 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4', 5: 'lg:grid-cols-5', 6: 'lg:grid-cols-6', 7: 'xl:grid-cols-7 lg:grid-cols-4', 8: 'xl:grid-cols-8 lg:grid-cols-4' }[columns];
   return <div role="tablist" className={cn('grid grid-cols-2 gap-3 sm:grid-cols-3', desktop, className)} {...props} />;
 }
 

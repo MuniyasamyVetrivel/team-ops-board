@@ -53,7 +53,7 @@ export function Sidebar({ mobileOpen, onNavigate }: SidebarProps) {
                       onClick={onNavigate}
                       className={({ isActive }) =>
                         cn(
-                          'relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/40',
+                          'relative flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/40',
                           isActive ? 'bg-sidebar-active text-white shadow-sm' : 'hover:bg-sidebar-hover hover:text-white',
                         )
                       }
@@ -62,7 +62,8 @@ export function Sidebar({ mobileOpen, onNavigate }: SidebarProps) {
                         <>
                           {isActive && <span className="absolute top-2 bottom-2 -left-3 w-1 rounded-r-full bg-highlight" aria-hidden />}
                           <item.icon className={cn('size-[18px] shrink-0', isActive ? 'text-white' : 'text-sidebar-muted')} aria-hidden />
-                          <span className="truncate">{item.label}</span>
+                          {/* Long labels wrap to a second line rather than being cut off. */}
+                          <span className="min-w-0 leading-snug break-words">{item.label}</span>
                         </>
                       )}
                     </NavLink>

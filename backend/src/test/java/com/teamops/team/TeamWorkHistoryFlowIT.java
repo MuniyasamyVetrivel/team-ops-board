@@ -176,6 +176,9 @@ class TeamWorkHistoryFlowIT {
 			.andExpect(jsonPath("$.content[*].id", contains(late.intValue(), overdue.intValue())))
 			.andExpect(jsonPath("$.totalElements").value(5));
 		as(adminToken, get(path).param("status", "DONE")).andExpect(status().isBadRequest());
+		// The main task list sorts priority by rank too (it used to sort the text alphabetically).
+		as(adminToken, get("/api/tasks").param("departmentId", departmentId.toString()).param("sort", "priority,desc"))
+			.andExpect(jsonPath("$.content[*].priority", contains("URGENT", "HIGH", "MEDIUM", "LOW", "LOW")));
 
 		as(managerToken, get(path + "/summary").param("dateField", "COMPLETED")
 			.param("from", base.toString())
@@ -185,7 +188,14 @@ class TeamWorkHistoryFlowIT {
 			.andExpect(jsonPath("$.completedOnTimePct").value(50.0))
 			// Plan: started on day 0, done on day 10. Release: created 5 days before day 0, done on day 13.
 			.andExpect(jsonPath("$.averageDaysToComplete").value(14.0))
-			.andExpect(jsonPath("$.totalActualHours").value(8.0));
+			.andExpect(jsonPath("$.totalActualHours").value(8.0))
+			.andExpect(jsonPath("$.from").value(base.toString()))
+			.andExpect(jsonPath("$.today").value(today.toString()));
+		// A preset is resolved on the server against the business today.
+		as(adminToken, get(path + "/summary").param("preset", "LAST_30_DAYS").param("dateField", "DUE"))
+			.andExpect(jsonPath("$.from").value(today.minusDays(29).toString()))
+			.andExpect(jsonPath("$.to").value(today.toString()))
+			.andExpect(jsonPath("$.total").value(1));
 		String summary = as(memberToken, get(path + "/summary")).andExpect(status().isOk())
 			.andExpect(jsonPath("$.total").value(5))
 			.andExpect(jsonPath("$.byStatus.COMPLETED").value(2))

@@ -143,12 +143,13 @@ export const projectKeys = {
   detail: (id: number) => [...projectKeys.all, 'detail', id] as const,
 };
 
-export function useProjects(query: ProjectQuery) {
+export function useProjects(query: ProjectQuery, enabled = true) {
   return useQuery({
     queryKey: projectKeys.list(query),
     queryFn: async () =>
       (await api.get<PageResponse<ProjectListItem>>('/projects', { params: cleanParams(query), paramsSerializer: serializeParams })).data,
     placeholderData: keepPreviousData,
+    enabled,
   });
 }
 

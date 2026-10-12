@@ -156,24 +156,6 @@ public final class TaskSpecifications {
 		};
 	}
 
-	/**
-	 * Orders by priority rank (URGENT highest), then due date. Priorities are stored as text, so a plain sort would be
-	 * alphabetical. Count queries are left unordered.
-	 */
-	public static Specification<Task> orderByPriority(boolean urgentFirst) {
-		return (root, query, cb) -> {
-			if (query != null && !Long.class.equals(query.getResultType())) {
-				var rank = cb.selectCase(root.get("priority"))
-					.when(TaskPriority.URGENT, 4)
-					.when(TaskPriority.HIGH, 3)
-					.when(TaskPriority.MEDIUM, 2)
-					.otherwise(1);
-				query.orderBy(urgentFirst ? cb.desc(rank) : cb.asc(rank), cb.asc(root.get("dueDate")), cb.asc(root.get("id")));
-			}
-			return cb.conjunction();
-		};
-	}
-
 	/** Due date within [from, to], both inclusive. */
 	public static Specification<Task> dueBetween(LocalDate from, LocalDate to) {
 		return (root, query, cb) -> cb.between(root.get("dueDate"), from, to);

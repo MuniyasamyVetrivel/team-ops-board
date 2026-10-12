@@ -78,4 +78,33 @@ describe('WorkloadPage', () => {
     await userEvent.type(screen.getByLabelText('Due to'), '2026-10-31');
     await waitFor(() => expect(adapter.mock.calls.at(-1)?.[0].params).toMatchObject({ from: '2026-10-01', to: '2026-10-31' }));
   });
+
+  it('links names to the profile and counts to the work history on that status', async () => {
+    mockApi({ 'GET /workload': () => response, 'GET /departments': () => [] });
+    renderPage(<WorkloadPage />, superAdmin);
+
+    const karthik = (await screen.findByText('Karthik Raj')).closest('tr')!;
+    expect(within(karthik).getAllByRole('link')[0]).toHaveAttribute('href', '/team/4');
+    expect(within(karthik).getByRole('link', { name: 'Overdue for Karthik Raj: 3, open work history' })).toHaveAttribute('href', '/team/4?status=OVERDUE#work-history');
+    expect(within(karthik).getByRole('link', { name: 'In progress for Karthik Raj: 2, open work history' })).toHaveAttribute('href', '/team/4?status=IN_PROGRESS#work-history');
+    expect(within(karthik).getByRole('link', { name: 'Completed by Karthik Raj: 4, open work history' })).toHaveAttribute(
+      'href',
+      '/team/4?status=COMPLETED&range=LAST_30_DAYS&dateField=COMPLETED#work-history',
+    );
+  });
+
+  it('carries a due-date range into the work history links', async () => {
+    mockApi({ 'GET /workload': () => ({ ...response, from: '2026-10-01', to: '2026-10-31' }), 'GET /departments': () => [] });
+    renderPage(<WorkloadPage />, superAdmin);
+
+    const karthik = (await screen.findByText('Karthik Raj')).closest('tr')!;
+    expect(within(karthik).getByRole('link', { name: /^Overdue for Karthik Raj/ })).toHaveAttribute(
+      'href',
+      '/team/4?status=OVERDUE&range=CUSTOM&dateField=DUE&from=2026-10-01&to=2026-10-31#work-history',
+    );
+    expect(within(karthik).getByRole('link', { name: /^Completed by Karthik Raj/ })).toHaveAttribute(
+      'href',
+      '/team/4?status=COMPLETED&range=CUSTOM&dateField=COMPLETED&from=2026-10-01&to=2026-10-31#work-history',
+    );
+  });
 });

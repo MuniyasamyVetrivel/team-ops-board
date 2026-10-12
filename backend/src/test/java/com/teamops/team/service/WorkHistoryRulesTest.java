@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import com.teamops.team.dto.WorkHistoryDtos.DatePreset;
 import com.teamops.team.dto.WorkHistoryDtos.WeekCount;
 
 class WorkHistoryRulesTest {
@@ -65,6 +66,26 @@ class WorkHistoryRulesTest {
 		assertThat(WorkHistoryRules.perWeek(weeks, List.of(LocalDate.of(2026, 9, 10), LocalDate.of(2026, 9, 13),
 				LocalDate.of(2026, 9, 14), LocalDate.of(2026, 10, 1))))
 			.containsExactly(new WeekCount(LocalDate.of(2026, 9, 7), 2), new WeekCount(LocalDate.of(2026, 9, 14), 1));
+	}
+
+	@Test
+	void presetsResolveAgainstTheBusinessToday() {
+		// Monday 12 October 2026.
+		assertThat(range(DatePreset.THIS_WEEK)).containsExactly(LocalDate.of(2026, 10, 12), LocalDate.of(2026, 10, 18));
+		assertThat(range(DatePreset.LAST_WEEK)).containsExactly(LocalDate.of(2026, 10, 5), LocalDate.of(2026, 10, 11));
+		assertThat(range(DatePreset.THIS_MONTH)).containsExactly(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31));
+		assertThat(range(DatePreset.LAST_MONTH)).containsExactly(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30));
+		assertThat(range(DatePreset.LAST_3_MONTHS)).containsExactly(LocalDate.of(2026, 7, 13), TODAY);
+		assertThat(range(DatePreset.LAST_30_DAYS)).containsExactly(LocalDate.of(2026, 9, 13), TODAY);
+		WorkHistoryService.Filter custom = new WorkHistoryService.Filter(null, null, null, LocalDate.of(2026, 9, 10),
+				LocalDate.of(2026, 9, 20), null, null, null);
+		assertThat(custom.resolve(TODAY)).isSameAs(custom);
+	}
+
+	private static List<LocalDate> range(DatePreset preset) {
+		WorkHistoryService.Filter resolved = new WorkHistoryService.Filter(null, null, preset, null, null, null, null, null)
+			.resolve(TODAY);
+		return List.of(resolved.from(), resolved.to());
 	}
 
 	@Test

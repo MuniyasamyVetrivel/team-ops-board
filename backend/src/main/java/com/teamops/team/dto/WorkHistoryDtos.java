@@ -27,6 +27,16 @@ public final class WorkHistoryDtos {
 
 	}
 
+	/**
+	 * A date range relative to the business "today", resolved on the server so the browser's clock never decides it.
+	 * Weeks start on Monday; LAST_3_MONTHS and LAST_30_DAYS end today.
+	 */
+	public enum DatePreset {
+
+		THIS_WEEK, LAST_WEEK, THIS_MONTH, LAST_MONTH, LAST_3_MONTHS, LAST_30_DAYS
+
+	}
+
 	/** The virtual status: open work past its due date (tasks) or SLA due time (tickets). */
 	public static final String OVERDUE = "OVERDUE";
 
@@ -62,8 +72,9 @@ public final class WorkHistoryDtos {
 	 * @param averageDaysToComplete from start (or creation) to completion, 1 decimal
 	 * @param totalActualHours tasks only; null for tickets
 	 * @param completedPerWeek completions by business week (Monday) over the range, or the last 12 weeks
+	 * @param from the range the filters resolved to (a preset becomes dates), or null when open
 	 */
-	public record WorkSummary(UserSummary person, long total, Map<String, Long> byStatus, long overdue, long completed,
+	public record WorkSummary(UserSummary person, LocalDate today, LocalDate from, LocalDate to, long total, Map<String, Long> byStatus, long overdue, long completed,
 			BigDecimal completedOnTimePct, BigDecimal averageDaysToComplete, BigDecimal totalActualHours,
 			List<WeekCount> completedPerWeek) {
 

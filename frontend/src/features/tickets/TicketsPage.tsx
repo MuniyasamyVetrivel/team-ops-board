@@ -43,7 +43,7 @@ const VIEW_OPTIONS: { value: TicketView; label: string }[] = [
 
 const SORTS = [
   { value: 'due,asc', label: 'Resolution due' },
-  { value: 'priority,desc', label: 'Priority' },
+  { value: 'priority,desc', label: 'Priority (urgent first)' },
   { value: 'created,desc', label: 'Newest' },
   { value: 'updated,desc', label: 'Recently updated' },
 ];

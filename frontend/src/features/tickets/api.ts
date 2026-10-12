@@ -49,11 +49,12 @@ export function useMyTicketSummary() {
   });
 }
 
-export function useTicketCategories() {
+export function useTicketCategories(enabled = true) {
   return useQuery({
     queryKey: ticketKeys.categories(),
     queryFn: async () => (await api.get<TicketCategory[]>('/tickets/categories')).data,
     staleTime: 5 * 60_000,
+    enabled,
   });
 }
 

@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useDepartments } from '@/features/departments/api';
 import { PRIORITY_LABELS, STATUS_LABELS } from '@/features/tasks/task-meta';
 import { ACTIVE_STATUSES, PRIORITIES, type TaskPriority, type TaskStatus } from '@/features/tasks/types';
+import { historyLink } from '@/features/team/work-history-links';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { cn } from '@/lib/utils';
 
@@ -61,6 +62,17 @@ export default function WorkloadPage() {
     !rangeInvalid,
   );
   const data = workload.data;
+
+  /**
+   * The person's work history on the same tasks: in a due-date range, the statuses are due in it and completions
+   * happened in it; otherwise completions are the last 30 days, as the table counts them.
+   */
+  function link(userId: number, status: string): string {
+    if (data?.from && data.to) {
+      return historyLink(userId, { status, range: 'CUSTOM', dateField: status === 'COMPLETED' ? 'COMPLETED' : 'DUE', from: data.from, to: data.to });
+    }
+    return historyLink(userId, status === 'COMPLETED' ? { status, range: 'LAST_30_DAYS', dateField: 'COMPLETED' } : { status });
+  }
 
   return (
     <div className="space-y-6">
@@ -190,11 +202,11 @@ export default function WorkloadPage() {
                     </Link>
                   </TableCell>
                   <Num value={row.totalTasks} />
-                  <Num value={row.todo} />
-                  <Num value={row.inProgress} />
-                  <Num value={row.blocked} tone={row.blocked > 0 ? 'text-status-danger' : undefined} />
-                  <Num value={row.completed} />
-                  <Num value={row.overdue} tone={row.overdue > 0 ? 'font-semibold text-status-danger' : undefined} />
+                  <Num value={row.todo} to={link(row.user.id, 'TODO')} label={`To do for ${row.user.fullName}`} />
+                  <Num value={row.inProgress} to={link(row.user.id, 'IN_PROGRESS')} label={`In progress for ${row.user.fullName}`} />
+                  <Num value={row.blocked} tone={row.blocked > 0 ? 'text-status-danger' : undefined} to={link(row.user.id, 'BLOCKED')} label={`Blocked for ${row.user.fullName}`} />
+                  <Num value={row.completed} to={link(row.user.id, 'COMPLETED')} label={`Completed by ${row.user.fullName}`} />
+                  <Num value={row.overdue} tone={row.overdue > 0 ? 'font-semibold text-status-danger' : undefined} to={link(row.user.id, 'OVERDUE')} label={`Overdue for ${row.user.fullName}`} />
                   <Num value={row.dueToday} tone={row.dueToday > 0 ? 'text-status-warning' : undefined} />
                   <TableCell>
                     <WorkloadMeter percent={row.workloadPercent} level={row.level} />
@@ -212,6 +224,17 @@ export default function WorkloadPage() {
   );
 }
 
-function Num({ value, tone }: { value: number; tone?: string }) {
-  return <TableCell numeric className={cn(value === 0 && 'text-muted-foreground', tone)}>{value}</TableCell>;
+/** A count; with {@code to}, a link to the person's work history filtered to the same tasks. */
+function Num({ value, tone, to, label }: { value: number; tone?: string; to?: string; label?: string }) {
+  return (
+    <TableCell numeric className={cn(value === 0 && 'text-muted-foreground', tone)}>
+      {to ? (
+        <Link to={to} className="rounded hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none" aria-label={`${label}: ${value}, open work history`}>
+          {value}
+        </Link>
+      ) : (
+        value
+      )}
+    </TableCell>
+  );
 }

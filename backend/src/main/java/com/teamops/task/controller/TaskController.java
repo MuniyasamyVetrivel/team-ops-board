@@ -56,7 +56,7 @@ import lombok.RequiredArgsConstructor;
 public class TaskController {
 
 	static final Map<String, List<String>> SORT_FIELDS = Map.of("due", List.of("dueDate", "id"), "priority",
-			List.of("priority", "dueDate"), "updated", List.of("updatedAt"), "created", List.of("createdAt"), "code",
+			List.of("priorityRank", "dueDate"), "updated", List.of("updatedAt"), "created", List.of("createdAt"), "code",
 			List.of("id"), "title", List.of("title"), "status", List.of("status", "dueDate"));
 
 	private final TaskService taskService;

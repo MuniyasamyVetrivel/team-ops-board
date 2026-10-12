@@ -80,7 +80,7 @@ class TeamWorkApiSecurityTest {
 			.param("sort", "priority,desc")
 			.header(HttpHeaders.AUTHORIZATION, bearer(SliceAuth.EMPLOYEE))).andExpect(status().isOk());
 		verify(workHistoryService).tasks(eq(4L),
-				eq(new Filter(Set.of("COMPLETED", "OVERDUE"), DateField.COMPLETED, LocalDate.of(2026, 9, 10),
+				eq(new Filter(Set.of("COMPLETED", "OVERDUE"), DateField.COMPLETED, null, LocalDate.of(2026, 9, 10),
 						LocalDate.of(2026, 9, 20), 3L, Set.of("HIGH"), "plan")),
 				any(), eq(SliceAuth.EMPLOYEE));
 

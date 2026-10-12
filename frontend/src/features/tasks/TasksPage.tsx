@@ -50,7 +50,7 @@ const VIEW_OPTIONS: { value: TaskView; label: string }[] = [
 
 const SORTS = [
   { value: 'due,asc', label: 'Due date' },
-  { value: 'priority,desc', label: 'Priority' },
+  { value: 'priority,desc', label: 'Priority (urgent first)' },
   { value: 'updated,desc', label: 'Recently updated' },
   { value: 'created,desc', label: 'Newest' },
 ];
