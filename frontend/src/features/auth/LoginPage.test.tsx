@@ -10,7 +10,7 @@ import { AuthContext, type AuthContextValue } from './auth-context';
 import LoginPage from './LoginPage';
 
 function renderLogin(login: AuthContextValue['login'], initialPath = '/login') {
-  const value: AuthContextValue = { status: 'unauthenticated', user: null, login, logout: vi.fn() };
+  const value: AuthContextValue = { status: 'unauthenticated', user: null, login, changePassword: vi.fn(), logout: vi.fn() };
   const router = createMemoryRouter(
     [
       { path: '/login', element: <LoginPage /> },

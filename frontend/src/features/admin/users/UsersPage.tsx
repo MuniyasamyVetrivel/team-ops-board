@@ -1,4 +1,4 @@
-import { Plus, UsersRound } from 'lucide-react';
+import { FileUp, Plus, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 
 import { EmptyState } from '@/components/common/EmptyState';
@@ -17,9 +17,10 @@ import { ROLE_LABELS, type RoleCode } from '@/features/auth/permissions';
 import { useDepartments } from '@/features/departments/api';
 import type { UserStatus } from '@/lib/api/types';
 import { formatRelative } from '@/lib/format';
+import { CsvImportDialog } from '@/features/marketing/components/CsvImportDialog';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 
-import { useUsers } from './api';
+import { USER_IMPORTS, useUserImportDefinition, useUsers } from './api';
 import { CreateUserDialog } from './CreateUserDialog';
 import { RoleBadges } from './RoleBadges';
 import { UserDrawer } from './UserDrawer';
@@ -43,6 +44,8 @@ export default function UsersPage() {
   const [page, setPage] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importDefinition = useUserImportDefinition();
 
   const debouncedSearch = useDebouncedValue(search.trim());
   const users = useUsers({
@@ -71,10 +74,18 @@ export default function UsersPage() {
         title="Users"
         description="Create accounts, assign roles and departments, and control access."
         actions={
-          <Button onClick={() => setCreating(true)}>
-            <Plus aria-hidden />
-            Add user
-          </Button>
+          <>
+            {importDefinition.data && (
+              <Button variant="outline" onClick={() => setImporting(true)}>
+                <FileUp aria-hidden />
+                Import CSV
+              </Button>
+            )}
+            <Button onClick={() => setCreating(true)}>
+              <Plus aria-hidden />
+              Add user
+            </Button>
+          </>
         }
       />
 
@@ -181,6 +192,7 @@ export default function UsersPage() {
       </Card>
 
       <CreateUserDialog open={creating} onOpenChange={setCreating} onCreated={(user) => setSelectedId(user.id)} />
+      {importDefinition.data && <CsvImportDialog definition={importDefinition.data} endpoint={USER_IMPORTS} open={importing} onOpenChange={setImporting} />}
       <UserDrawer userId={selectedId} onClose={() => setSelectedId(null)} />
     </div>
   );

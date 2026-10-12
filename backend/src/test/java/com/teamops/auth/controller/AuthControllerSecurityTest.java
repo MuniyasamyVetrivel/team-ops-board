@@ -146,6 +146,47 @@ class AuthControllerSecurityTest {
 	}
 
 	@Test
+	void pendingPasswordChangeAllowsOnlyProfileAndChangePassword() throws Exception {
+		AuthenticatedUser newcomer = new AuthenticatedUser(1L, "rakesh@teamops.local", "Rakesh", 1L,
+				Set.of("SUPER_ADMIN"), Set.of("USER_MANAGE", "TASK_VIEW"), true);
+		when(userPrincipalService.findActiveUser(1L)).thenReturn(Optional.of(newcomer));
+		when(authService.me(1L)).thenReturn(me(newcomer));
+		Instant now = Instant.now();
+		when(authService.changePassword(org.mockito.ArgumentMatchers.eq(1L), any(), any())).thenReturn(new AuthResult(
+				new AccessToken("fresh-jwt", now.plusSeconds(3600), 3600),
+				new IssuedRefreshToken("fresh-refresh", now.plus(Duration.ofDays(7))), me(ADMIN)));
+
+		// Even a Super Admin cannot use the app until the admin-set password is replaced.
+		mvc.perform(get("/api/test/admin-only").header(HttpHeaders.AUTHORIZATION, bearer(newcomer)))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value("PASSWORD_CHANGE_REQUIRED"));
+		mvc.perform(get("/api/auth/me").header(HttpHeaders.AUTHORIZATION, bearer(newcomer)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.mustChangePassword").value(true));
+		mvc.perform(post("/api/auth/change-password").header(HttpHeaders.AUTHORIZATION, bearer(newcomer))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"currentPassword\":\"Temp2345abcd\",\"newPassword\":\"Mine2345abcd\"}"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.accessToken").value("fresh-jwt"))
+			.andExpect(jsonPath("$.user.mustChangePassword").value(false))
+			.andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("tob_refresh=fresh-refresh")));
+	}
+
+	@Test
+	void changePasswordNeedsASessionAndBothPasswords() throws Exception {
+		mvc.perform(post("/api/auth/change-password").contentType(MediaType.APPLICATION_JSON)
+			.content("{\"currentPassword\":\"a\",\"newPassword\":\"b\"}")).andExpect(status().isUnauthorized());
+
+		when(userPrincipalService.findActiveUser(4L)).thenReturn(Optional.of(EMPLOYEE));
+		mvc.perform(post("/api/auth/change-password").header(HttpHeaders.AUTHORIZATION, bearer(EMPLOYEE))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"currentPassword\":\"\",\"newPassword\":\"\"}"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.fieldErrors.length()").value(2));
+		verifyNoInteractions(authService);
+	}
+
+	@Test
 	void loginReturnsAccessTokenAndHttpOnlyRefreshCookie() throws Exception {
 		Instant now = Instant.now();
 		when(authService.login(any(), any())).thenReturn(new AuthResult(
@@ -238,7 +279,7 @@ class AuthControllerSecurityTest {
 	private static MeResponse me(AuthenticatedUser user) {
 		return new MeResponse(user.id(), user.email(), "Test", "User", user.fullName(), "Engineer",
 				new DepartmentSummary(user.departmentId(), "Web Development", "WEBDEV"),
-				List.copyOf(user.roles()), user.permissions().stream().sorted().toList());
+				List.copyOf(user.roles()), user.permissions().stream().sorted().toList(), user.passwordChangeRequired());
 	}
 
 	/** Test-only endpoint that proves method security (@PreAuthorize) is active. */

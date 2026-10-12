@@ -80,6 +80,9 @@ export function ProfileFields({ userId }: { userId?: number }) {
       <FormField id="workingHours" label="Working hours" hint="e.g. 09:30 – 18:30 IST" error={errors.workingHours?.message}>
         <Input id="workingHours" {...register('workingHours')} />
       </FormField>
+      <FormField id="timeZone" label="Time zone" hint="e.g. Asia/Kolkata or Australia/Sydney" error={errors.timeZone?.message}>
+        <Input id="timeZone" autoComplete="off" aria-invalid={invalid(errors.timeZone)} aria-describedby="timeZone-message" {...register('timeZone')} />
+      </FormField>
     </div>
   );
 }

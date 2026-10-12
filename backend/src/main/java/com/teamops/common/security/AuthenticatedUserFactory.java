@@ -35,7 +35,7 @@ public class AuthenticatedUserFactory {
 					.map(Permission::getCode)
 					.collect(Collectors.toSet());
 		return new AuthenticatedUser(user.getId(), user.getEmail(), user.getFullName(), user.getDepartment().getId(),
-				roles, permissions);
+				roles, permissions, user.isMustChangePassword());
 	}
 
 }

@@ -78,8 +78,6 @@ app:
   bootstrap-admin:
     email: ${BOOTSTRAP_ADMIN_EMAIL:}
     password: ${BOOTSTRAP_ADMIN_PASSWORD:}
-    first-name: ${BOOTSTRAP_ADMIN_FIRST_NAME:Rakesh}
+    first-name: ${BOOTSTRAP_ADMIN_FIRST_NAME:Admin}
+    last-name: ${BOOTSTRAP_ADMIN_LAST_NAME:}
     department-code: ${BOOTSTRAP_ADMIN_DEPARTMENT_CODE:IT}
-  dev-seed:
-    enabled: ${DEV_SEED_ENABLED:false}
-    password: ${DEV_SEED_PASSWORD:}

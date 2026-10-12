@@ -17,6 +17,8 @@ export interface CurrentUser {
   department: DepartmentSummary;
   roles: RoleCode[];
   permissions: PermissionCode[];
+  /** Set while an admin-chosen password is in use; the API then only allows choosing a new one. */
+  mustChangePassword: boolean;
 }
 
 /** Mirrors com.teamops.auth.dto.AuthResponse. */
@@ -31,4 +33,10 @@ export interface AuthResponse {
 export interface LoginCredentials {
   email: string;
   password: string;
+}
+
+/** Mirrors com.teamops.auth.dto.ChangePasswordRequest. */
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
 }

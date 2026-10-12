@@ -10,22 +10,29 @@ const validProfile = {
   phone: '',
   location: '',
   workingHours: '',
+  timeZone: '',
   departmentId: '5',
   reportsToId: '',
   weeklyCapacityHours: '32',
 };
 
 describe('passwordSchema (mirrors backend PasswordPolicy)', () => {
-  it.each(['Welcome1', 'correct horse 9'])('accepts %s', (password) => {
+  it.each(['Welcome123', 'correct horse 9'])('accepts %s', (password) => {
     expect(passwordSchema.safeParse(password).success).toBe(true);
   });
 
-  it.each(['Short1', 'onlyletters', '12345678'])('rejects %s', (password) => {
+  it.each(['Short1', 'Welcome12', 'onlyletters', '1234567890'])('rejects %s', (password) => {
     expect(passwordSchema.safeParse(password).success).toBe(false);
   });
 });
 
 describe('profileSchema', () => {
+  it('accepts a blank or IANA time zone only', () => {
+    expect(profileSchema.safeParse({ ...validProfile, timeZone: 'Australia/Sydney' }).success).toBe(true);
+    expect(profileSchema.safeParse({ ...validProfile, timeZone: 'Mars/Base' }).success).toBe(false);
+    expect(profileSchema.safeParse({ ...validProfile, timeZone: 'IST' }).success).toBe(false);
+  });
+
   it('trims the email and coerces capacity to a number', () => {
     const parsed = profileSchema.parse(validProfile);
     expect(parsed.email).toBe('Asha.Iyer@teamops.local');
@@ -43,13 +50,13 @@ describe('profileSchema', () => {
 describe('createUserSchema', () => {
   it('requires a strong password and a role', () => {
     expect(createUserSchema.safeParse({ ...validProfile, password: 'weak', role: 'EMPLOYEE' }).success).toBe(false);
-    expect(createUserSchema.safeParse({ ...validProfile, password: 'Welcome1', role: 'EMPLOYEE' }).success).toBe(true);
+    expect(createUserSchema.safeParse({ ...validProfile, password: 'Welcome123', role: 'EMPLOYEE' }).success).toBe(true);
   });
 });
 
 describe('resetPasswordSchema', () => {
   it('requires the confirmation to match', () => {
-    const result = resetPasswordSchema.safeParse({ newPassword: 'Welcome1', confirm: 'Welcome2' });
+    const result = resetPasswordSchema.safeParse({ newPassword: 'Welcome123', confirm: 'Welcome124' });
     expect(result.error?.issues[0]?.path).toEqual(['confirm']);
   });
 });

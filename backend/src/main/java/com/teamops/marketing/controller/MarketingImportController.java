@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.teamops.common.csv.CsvImportService;
+import com.teamops.common.csv.CsvImporter.Area;
 import com.teamops.common.csv.ImportDtos.ImportDefinition;
 import com.teamops.common.csv.ImportDtos.ImportPreview;
 import com.teamops.common.csv.ImportDtos.ImportResult;
@@ -44,14 +45,14 @@ public class MarketingImportController {
 
 	@GetMapping
 	public List<ImportDefinition> definitions(@AuthenticationPrincipal AuthenticatedUser actor) {
-		return importService.definitions(actor);
+		return importService.definitions(Area.MARKETING, actor);
 	}
 
 	/** A header row and an example row, always served as a download. */
 	@GetMapping("/{type}/template")
 	public ResponseEntity<byte[]> template(@PathVariable String type,
 			@AuthenticationPrincipal AuthenticatedUser actor) {
-		byte[] body = importService.template(type, actor);
+		byte[] body = importService.template(Area.MARKETING, type, actor);
 		return ResponseEntity.ok()
 			.contentType(TEXT_CSV)
 			.header(HttpHeaders.CONTENT_DISPOSITION,
@@ -64,7 +65,7 @@ public class MarketingImportController {
 	@PostMapping(path = "/{type}/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ImportPreview preview(@PathVariable String type, @RequestPart("file") MultipartFile file,
 			@AuthenticationPrincipal AuthenticatedUser actor) {
-		return importService.preview(type, file, actor);
+		return importService.preview(Area.MARKETING, type, file, actor);
 	}
 
 	/**
@@ -75,7 +76,8 @@ public class MarketingImportController {
 	public ImportResult commit(@PathVariable String type, @RequestPart("file") MultipartFile file,
 			@RequestParam String checksum, @RequestParam(defaultValue = "false") boolean skipInvalid,
 			@AuthenticationPrincipal AuthenticatedUser actor, HttpServletRequest request) {
-		return importService.commit(type, file, checksum, skipInvalid, actor, ClientInfo.from(request));
+		return importService.commit(Area.MARKETING, type, file, checksum, skipInvalid, actor,
+				ClientInfo.from(request));
 	}
 
 }

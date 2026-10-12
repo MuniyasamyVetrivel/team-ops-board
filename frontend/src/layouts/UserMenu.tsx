@@ -1,4 +1,5 @@
-import { ChevronDown, LogOut } from 'lucide-react';
+import { ChevronDown, KeyRound, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -15,6 +16,7 @@ import { initials } from '@/lib/utils';
 
 export function UserMenu() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   if (!user) return null;
 
   return (
@@ -38,6 +40,10 @@ export function UserMenu() {
           </p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => navigate('/change-password')}>
+          <KeyRound aria-hidden />
+          Change password
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => void logout()}>
           <LogOut aria-hidden />
           Sign out

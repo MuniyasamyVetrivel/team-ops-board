@@ -2,11 +2,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 
-import { onSessionExpired, refreshSession, setAccessToken } from '@/lib/api/client';
+import { onPasswordChangeRequired, onSessionExpired, refreshSession, setAccessToken } from '@/lib/api/client';
 
 import * as authApi from './api';
 import { AuthContext, type AuthContextValue, type AuthStatus } from './auth-context';
-import type { CurrentUser, LoginCredentials } from './types';
+import type { ChangePasswordInput, CurrentUser, LoginCredentials } from './types';
 
 interface AuthState {
   status: AuthStatus;
@@ -49,8 +49,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [navigate, queryClient],
   );
 
+  useEffect(
+    () =>
+      onPasswordChangeRequired(() =>
+        setState((current) => (current.user && !current.user.mustChangePassword ? { ...current, user: { ...current.user, mustChangePassword: true } } : current)),
+      ),
+    [],
+  );
+
   const login = useCallback(async (credentials: LoginCredentials) => {
     const response = await authApi.login(credentials);
+    setState({ status: 'authenticated', user: response.user });
+    return response.user;
+  }, []);
+
+  const changePassword = useCallback(async (input: ChangePasswordInput) => {
+    const response = await authApi.changePassword(input);
     setState({ status: 'authenticated', user: response.user });
     return response.user;
   }, []);
@@ -63,8 +77,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [navigate, queryClient]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ status: state.status, user: state.user, login, logout }),
-    [state, login, logout],
+    () => ({ status: state.status, user: state.user, login, changePassword, logout }),
+    [state, login, changePassword, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

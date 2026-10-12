@@ -5,11 +5,12 @@ import { NAV_ITEMS, type RouteItem } from '@/config/navigation';
 import { MarketingLayout } from '@/features/marketing/MarketingLayout';
 import { AppShell } from '@/layouts/AppShell';
 
-import { ProtectedRoute } from './ProtectedRoute';
+import { CHANGE_PASSWORD_PATH, ProtectedRoute } from './ProtectedRoute';
 import { RequirePermission } from './RequirePermission';
 import { RootLayout } from './RootLayout';
 
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
+const ChangePasswordPage = lazy(() => import('@/features/auth/ChangePasswordPage'));
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage'));
 const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
@@ -163,6 +164,7 @@ export const routes: RouteObject[] = [
       {
         element: <ProtectedRoute />,
         children: [
+          { path: CHANGE_PASSWORD_PATH, element: <ChangePasswordPage /> },
           {
             element: <AppShell />,
             children: [

@@ -13,8 +13,22 @@ import com.teamops.common.security.AuthenticatedUser;
  */
 public interface CsvImporter<T> {
 
+	/** Which import endpoints serve an importer; an importer is only reachable through its own area's endpoints. */
+	enum Area {
+
+		/** {@code /api/marketing/imports}: marketing figures, employees and important days. */
+		MARKETING,
+		/** {@code /api/users/import}: user administration. */
+		USERS
+
+	}
+
 	/** Stable identifier used in URLs, e.g. {@code keywords}. */
 	String type();
+
+	default Area area() {
+		return Area.MARKETING;
+	}
 
 	String label();
 
@@ -43,6 +57,14 @@ public interface CsvImporter<T> {
 
 		/** Saves the valid records inside the import's transaction and returns how many were saved. */
 		int commit(List<T> records);
+
+		/**
+		 * A file returned once with the commit's result (e.g. temporary passwords), called after {@link #commit}.
+		 * It is never stored, so the importer must not put anything in it that it cannot afford to lose.
+		 */
+		default ImportDtos.ResultFile resultFile() {
+			return null;
+		}
 
 	}
 

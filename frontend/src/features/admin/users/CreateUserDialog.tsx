@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { PASSWORD_HINT } from '@/features/auth/password-schema';
 import { isSuperAdmin, ROLE_LABELS, type RoleCode } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
 import { applyServerErrors } from '@/lib/api/form-errors';
@@ -17,7 +18,7 @@ import { useCreateUser, type UserDetail } from './api';
 import { ProfileFields } from './ProfileFields';
 import { createUserSchema, toProfilePayload, type CreateUserFormInput, type CreateUserFormValues } from './schemas';
 
-const SERVER_FIELDS = ['email', 'password', 'firstName', 'lastName', 'jobTitle', 'phone', 'location', 'workingHours', 'departmentId', 'reportsToId', 'weeklyCapacityHours'] as const;
+const SERVER_FIELDS = ['email', 'password', 'firstName', 'lastName', 'jobTitle', 'phone', 'location', 'workingHours', 'timeZone', 'departmentId', 'reportsToId', 'weeklyCapacityHours'] as const;
 
 interface CreateUserDialogProps {
   open: boolean;
@@ -34,7 +35,7 @@ export function CreateUserDialog({ open, onOpenChange, onCreated }: CreateUserDi
   const form = useForm<CreateUserFormInput, unknown, CreateUserFormValues>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
-      email: '', firstName: '', lastName: '', jobTitle: '', phone: '', location: '', workingHours: '',
+      email: '', firstName: '', lastName: '', jobTitle: '', phone: '', location: '', workingHours: '', timeZone: '',
       departmentId: '', reportsToId: '', weeklyCapacityHours: 40, password: '', role: 'EMPLOYEE',
     },
   });
@@ -88,7 +89,7 @@ export function CreateUserDialog({ open, onOpenChange, onCreated }: CreateUserDi
                   ))}
                 </Select>
               </FormField>
-              <FormField id="password" label="Initial password" required hint="8+ characters with a letter and a number" error={errors.password?.message}>
+              <FormField id="password" label="Initial password" required hint={`${PASSWORD_HINT}. They must change it at first sign-in.`} error={errors.password?.message}>
                 <Input id="password" type="password" autoComplete="new-password" aria-invalid={errors.password ? true : undefined} {...register('password')} />
               </FormField>
             </div>

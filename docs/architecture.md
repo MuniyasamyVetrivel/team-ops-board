@@ -37,7 +37,7 @@ Packages are organised by feature, each with `controller/ dto/ entity/ repositor
 | `dashboard`, `report`, `search` | Home dashboard, management reports with CSV export, global search |
 | `marketing.*` | The Digital Marketing module (see [digital-marketing.md](digital-marketing.md)) |
 | `admin` | Admin settings, the role permission matrix and the audit log viewer |
-| `devdata` | `DevDataSeeder` and its module seeders (development only, `DEV_SEED_ENABLED=true`) |
+| `devdata` (test sources) | `DevDataSeeder` and its module seeders, for automated tests only; never part of the application |
 | `common` | Cross-cutting pieces listed below |
 
 ### Cross-cutting building blocks (`common`)

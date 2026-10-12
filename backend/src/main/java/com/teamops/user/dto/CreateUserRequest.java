@@ -20,6 +20,7 @@ public record CreateUserRequest(
 		@Size(max = 40) String phone,
 		@Size(max = 150) String location,
 		@Size(max = 100) String workingHours,
+		@Size(max = 64) String timeZone,
 		@NotNull(message = "Department is required") Long departmentId,
 		Long reportsToId,
 		@DecimalMin(value = "1", message = "Capacity must be at least 1 hour") @DecimalMax(value = "80", message = "Capacity cannot exceed 80 hours") BigDecimal weeklyCapacityHours,

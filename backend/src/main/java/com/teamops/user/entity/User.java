@@ -36,6 +36,10 @@ public class User extends BaseEntity {
 	@Column(name = "password_hash", nullable = false, length = 100)
 	private String passwordHash;
 
+	/** Set when an admin chose the password (new user, reset); cleared when the user sets their own. */
+	@Column(name = "must_change_password", nullable = false)
+	private boolean mustChangePassword;
+
 	@Column(name = "first_name", nullable = false, length = 100)
 	private String firstName;
 
@@ -53,6 +57,10 @@ public class User extends BaseEntity {
 
 	@Column(name = "working_hours", length = 100)
 	private String workingHours;
+
+	/** IANA zone such as Asia/Kolkata; display information only (business dates use APP_TIME_ZONE). */
+	@Column(name = "time_zone", length = 64)
+	private String timeZone;
 
 	/** Primary department. Secondary memberships live in department_members. */
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)

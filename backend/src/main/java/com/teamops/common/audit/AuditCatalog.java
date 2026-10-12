@@ -88,9 +88,9 @@ public final class AuditCatalog {
 
 	public static Module moduleOf(AuditAction action) {
 		return switch (action) {
-			case LOGIN, LOGIN_FAILED, LOGOUT, REFRESH_TOKEN_REUSE -> Module.SIGN_IN;
+			case LOGIN, LOGIN_FAILED, LOGOUT, REFRESH_TOKEN_REUSE, PASSWORD_CHANGED -> Module.SIGN_IN;
 			case USER_CREATED, USER_UPDATED, USER_DISABLED, USER_ENABLED, USER_PASSWORD_RESET, USER_ACCESS_CHANGED,
-					ROLE_PERMISSIONS_CHANGED ->
+					ROLE_PERMISSIONS_CHANGED, USERS_IMPORTED ->
 				Module.USERS;
 			case DEPARTMENT_CREATED, DEPARTMENT_UPDATED, DEPARTMENT_MEMBER_ADDED, DEPARTMENT_MEMBER_REMOVED ->
 				Module.DEPARTMENTS;
@@ -135,6 +135,7 @@ public final class AuditCatalog {
 			case LOGOUT -> "Signed out";
 			case REFRESH_TOKEN_REUSE -> "Refresh token reused (session revoked)";
 			case USER_ACCESS_CHANGED -> "User roles or permissions changed";
+			case USERS_IMPORTED -> "Users imported from CSV";
 			case CSV_IMPORTED -> "CSV import committed";
 			case SEO_RANKING_RECORDED -> "SEO ranking recorded";
 			case SEO_RANKING_CORRECTED -> "SEO ranking corrected";

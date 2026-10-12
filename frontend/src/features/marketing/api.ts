@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
 
 import { api } from '@/lib/api/client';
 import { downloadFile } from '@/lib/api/download';
@@ -86,10 +86,24 @@ export interface ImportPreview {
   invalidRows: PreviewRow[];
 }
 
+/** Mirrors ImportDtos.ResultFile: returned once with the commit (e.g. temporary passwords) and never stored. */
+export interface ResultFile {
+  fileName: string;
+  content: string;
+}
+
 export interface ImportResult {
   type: string;
   imported: number;
   skipped: number;
+  resultFile: ResultFile | null;
+}
+
+/** Where an import's endpoints live and which caches its commit refreshes. */
+export interface ImportEndpoint {
+  /** e.g. `/marketing/imports/keywords`; /template, /preview and /commit are appended. */
+  path: (type: string) => string;
+  invalidate: readonly QueryKey[];
 }
 
 export const marketingKeys = {
@@ -126,39 +140,43 @@ export function useImportDefinitions(enabled = true) {
   });
 }
 
+/**
+ * Marketing imports: every marketing figure may change, and so may celebrations and the calendar (employees and
+ * important days import here too).
+ */
+export const MARKETING_IMPORTS: ImportEndpoint = {
+  path: (type) => `/marketing/imports/${type}`,
+  invalidate: [marketingKeys.all, ['celebrations'], ['calendar']],
+};
+
 function fileForm(file: File): FormData {
   const form = new FormData();
   form.append('file', file);
   return form;
 }
 
-export function usePreviewImport(type: string) {
+export function usePreviewImport(type: string, endpoint: ImportEndpoint = MARKETING_IMPORTS) {
   return useMutation({
-    mutationFn: async (file: File) => (await api.post<ImportPreview>(`/marketing/imports/${type}/preview`, fileForm(file))).data,
+    mutationFn: async (file: File) => (await api.post<ImportPreview>(`${endpoint.path(type)}/preview`, fileForm(file))).data,
   });
 }
 
-/**
- * Commits the previewed file. Every marketing figure may change, so all marketing queries are refreshed, and so are
- * celebrations and the calendar (employees and important days import here too).
- */
-export function useCommitImport(type: string) {
+/** Commits the previewed file and refreshes the caches the endpoint names. */
+export function useCommitImport(type: string, endpoint: ImportEndpoint = MARKETING_IMPORTS) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ file, checksum, skipInvalid }: { file: File; checksum: string; skipInvalid: boolean }) =>
       (
-        await api.post<ImportResult>(`/marketing/imports/${type}/commit`, fileForm(file), {
+        await api.post<ImportResult>(`${endpoint.path(type)}/commit`, fileForm(file), {
           params: { checksum, skipInvalid },
         })
       ).data,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: marketingKeys.all });
-      void queryClient.invalidateQueries({ queryKey: ['celebrations'] });
-      void queryClient.invalidateQueries({ queryKey: ['calendar'] });
+      endpoint.invalidate.forEach((queryKey) => void queryClient.invalidateQueries({ queryKey }));
     },
   });
 }
 
-export function downloadImportTemplate(type: string): Promise<void> {
-  return downloadFile(`/marketing/imports/${type}/template`, `${type}-template.csv`);
+export function downloadImportTemplate(type: string, endpoint: ImportEndpoint = MARKETING_IMPORTS): Promise<void> {
+  return downloadFile(`${endpoint.path(type)}/template`, `${type}-template.csv`);
 }

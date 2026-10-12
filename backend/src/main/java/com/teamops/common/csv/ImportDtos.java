@@ -31,7 +31,23 @@ public final class ImportDtos {
 			List<PreviewRow> invalidRows) {
 	}
 
-	public record ImportResult(String type, int imported, int skipped) {
+	/** {@code resultFile} is only present for importers that hand a file back, and is shown only this once. */
+	public record ImportResult(String type, int imported, int skipped, ResultFile resultFile) {
+
+		public ImportResult(String type, int imported, int skipped) {
+			this(type, imported, skipped, null);
+		}
+
+	}
+
+	/** A CSV file for the user to download from the import result. */
+	public record ResultFile(String fileName, String content) {
+
+		@Override
+		public String toString() {
+			return "ResultFile[fileName=" + fileName + "]";
+		}
+
 	}
 
 }

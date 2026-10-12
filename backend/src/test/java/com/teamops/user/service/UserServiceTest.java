@@ -116,6 +116,7 @@ class UserServiceTest {
 		assertThat(created.email()).isEqualTo("new.user@teamops.local");
 		assertThat(created.weeklyCapacityHours()).isEqualByComparingTo("40");
 		assertThat(created.roles()).containsExactly("EMPLOYEE");
+		assertThat(created.mustChangePassword()).as("admin-set password must be replaced at first sign-in").isTrue();
 		verify(passwordEncoder).encode("Welcome123");
 		verify(auditService).record(eq(AuditAction.USER_CREATED), eq(1L), eq("USER"), any(), anyMap(), eq(client));
 	}
@@ -131,9 +132,17 @@ class UserServiceTest {
 	@Test
 	void createRejectsWeakPassword() {
 		CreateUserRequest weak = new CreateUserRequest("a@teamops.local", "password", "A", null, null, null, null,
-				null, 5L, null, null, Set.of("EMPLOYEE"), Set.of());
+				null, null, 5L, null, null, Set.of("EMPLOYEE"), Set.of());
 
 		assertError(() -> service.create(weak, SliceAuth.SUPER_ADMIN, client), HttpStatus.BAD_REQUEST, "WEAK_PASSWORD");
+	}
+
+	@Test
+	void timeZoneMustBeAnIanaZone() {
+		assertThat(UserService.timeZone(" Asia/Kolkata ")).isEqualTo("Asia/Kolkata");
+		assertThat(UserService.timeZone("  ")).isNull();
+		assertThatThrownBy(() -> UserService.timeZone("India")).extracting("code").isEqualTo("INVALID_TIME_ZONE");
+		assertThatThrownBy(() -> UserService.timeZone("+05:30")).extracting("code").isEqualTo("INVALID_TIME_ZONE");
 	}
 
 	@Test
@@ -315,6 +324,7 @@ class UserServiceTest {
 		service.resetPassword(21L, new ResetPasswordRequest("NewSecret99"), SliceAuth.SUPER_ADMIN, client);
 
 		assertThat(employee.getPasswordHash()).isEqualTo("$2a$12$encoded");
+		assertThat(employee.isMustChangePassword()).isTrue();
 		verify(refreshTokenRepository).revokeAllActiveForUser(21L, NOW);
 		verify(auditService).record(eq(AuditAction.USER_PASSWORD_RESET), eq(1L), eq("USER"), eq(21L),
 				argThat(details -> !details.toString().contains("NewSecret99")), eq(client));
@@ -338,11 +348,11 @@ class UserServiceTest {
 
 	private static CreateUserRequest createRequest(Set<String> roles, Set<String> permissions) {
 		return new CreateUserRequest(" New.User@TeamOps.local ", "Welcome123", "New", "User", "Developer", null, null,
-				null, 5L, null, null, roles, permissions);
+				null, null, 5L, null, null, roles, permissions);
 	}
 
 	private static UpdateUserRequest updateRequest(Long reportsToId) {
-		return new UpdateUserRequest("employee@teamops.local", "New", "Surname", "Lead", null, null, null, 7L,
+		return new UpdateUserRequest("employee@teamops.local", "New", "Surname", "Lead", null, null, null, null, 7L,
 				reportsToId, new BigDecimal("40"));
 	}
 

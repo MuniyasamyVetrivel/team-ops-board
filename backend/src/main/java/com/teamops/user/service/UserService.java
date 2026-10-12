@@ -1,6 +1,7 @@
 package com.teamops.user.service;
 
 import java.time.Clock;
+import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -59,6 +60,7 @@ import lombok.RequiredArgsConstructor;
  * <li>No self-lockout: an actor cannot disable themselves or change their own access.</li>
  * <li>At least one active Super Admin must always remain.</li>
  * </ul>
+ * A password chosen by an admin (new user, reset) must be replaced by its owner at the next sign-in.
  * Methods taking an {@code actor} accept {@code null} for trusted system callers (admin bootstrap, dev seeder), which
  * skips the actor checks. Controllers always pass the authenticated user.
  */
@@ -117,12 +119,14 @@ public class UserService {
 		User user = new User();
 		user.setEmail(email);
 		user.setPasswordHash(passwordEncoder.encode(request.password()));
+		user.setMustChangePassword(true);
 		user.setFirstName(request.firstName().trim());
 		user.setLastName(trimToEmpty(request.lastName()));
 		user.setJobTitle(trimToNull(request.jobTitle()));
 		user.setPhone(trimToNull(request.phone()));
 		user.setLocation(trimToNull(request.location()));
 		user.setWorkingHours(trimToNull(request.workingHours()));
+		user.setTimeZone(timeZone(request.timeZone()));
 		user.setDepartment(resolveActiveDepartment(request.departmentId()));
 		user.setReportsTo(resolveReportsTo(request.reportsToId(), null));
 		user.setWeeklyCapacityHours(
@@ -148,6 +152,7 @@ public class UserService {
 		Department department = Objects.equals(user.getDepartment().getId(), request.departmentId())
 				? user.getDepartment() : resolveActiveDepartment(request.departmentId());
 		User reportsTo = resolveReportsTo(request.reportsToId(), id);
+		String timeZone = timeZone(request.timeZone());
 
 		AuditChanges changes = new AuditChanges();
 		changes.track("email", user.getEmail(), email);
@@ -157,6 +162,7 @@ public class UserService {
 		changes.track("phone", user.getPhone(), trimToNull(request.phone()));
 		changes.track("location", user.getLocation(), trimToNull(request.location()));
 		changes.track("workingHours", user.getWorkingHours(), trimToNull(request.workingHours()));
+		changes.track("timeZone", user.getTimeZone(), timeZone);
 		changes.track("departmentId", user.getDepartment().getId(), department.getId());
 		changes.track("reportsToId", idOf(user.getReportsTo()), idOf(reportsTo));
 		changes.track("weeklyCapacityHours", user.getWeeklyCapacityHours().stripTrailingZeros(),
@@ -169,6 +175,7 @@ public class UserService {
 		user.setPhone(trimToNull(request.phone()));
 		user.setLocation(trimToNull(request.location()));
 		user.setWorkingHours(trimToNull(request.workingHours()));
+		user.setTimeZone(timeZone);
 		user.setDepartment(department);
 		user.setReportsTo(reportsTo);
 		user.setWeeklyCapacityHours(request.weeklyCapacityHours());
@@ -239,7 +246,7 @@ public class UserService {
 		return toDetail(user);
 	}
 
-	/** Sets a new password and signs the user out everywhere. */
+	/** Sets a new password the user must replace at their next sign-in, and signs them out everywhere. */
 	@Transactional
 	public void resetPassword(Long id, ResetPasswordRequest request, AuthenticatedUser actor, ClientInfo client) {
 		assertNotSelf(actor, id, "Use your own profile to change your password");
@@ -249,9 +256,23 @@ public class UserService {
 		}
 		PasswordPolicy.validate(request.newPassword());
 		user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+		user.setMustChangePassword(true);
 		refreshTokenRepository.revokeAllActiveForUser(id, clock.instant());
 		auditService.record(AuditAction.USER_PASSWORD_RESET, actorId(actor), "USER", id,
 				Map.of("email", user.getEmail()), client);
+	}
+
+	/**
+	 * The checks {@link #create} applies to a new user's roles and grants, without creating anything: unknown codes,
+	 * privilege escalation and the marketing permission rules. Used to validate import rows before saving; a refusal
+	 * must not roll back the caller's transaction, which goes on to check the other rows.
+	 */
+	@Transactional(readOnly = true, noRollbackFor = ApiException.class)
+	public void assertCanAssign(AuthenticatedUser actor, Set<String> roleCodes, Set<String> permissionCodes) {
+		Set<Role> roles = resolveRoles(roleCodes);
+		Set<Permission> grants = resolvePermissions(permissionCodes);
+		assertCanGrant(actor, roles, grants);
+		assertConsistent(roles, grants);
 	}
 
 	private User loadWithAuthorities(Long id) {
@@ -381,6 +402,18 @@ public class UserService {
 
 	private static String normaliseEmail(String email) {
 		return email.trim().toLowerCase(Locale.ROOT);
+	}
+
+	/** A valid IANA zone id such as Asia/Kolkata, or {@code null} when blank. */
+	public static String timeZone(String value) {
+		String zone = trimToNull(value);
+		if (zone == null) {
+			return null;
+		}
+		if (!ZoneId.getAvailableZoneIds().contains(zone)) {
+			throw ApiException.badRequest("INVALID_TIME_ZONE", "Unknown time zone " + zone + ", e.g. Asia/Kolkata");
+		}
+		return zone;
 	}
 
 	private static String trimToNull(String value) {

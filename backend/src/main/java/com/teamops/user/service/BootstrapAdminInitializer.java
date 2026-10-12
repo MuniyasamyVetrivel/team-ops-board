@@ -19,7 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Production bootstrap: when the users table is empty and BOOTSTRAP_ADMIN_EMAIL / BOOTSTRAP_ADMIN_PASSWORD are set,
- * creates the first Super Admin. Does nothing once any user exists.
+ * creates the first Super Admin. Does nothing once any user exists. Like every admin-created account, the Super Admin
+ * must choose a new password at first sign-in, so the password in the configuration stops working after that.
  */
 @Slf4j
 @Component
@@ -55,9 +56,10 @@ public class BootstrapAdminInitializer implements ApplicationRunner {
 		Long departmentId = departmentRepository.findByCode(departmentCode)
 			.orElseThrow(() -> new IllegalStateException("BOOTSTRAP_ADMIN_DEPARTMENT_CODE not found: " + departmentCode))
 			.getId();
-		userService.create(new CreateUserRequest(properties.email(), properties.password(), firstName, "",
-				"Reporting Manager", null, null, null, departmentId, null, null, Set.of(RoleCodes.SUPER_ADMIN),
-				Set.of()), null, ClientInfo.unknown());
+		String lastName = StringUtils.hasText(properties.lastName()) ? properties.lastName() : "";
+		userService.create(new CreateUserRequest(properties.email(), properties.password(), firstName, lastName,
+				null, null, null, null, null, departmentId, null, null, Set.of(RoleCodes.SUPER_ADMIN), Set.of()),
+				null, ClientInfo.unknown());
 		log.info("Bootstrap Super Admin created: {}", properties.email());
 	}
 

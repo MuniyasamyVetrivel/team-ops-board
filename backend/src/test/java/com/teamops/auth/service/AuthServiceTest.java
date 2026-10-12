@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.teamops.auth.dto.ChangePasswordRequest;
 import com.teamops.auth.dto.LoginRequest;
 import com.teamops.common.audit.AuditAction;
 import com.teamops.common.audit.AuditService;
@@ -122,6 +123,63 @@ class AuthServiceTest {
 				assertThat(ex.getCode()).isEqualTo(AuthService.ACCOUNT_DISABLED);
 			});
 		verify(refreshTokenService, never()).issue(any(), any());
+	}
+
+	@Test
+	void changePasswordReplacesAdminSetPasswordAndStartsAFreshSession() {
+		employee.setMustChangePassword(true);
+		when(userRepository.findWithAuthoritiesById(5L)).thenReturn(Optional.of(employee));
+		when(passwordEncoder.matches("Temp2345abcd", "$2a$12$hash")).thenReturn(true);
+		when(passwordEncoder.encode("Mine2345abcd")).thenReturn("$2a$12$mine");
+
+		AuthResult result = authService.changePassword(5L, new ChangePasswordRequest("Temp2345abcd", "Mine2345abcd"),
+				client);
+
+		assertThat(employee.getPasswordHash()).isEqualTo("$2a$12$mine");
+		assertThat(employee.isMustChangePassword()).isFalse();
+		assertThat(result.user().mustChangePassword()).isFalse();
+		assertThat(result.accessToken().value()).isEqualTo("jwt");
+		verify(refreshTokenService).revokeAll(5L);
+		verify(refreshTokenService).issue(employee, client);
+		verify(auditService).record(eq(AuditAction.PASSWORD_CHANGED), eq(5L), eq("USER"), eq(5L), anyMap(),
+				eq(client));
+	}
+
+	@Test
+	void changePasswordChecksTheCurrentPasswordAndThePolicy() {
+		employee.setMustChangePassword(true);
+		when(userRepository.findWithAuthoritiesById(5L)).thenReturn(Optional.of(employee));
+		when(passwordEncoder.matches(any(), any())).thenReturn(false);
+		when(passwordEncoder.matches("Temp2345abcd", "$2a$12$hash")).thenReturn(true);
+
+		assertThatThrownBy(() -> authService.changePassword(5L,
+				new ChangePasswordRequest("guess", "Mine2345abcd"), client))
+			.extracting("code")
+			.isEqualTo("WRONG_PASSWORD");
+		// At least 10 characters, with letters and numbers.
+		for (String weak : new String[] { "Short12", "onlyletters", "1234567890" }) {
+			assertThatThrownBy(() -> authService.changePassword(5L, new ChangePasswordRequest("Temp2345abcd", weak),
+					client))
+				.extracting("code")
+				.isEqualTo("WEAK_PASSWORD");
+		}
+		assertThatThrownBy(() -> authService.changePassword(5L,
+				new ChangePasswordRequest("Temp2345abcd", "Temp2345abcd"), client))
+			.extracting("code")
+			.isEqualTo("PASSWORD_UNCHANGED");
+		assertThat(employee.isMustChangePassword()).isTrue();
+		verify(refreshTokenService, never()).revokeAll(any());
+	}
+
+	@Test
+	void loginReportsAPendingPasswordChange() {
+		employee.setMustChangePassword(true);
+		when(userRepository.findWithAuthoritiesByEmailIgnoreCase(any())).thenReturn(Optional.of(employee));
+		when(passwordEncoder.matches(any(), any())).thenReturn(true);
+
+		AuthResult result = authService.login(new LoginRequest("karthik.raj@teamops.local", "Temp2345abcd"), client);
+
+		assertThat(result.user().mustChangePassword()).isTrue();
 	}
 
 	@Test

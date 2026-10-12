@@ -99,6 +99,11 @@ public class RefreshTokenService {
 		});
 	}
 
+	/** Signs the user out everywhere, e.g. after a password change. */
+	public void revokeAll(Long userId) {
+		refreshTokenRepository.revokeAllActiveForUser(userId, clock.instant());
+	}
+
 	static String hash(String rawToken) {
 		try {
 			byte[] digest = MessageDigest.getInstance("SHA-256").digest(rawToken.getBytes(StandardCharsets.UTF_8));

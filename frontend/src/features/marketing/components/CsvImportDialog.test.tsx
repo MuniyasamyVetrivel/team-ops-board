@@ -1,12 +1,12 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '@/lib/api/client';
 import { seoExecutive } from '@/test/fixtures';
 import { mockApi, renderPage } from '@/test/render';
 
-import type { ImportDefinition, ImportPreview } from '../api';
+import type { ImportDefinition, ImportEndpoint, ImportPreview } from '../api';
 import { CsvImportDialog } from './CsvImportDialog';
 
 const originalAdapter = api.defaults.adapter;
@@ -50,7 +50,7 @@ describe('CsvImportDialog', () => {
   it('previews valid and invalid rows and imports only after skipping the invalid ones', async () => {
     const adapter = mockApi({
       'POST /marketing/imports/keywords/preview': () => preview,
-      'POST /marketing/imports/keywords/commit': () => ({ type: 'keywords', imported: 2, skipped: 1 }),
+      'POST /marketing/imports/keywords/commit': () => ({ type: 'keywords', imported: 2, skipped: 1, resultFile: null }),
     });
     renderPage(<CsvImportDialog definition={definition} open onOpenChange={() => {}} />, seoExecutive);
 
@@ -91,6 +91,39 @@ describe('CsvImportDialog', () => {
     expect(await within(dialog).findByRole('tab', { name: 'Valid rows (2)' })).toHaveAttribute('aria-selected', 'true');
     expect(within(dialog).queryByLabelText(/Skip the/)).not.toBeInTheDocument();
     expect(within(dialog).getByRole('button', { name: 'Import 2 rows' })).toBeEnabled();
+  });
+
+  it('makes the one-time result file be downloaded before closing', async () => {
+    const createObjectURL = vi.fn(() => 'blob:result');
+    URL.createObjectURL = createObjectURL;
+    URL.revokeObjectURL = vi.fn();
+    const endpoint: ImportEndpoint = { path: () => '/users/import', invalidate: [['users']] };
+    const adapter = mockApi({
+      'POST /users/import/preview': () => ({ ...preview, type: 'users', invalidCount: 0, invalidRows: [], unknownColumns: [] }),
+      'POST /users/import/commit': () => ({
+        type: 'users',
+        imported: 2,
+        skipped: 0,
+        resultFile: { fileName: 'new-users.csv', content: 'email,name,temporary_password' },
+      }),
+    });
+    const onOpenChange = vi.fn();
+    renderPage(<CsvImportDialog definition={{ ...definition, type: 'users', label: 'Users' }} endpoint={endpoint} open onOpenChange={onOpenChange} />, seoExecutive);
+
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.upload(within(dialog).getByLabelText(/CSV file/), csvFile());
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Check file' }));
+    await userEvent.click(await within(dialog).findByRole('button', { name: 'Import 2 rows' }));
+
+    expect(await within(dialog).findByText('Temporary passwords are shown only once')).toBeInTheDocument();
+    const done = within(dialog).getByRole('button', { name: 'Done' });
+    expect(done).toBeDisabled();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Download file' }));
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    expect(within(dialog).getByRole('button', { name: 'Downloaded' })).toBeInTheDocument();
+    await userEvent.click(done);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(adapter.mock.calls.map(([config]) => config.url)).toEqual(['/users/import/preview', '/users/import/commit']);
   });
 
   it('rejects files that are not CSV before uploading', async () => {

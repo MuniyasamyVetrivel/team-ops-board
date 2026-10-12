@@ -38,7 +38,12 @@ Every error uses the same body (`com.teamops.common.exception.ApiError`):
 | POST | `/api/auth/login` | public | Email + password. Returns an access token and sets the refresh cookie |
 | POST | `/api/auth/refresh` | refresh cookie | Rotates the refresh cookie and returns a new access token |
 | POST | `/api/auth/logout` | refresh cookie (optional) | Revokes the refresh token and clears the cookie. Always `204` |
-| GET | `/api/auth/me` | bearer | Current user, department, roles and effective permissions |
+| GET | `/api/auth/me` | bearer | Current user, department, roles, effective permissions and `mustChangePassword` |
+| POST | `/api/auth/change-password` | bearer | `{ "currentPassword", "newPassword" }`. Clears `mustChangePassword`, signs out every other session, and returns a new session (like login). Errors: `WRONG_PASSWORD`, `WEAK_PASSWORD`, `PASSWORD_UNCHANGED` |
+
+When an administrator chose the password (new user, CSV import, bootstrap or reset), `mustChangePassword` is `true`.
+Until the user changes it, every other endpoint answers `403 PASSWORD_CHANGE_REQUIRED`. Passwords need at least 10
+characters, with letters and numbers.
 
 Any bearer header sent to `login`, `refresh` or `logout` is ignored, so a stale access token never blocks them.
 
@@ -97,11 +102,15 @@ List endpoints return `{ content, page, size, totalElements, totalPages }` and a
 |---|---|---|---|
 | GET | `/api/users` | `USER_MANAGE` | Search. Filters: `search` (name, email or job title), `departmentId`, `status` (`ACTIVE`/`DISABLED`), `role`. Sort fields: `name`, `email`, `department`, `lastLogin`, `created` |
 | GET | `/api/users/{id}` | `USER_MANAGE` | Full record, including roles, direct grants and effective permissions |
-| POST | `/api/users` | `USER_MANAGE` | Create. The body includes `password` (8+ characters with a letter and a number), `roles` and `permissions`. Returns `201` |
-| PUT | `/api/users/{id}` | `USER_MANAGE` | Edit profile fields: email, names, job title, contact details, department, `reportsToId`, `weeklyCapacityHours` |
+| POST | `/api/users` | `USER_MANAGE` | Create. The body includes `password` (10+ characters with letters and numbers; the user must change it at first sign-in), `roles` and `permissions`. Returns `201` |
+| PUT | `/api/users/{id}` | `USER_MANAGE` | Edit profile fields: email, names, job title, contact details, `timeZone` (IANA, e.g. `Asia/Kolkata`), department, `reportsToId`, `weeklyCapacityHours` |
 | PUT | `/api/users/{id}/access` | `PERMISSION_MANAGE` | Replace `roles` and direct `permissions`. Audited with before and after values |
 | POST | `/api/users/{id}/disable` / `enable` | `USER_MANAGE` | Disabling revokes every session immediately |
-| POST | `/api/users/{id}/reset-password` | `USER_MANAGE` | `{ "newPassword": "…" }`. Signs the user out everywhere. Returns `204` |
+| POST | `/api/users/{id}/reset-password` | `USER_MANAGE` | `{ "newPassword": "…" }`. Signs the user out everywhere; they must change it at their next sign-in. Returns `204` |
+| GET | `/api/users/import` | `USER_MANAGE` | The users CSV import definition (columns) |
+| GET | `/api/users/import/template` | `USER_MANAGE` | Header and example row, as a download |
+| POST | `/api/users/import/preview` | `USER_MANAGE` | Multipart `file`. Validates every row and returns valid rows, invalid rows and errors. Saves nothing |
+| POST | `/api/users/import/commit` | `USER_MANAGE` | Multipart `file` + `checksum` (from the preview) + `skipInvalid`. Creates the users, each with a random temporary password, and returns them once in `resultFile` (`Cache-Control: no-store`). Audited as `USERS_IMPORTED` and `CSV_IMPORTED` |
 | GET | `/api/roles`, `/api/permissions` | `USER_MANAGE` or `PERMISSION_MANAGE` | Role and permission catalogue |
 
 These rules are enforced by the service, so they apply even to someone who holds the permission:

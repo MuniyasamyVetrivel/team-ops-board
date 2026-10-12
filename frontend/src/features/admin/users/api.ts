@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 
 import type { PermissionCode, RoleCode } from '@/features/auth/permissions';
 import { departmentKeys } from '@/features/departments/api';
+import type { ImportDefinition, ImportEndpoint } from '@/features/marketing/api';
 import { teamKeys } from '@/features/team/api';
 import { api } from '@/lib/api/client';
 import { cleanParams, type PageResponse, type UserStatus, type UserSummary } from '@/lib/api/types';
@@ -37,11 +38,14 @@ export interface UserDetail {
   phone: string | null;
   location: string | null;
   workingHours: string | null;
+  timeZone: string | null;
   weeklyCapacityHours: number;
   department: DepartmentRef;
   reportsTo: UserSummary | null;
   status: UserStatus;
   lastLoginAt: string | null;
+  /** The admin-set password has not been replaced yet. */
+  mustChangePassword: boolean;
   createdAt: string;
   roles: RoleCode[];
   directPermissions: PermissionCode[];
@@ -82,6 +86,7 @@ export interface UserProfileInput {
   phone?: string;
   location?: string;
   workingHours?: string;
+  timeZone?: string;
   departmentId: number;
   reportsToId?: number | null;
   weeklyCapacityHours: number;
@@ -170,11 +175,28 @@ export function useSetUserStatus(id: number) {
   );
 }
 
+/** The user must change the new password at their next sign-in, so the detail is refreshed. */
 export function useResetPassword(id: number) {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (newPassword: string) => {
       await api.post(`/users/${id}/reset-password`, { newPassword });
     },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: userKeys.detail(id) }),
+  });
+}
+
+/** Admin → Users → Import CSV; the commit returns the new users' temporary passwords once. */
+export const USER_IMPORTS: ImportEndpoint = {
+  path: () => '/users/import',
+  invalidate: [[...userKeys.all, 'list'], teamKeys.all, departmentKeys.all],
+};
+
+export function useUserImportDefinition() {
+  return useQuery({
+    queryKey: [...userKeys.all, 'import'],
+    queryFn: async () => (await api.get<ImportDefinition>('/users/import')).data,
+    staleTime: 10 * 60_000,
   });
 }
 

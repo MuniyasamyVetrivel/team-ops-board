@@ -33,6 +33,8 @@ const employee: UserDetail = {
   phone: null,
   location: null,
   workingHours: null,
+  timeZone: null,
+  mustChangePassword: false,
   weeklyCapacityHours: 40,
   department: { id: 7, name: 'Digital Marketing', code: 'DM' },
   reportsTo: null,

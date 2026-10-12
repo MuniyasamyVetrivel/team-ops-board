@@ -29,7 +29,7 @@ export function mockApi(routes: Record<string, Handler>) {
 /** Renders a page with React Query, an authenticated user and a router. */
 export function renderPage(element: ReactElement, user: CurrentUser, path = '/') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  const auth: AuthContextValue = { status: 'authenticated', user, login: vi.fn(), logout: vi.fn() };
+  const auth: AuthContextValue = { status: 'authenticated', user, login: vi.fn(), changePassword: vi.fn(), logout: vi.fn() };
   const router = createMemoryRouter([{ path: '*', element }], { initialEntries: [path] });
   return render(
     <QueryClientProvider client={queryClient}>

@@ -1,5 +1,6 @@
 package com.teamops.common.csv;
 
+import static com.teamops.common.csv.CsvImporter.Area.MARKETING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -115,7 +116,7 @@ class CsvImportServiceTest {
 
 	@Test
 	void previewSeparatesValidAndInvalidRowsWithoutSaving() {
-		ImportPreview preview = service.preview("keywords", file(CSV), EDITOR);
+		ImportPreview preview = service.preview(MARKETING, "keywords", file(CSV), EDITOR);
 
 		assertThat(preview.totalRows()).isEqualTo(5);
 		assertThat(preview.validCount()).isEqualTo(2);
@@ -137,16 +138,16 @@ class CsvImportServiceTest {
 
 	@Test
 	void commitRefusesWhileRowsHaveErrorsUnlessTheyAreSkipped() {
-		String checksum = service.preview("keywords", file(CSV), EDITOR).checksum();
+		String checksum = service.preview(MARKETING, "keywords", file(CSV), EDITOR).checksum();
 
-		assertThatThrownBy(() -> service.commit("keywords", file(CSV), checksum, false, EDITOR, ClientInfo.unknown()))
+		assertThatThrownBy(() -> service.commit(MARKETING, "keywords", file(CSV), checksum, false, EDITOR, ClientInfo.unknown()))
 			.isInstanceOf(ApiException.class)
 			.hasMessageStartingWith("3 rows have errors")
 			.extracting("code")
 			.isEqualTo("IMPORT_HAS_ERRORS");
 		assertThat(saved).isEmpty();
 
-		ImportResult result = service.commit("keywords", file(CSV), checksum, true, EDITOR, ClientInfo.unknown());
+		ImportResult result = service.commit(MARKETING, "keywords", file(CSV), checksum, true, EDITOR, ClientInfo.unknown());
 
 		assertThat(result).isEqualTo(new ImportResult("keywords", 2, 3));
 		assertThat(saved).containsExactly(new Keyword("sap testing", 880), new Keyword("selenium", null));
@@ -158,13 +159,13 @@ class CsvImportServiceTest {
 
 	@Test
 	void commitRequiresTheFileThatWasPreviewed() {
-		String checksum = service.preview("keywords", file("keyword\nsap\n"), EDITOR).checksum();
+		String checksum = service.preview(MARKETING, "keywords", file("keyword\nsap\n"), EDITOR).checksum();
 
-		assertThatThrownBy(() -> service.commit("keywords", file("keyword\nerp\n"), checksum, false, EDITOR,
+		assertThatThrownBy(() -> service.commit(MARKETING, "keywords", file("keyword\nerp\n"), checksum, false, EDITOR,
 				ClientInfo.unknown()))
 			.extracting("code")
 			.isEqualTo("IMPORT_FILE_CHANGED");
-		assertThat(service.commit("keywords", file("keyword\nsap\n"), checksum.toUpperCase(), false, EDITOR,
+		assertThat(service.commit(MARKETING, "keywords", file("keyword\nsap\n"), checksum.toUpperCase(), false, EDITOR,
 				ClientInfo.unknown())
 			.imported()).isEqualTo(1);
 	}
@@ -172,21 +173,21 @@ class CsvImportServiceTest {
 	@Test
 	void aFileWithNoValidRowsImportsNothing() {
 		String text = "keyword,volume\n,1\n";
-		String checksum = service.preview("keywords", file(text), EDITOR).checksum();
+		String checksum = service.preview(MARKETING, "keywords", file(text), EDITOR).checksum();
 
-		assertThatThrownBy(() -> service.commit("keywords", file(text), checksum, true, EDITOR, ClientInfo.unknown()))
+		assertThatThrownBy(() -> service.commit(MARKETING, "keywords", file(text), checksum, true, EDITOR, ClientInfo.unknown()))
 			.extracting("code")
 			.isEqualTo("NOTHING_TO_IMPORT");
 	}
 
 	@Test
 	void importersRequireTheirOwnPermission() {
-		assertThat(service.definitions(EDITOR)).extracting(ImportDtos.ImportDefinition::type)
+		assertThat(service.definitions(MARKETING, EDITOR)).extracting(ImportDtos.ImportDefinition::type)
 			.containsExactly("keywords");
-		assertThat(service.definitions(VIEWER)).isEmpty();
-		assertThatThrownBy(() -> service.preview("keywords", file(CSV), VIEWER)).extracting("code")
+		assertThat(service.definitions(MARKETING, VIEWER)).isEmpty();
+		assertThatThrownBy(() -> service.preview(MARKETING, "keywords", file(CSV), VIEWER)).extracting("code")
 			.isEqualTo("IMPORT_NOT_ALLOWED");
-		assertThatThrownBy(() -> service.template("rankings", EDITOR)).extracting("code")
+		assertThatThrownBy(() -> service.template(MARKETING, "rankings", EDITOR)).extracting("code")
 			.isEqualTo("IMPORT_TYPE_NOT_FOUND");
 	}
 
@@ -194,17 +195,17 @@ class CsvImportServiceTest {
 	void onlyCsvFilesWithinTheSizeLimitAreRead() {
 		MockMultipartFile excel = new MockMultipartFile("file", "keywords.xlsx", "application/octet-stream",
 				new byte[] { 1, 2, 3 });
-		assertThatThrownBy(() -> service.preview("keywords", excel, EDITOR)).extracting("code")
+		assertThatThrownBy(() -> service.preview(MARKETING, "keywords", excel, EDITOR)).extracting("code")
 			.isEqualTo("CSV_REQUIRED");
 		MockMultipartFile huge = new MockMultipartFile("file", "keywords.csv", "text/csv",
 				new byte[(int) CsvImportService.MAX_BYTES + 1]);
-		assertThatThrownBy(() -> service.preview("keywords", huge, EDITOR)).extracting("code")
+		assertThatThrownBy(() -> service.preview(MARKETING, "keywords", huge, EDITOR)).extracting("code")
 			.isEqualTo("FILE_TOO_LARGE");
 	}
 
 	@Test
 	void theTemplateHasTheHeaderAndAnExample() {
-		String text = new String(service.template("keywords", EDITOR), StandardCharsets.UTF_8);
+		String text = new String(service.template(MARKETING, "keywords", EDITOR), StandardCharsets.UTF_8);
 		assertThat(text).isEqualTo("﻿keyword,volume\r\nsap testing,880\r\n");
 	}
 

@@ -22,7 +22,7 @@ import { RoleBadges } from './RoleBadges';
 import { profileSchema, toProfilePayload, type ProfileFormInput, type ProfileFormValues } from './schemas';
 import { SecurityPanel } from './SecurityPanel';
 
-const SERVER_FIELDS = ['email', 'firstName', 'lastName', 'jobTitle', 'phone', 'location', 'workingHours', 'departmentId', 'reportsToId', 'weeklyCapacityHours'] as const;
+const SERVER_FIELDS = ['email', 'firstName', 'lastName', 'jobTitle', 'phone', 'location', 'workingHours', 'timeZone', 'departmentId', 'reportsToId', 'weeklyCapacityHours'] as const;
 
 interface UserDrawerProps {
   userId: number | null;
@@ -106,6 +106,7 @@ function ProfileForm({ user }: { user: UserDetail }) {
       phone: user.phone ?? '',
       location: user.location ?? '',
       workingHours: user.workingHours ?? '',
+      timeZone: user.timeZone ?? '',
       departmentId: String(user.department.id),
       reportsToId: user.reportsTo ? String(user.reportsTo.id) : '',
       weeklyCapacityHours: user.weeklyCapacityHours,

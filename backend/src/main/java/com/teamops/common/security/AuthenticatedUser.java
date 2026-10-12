@@ -12,13 +12,20 @@ import com.teamops.user.entity.RoleCodes;
 /**
  * The current user as resolved by the backend from the database. Inject with
  * {@code @AuthenticationPrincipal AuthenticatedUser user}. Never built from client-supplied data.
+ * {@code passwordChangeRequired} confines the user to choosing a new password ({@link PasswordChangeRequiredFilter}).
  */
 public record AuthenticatedUser(Long id, String email, String fullName, Long departmentId, Set<String> roles,
-		Set<String> permissions) {
+		Set<String> permissions, boolean passwordChangeRequired) {
 
 	public AuthenticatedUser {
 		roles = Set.copyOf(roles);
 		permissions = Set.copyOf(permissions);
+	}
+
+	/** A user who may use the app (no pending password change). */
+	public AuthenticatedUser(Long id, String email, String fullName, Long departmentId, Set<String> roles,
+			Set<String> permissions) {
+		this(id, email, fullName, departmentId, roles, permissions, false);
 	}
 
 	public boolean isSuperAdmin() {

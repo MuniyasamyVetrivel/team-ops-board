@@ -260,7 +260,7 @@ class MarketingFlowIT {
 	void userAdministrationRejectsInconsistentMarketingGrants() throws Exception {
 		Long departmentId = departmentRepository.findByCode("DM").orElseThrow().getId();
 		CreateUserRequest seoWithoutModule = new CreateUserRequest("it-seo-" + System.nanoTime() + "@teamops.local",
-				IntegrationUsers.PASSWORD, "Integration", "Seo", null, null, null, null, departmentId, null, null,
+				IntegrationUsers.PASSWORD, "Integration", "Seo", null, null, null, null, null, departmentId, null, null,
 				Set.of(RoleCodes.EMPLOYEE), Set.of("SEO_VIEW", "SEO_EDIT"));
 		assertThatThrownBy(() -> userService.create(seoWithoutModule, null, ClientInfo.unknown()))
 			.isInstanceOf(ApiException.class)

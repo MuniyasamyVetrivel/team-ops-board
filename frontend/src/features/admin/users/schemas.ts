@@ -1,14 +1,22 @@
 import { z } from 'zod';
 
-/** Mirrors com.teamops.common.security.PasswordPolicy. */
-export const passwordSchema = z
-  .string()
-  .min(8, 'At least 8 characters')
-  .max(128, 'At most 128 characters')
-  .regex(/[A-Za-z]/, 'Include at least one letter')
-  .regex(/\d/, 'Include at least one number');
+import { passwordSchema } from '@/features/auth/password-schema';
+
+export { passwordSchema };
 
 const optionalText = (max: number) => z.string().trim().max(max, `At most ${max} characters`);
+
+/** Blank, or a zone the browser knows (the backend checks against the Java zone list). */
+function isTimeZone(value: string): boolean {
+  if (!value) return true;
+  if (value !== 'UTC' && !value.includes('/')) return false;
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /** Mirrors UpdateUserRequest. Select values arrive as strings, so ids are coerced. */
 export const profileSchema = z.object({
@@ -19,6 +27,7 @@ export const profileSchema = z.object({
   phone: optionalText(40),
   location: optionalText(150),
   workingHours: optionalText(100),
+  timeZone: optionalText(64).refine(isTimeZone, 'Use a time zone such as Asia/Kolkata'),
   departmentId: z.string().min(1, 'Department is required'),
   reportsToId: z.string(),
   weeklyCapacityHours: z.coerce
@@ -52,6 +61,7 @@ export function toProfilePayload(values: ProfileFormValues) {
     phone: values.phone,
     location: values.location,
     workingHours: values.workingHours,
+    timeZone: values.timeZone,
     departmentId: Number(values.departmentId),
     reportsToId: values.reportsToId ? Number(values.reportsToId) : null,
     weeklyCapacityHours: values.weeklyCapacityHours,

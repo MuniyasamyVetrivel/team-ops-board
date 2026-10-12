@@ -24,9 +24,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Development seed data, enabled with DEV_SEED_ENABLED=true. Idempotent: existing users are left untouched, and a
- * department's manager is only set if it has none. All seeded users share the password in DEV_SEED_PASSWORD. Later
- * phases extend this with tasks, tickets, marketing data, etc.
+ * Demo seed data for automated tests only: it lives in the test sources, so it is never part of the application and
+ * runs only in a test that sets {@code app.dev-seed.enabled=true} and {@code app.dev-seed.password}. Idempotent:
+ * existing users are left untouched, and a department's manager is only set if it has none. All seeded users share
+ * the password in {@code app.dev-seed.password}.
  */
 @Slf4j
 @Component
@@ -118,11 +119,11 @@ public class DevDataSeeder implements ApplicationRunner {
 	@Override
 	public void run(ApplicationArguments args) {
 		if (properties.password() == null || properties.password().length() < 8) {
-			log.warn("DEV_SEED_ENABLED=true but DEV_SEED_PASSWORD is missing or shorter than 8 characters; "
+			log.warn("app.dev-seed.enabled=true but app.dev-seed.password is missing or shorter than 8 characters; "
 					+ "skipping development seed data.");
 			return;
 		}
-		log.warn("Seeding DEVELOPMENT data (DEV_SEED_ENABLED=true). Never enable this in production.");
+		log.warn("Seeding demo data (app.dev-seed.enabled=true).");
 
 		Map<String, Long> departmentIds = new HashMap<>();
 		departmentRepository.findAll().forEach(d -> departmentIds.put(d.getCode(), d.getId()));
@@ -136,7 +137,7 @@ public class DevDataSeeder implements ApplicationRunner {
 						: userRepository.findByEmailIgnoreCase(seed.reportsToEmail()).map(User::getId).orElse(null);
 				userId = userService
 					.create(new CreateUserRequest(seed.email(), properties.password(), seed.firstName(),
-							seed.lastName(), seed.jobTitle(), null, "Chennai", "09:30 - 18:30 IST", departmentId,
+							seed.lastName(), seed.jobTitle(), null, "Chennai", "09:30 - 18:30 IST", null, departmentId,
 							reportsToId, null, Set.of(seed.role()), seed.permissions()), null, ClientInfo.unknown())
 					.id();
 				created++;

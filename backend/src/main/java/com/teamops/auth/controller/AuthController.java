@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.teamops.auth.dto.AuthResponse;
+import com.teamops.auth.dto.ChangePasswordRequest;
 import com.teamops.auth.dto.LoginRequest;
 import com.teamops.auth.dto.MeResponse;
 import com.teamops.auth.service.AuthResult;
@@ -47,6 +48,13 @@ public class AuthController {
 		return ResponseEntity.noContent()
 			.header(HttpHeaders.SET_COOKIE, refreshCookieManager.clear().toString())
 			.build();
+	}
+
+	/** Allowed while a password change is pending; returns a new session and refresh cookie. */
+	@PostMapping("/change-password")
+	public ResponseEntity<AuthResponse> changePassword(@Valid @RequestBody ChangePasswordRequest request,
+			@AuthenticationPrincipal AuthenticatedUser user, HttpServletRequest http) {
+		return withRefreshCookie(authService.changePassword(user.id(), request, ClientInfo.from(http)));
 	}
 
 	@GetMapping("/me")

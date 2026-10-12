@@ -26,6 +26,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.teamops.common.csv.CsvImportService;
+import com.teamops.common.csv.CsvImporter.Area;
 import com.teamops.common.csv.ImportDtos.ImportResult;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.security.JwtTokenService;
@@ -98,7 +99,7 @@ class MarketingApiSecurityTest {
 
 	@Test
 	void templatesDownloadAsCsvAttachments() throws Exception {
-		when(importService.template(eq("keywords"), any())).thenReturn("keyword\r\n".getBytes());
+		when(importService.template(eq(Area.MARKETING), eq("keywords"), any())).thenReturn("keyword\r\n".getBytes());
 
 		mvc.perform(get("/api/marketing/imports/keywords/template").header(HttpHeaders.AUTHORIZATION, bearer(MARKETER)))
 			.andExpect(status().isOk())
@@ -109,7 +110,7 @@ class MarketingApiSecurityTest {
 
 	@Test
 	void commitPassesTheChecksumAndSkipFlag() throws Exception {
-		when(importService.commit(eq("keywords"), any(), eq("abc"), eq(true), any(), any()))
+		when(importService.commit(eq(Area.MARKETING), eq("keywords"), any(), eq("abc"), eq(true), any(), any()))
 			.thenReturn(new ImportResult("keywords", 4, 1));
 
 		mvc.perform(multipart("/api/marketing/imports/keywords/commit").file(csv())
@@ -119,7 +120,7 @@ class MarketingApiSecurityTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.imported").value(4))
 			.andExpect(jsonPath("$.skipped").value(1));
-		verify(importService).commit(eq("keywords"), any(), eq("abc"), eq(true), eq(MARKETER), any());
+		verify(importService).commit(eq(Area.MARKETING), eq("keywords"), any(), eq("abc"), eq(true), eq(MARKETER), any());
 
 		mvc.perform(multipart("/api/marketing/imports/keywords/commit").file(csv())
 			.header(HttpHeaders.AUTHORIZATION, bearer(MARKETER)))

@@ -19,6 +19,7 @@ const AUTH_ENDPOINTS = ['/auth/login', '/auth/refresh', '/auth/logout'];
 let accessToken: string | null = null;
 let refreshInFlight: Promise<AuthResponse> | null = null;
 let sessionExpiredHandler: (() => void) | null = null;
+let passwordChangeHandler: (() => void) | null = null;
 
 export function setAccessToken(token: string | null): void {
   accessToken = token;
@@ -33,6 +34,17 @@ export function onSessionExpired(handler: () => void): () => void {
   sessionExpiredHandler = handler;
   return () => {
     if (sessionExpiredHandler === handler) sessionExpiredHandler = null;
+  };
+}
+
+/**
+ * Registers the callback run when the API answers 403 PASSWORD_CHANGE_REQUIRED (an admin reset the password during
+ * this session). Returns an unsubscribe function.
+ */
+export function onPasswordChangeRequired(handler: () => void): () => void {
+  passwordChangeHandler = handler;
+  return () => {
+    if (passwordChangeHandler === handler) passwordChangeHandler = null;
   };
 }
 
@@ -76,6 +88,9 @@ api.interceptors.response.use(
         setAccessToken(null);
         sessionExpiredHandler?.();
       }
+    }
+    if (error.response?.status === 403 && (error.response.data as { code?: string } | undefined)?.code === 'PASSWORD_CHANGE_REQUIRED') {
+      passwordChangeHandler?.();
     }
     return Promise.reject(error);
   },

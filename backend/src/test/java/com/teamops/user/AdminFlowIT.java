@@ -101,6 +101,15 @@ class AdminFlowIT {
 			.andExpect(jsonPath("$.content[0].department.code").value("IT"))
 			.andExpect(jsonPath("$.content[0].roles[0]").value("EMPLOYEE"));
 		String userToken = login(email, "Welcome123");
+		// The admin chose the password, so the user must replace it before doing anything else.
+		as(userToken, get("/api/tasks")).andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value("PASSWORD_CHANGE_REQUIRED"));
+		as(userToken, post("/api/auth/change-password").contentType(MediaType.APPLICATION_JSON)
+			.content("{\"currentPassword\":\"Welcome123\",\"newPassword\":\"Welcome1234\"}"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.user.mustChangePassword").value(false));
+		userToken = login(email, "Welcome1234");
+		as(userToken, get("/api/tasks")).andExpect(status().isOk());
 		as(userToken, get("/api/auth/me")).andExpect(jsonPath("$.permissions", org.hamcrest.Matchers.not(
 				org.hamcrest.Matchers.hasItem("MARKETING_VIEW"))));
 
@@ -126,15 +135,16 @@ class AdminFlowIT {
 		// Disabling blocks the existing token and new logins; enabling restores access.
 		as(adminToken, post("/api/users/" + userId + "/disable")).andExpect(jsonPath("$.status").value("DISABLED"));
 		as(userToken, get("/api/auth/me")).andExpect(status().isUnauthorized());
-		loginAttempt(email, "Welcome123").andExpect(status().isForbidden())
+		loginAttempt(email, "Welcome1234").andExpect(status().isForbidden())
 			.andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"));
 		as(adminToken, post("/api/users/" + userId + "/enable")).andExpect(jsonPath("$.status").value("ACTIVE"));
 
 		// Password reset: old password stops working, new one works.
 		as(adminToken, post("/api/users/" + userId + "/reset-password").contentType(MediaType.APPLICATION_JSON)
 			.content("{\"newPassword\":\"Changed456\"}")).andExpect(status().isNoContent());
-		loginAttempt(email, "Welcome123").andExpect(status().isUnauthorized());
-		login(email, "Changed456");
+		loginAttempt(email, "Welcome1234").andExpect(status().isUnauthorized());
+		loginAttempt(email, "Changed456").andExpect(status().isOk())
+			.andExpect(jsonPath("$.user.mustChangePassword").value(true));
 	}
 
 	@Test

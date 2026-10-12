@@ -12,14 +12,15 @@ import com.teamops.common.exception.ApiException;
 class PasswordPolicyTest {
 
 	@ParameterizedTest
-	@ValueSource(strings = { "Welcome1", "correct horse 9", "S3cure!Passw0rd" })
+	@ValueSource(strings = { "Welcome123", "correct horse 9", "S3cure!Passw0rd" })
 	void acceptsPasswordsWithLettersAndDigits(String password) {
 		assertThatCode(() -> PasswordPolicy.validate(password)).doesNotThrowAnyException();
 	}
 
 	@ParameterizedTest
 	@NullSource
-	@ValueSource(strings = { "", "Short1", "onlyletters", "12345678" })
+	/** At least 10 characters, with letters and numbers. */
+	@ValueSource(strings = { "", "Short1", "Welcome12", "onlyletters", "1234567890" })
 	void rejectsWeakPasswords(String password) {
 		assertThatThrownBy(() -> PasswordPolicy.validate(password)).isInstanceOf(ApiException.class);
 	}

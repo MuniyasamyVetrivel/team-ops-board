@@ -15,7 +15,8 @@ import com.teamops.user.repository.UserRepository;
 import com.teamops.user.service.UserService;
 
 /**
- * Creates throwaway users with unique emails for integration tests and deletes them afterwards. Integration tests
+ * Creates throwaway users with unique emails for integration tests and deletes them afterwards. They can sign in
+ * with {@link #PASSWORD} and use the app straight away. Integration tests
  * are not {@code @Transactional} because audit entries are written in their own transactions.
  */
 public class IntegrationUsers {
@@ -47,10 +48,22 @@ public class IntegrationUsers {
 	public Long create(Long departmentId, String role, String... permissions) {
 		String email = "it-" + UUID.randomUUID() + "@teamops.local";
 		Long id = userService.create(new CreateUserRequest(email, PASSWORD, "Integration", role, "QA", null, null,
-				null, departmentId, null, null, Set.of(role), Set.of(permissions)), null, ClientInfo.unknown()).id();
+				null, null, departmentId, null, null, Set.of(role), Set.of(permissions)), null, ClientInfo.unknown()).id();
 		created.add(id);
 		emails.put(id, email);
+		passwordChanged(id);
 		return id;
+	}
+
+	/**
+	 * Admin-created users must choose a new password before using the app; test users skip that step, as if they had
+	 * kept {@link #PASSWORD} as their own.
+	 */
+	public void passwordChanged(Long id) {
+		userRepository.findById(id).ifPresent(user -> {
+			user.setMustChangePassword(false);
+			userRepository.save(user);
+		});
 	}
 
 	/** Registers a user created through the API so it is cleaned up too. */

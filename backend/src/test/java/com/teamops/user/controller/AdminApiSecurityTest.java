@@ -5,8 +5,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -17,9 +19,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.teamops.common.csv.CsvImportService;
+import com.teamops.common.csv.CsvImporter.Area;
+import com.teamops.common.csv.ImportDtos.ImportResult;
+import com.teamops.common.csv.ImportDtos.ResultFile;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.security.JwtTokenService;
 import com.teamops.common.security.UserPrincipalService;
@@ -36,7 +43,7 @@ import com.teamops.user.service.UserService;
 
 /** Authorization matrix and request validation for the Phase 4 endpoints. Services are mocked; no database. */
 @WebMvcTest(controllers = { UserController.class, AccessCatalogController.class, DepartmentController.class,
-		TeamController.class })
+		TeamController.class, UserImportController.class })
 @SecuritySliceTest
 class AdminApiSecurityTest {
 
@@ -64,6 +71,9 @@ class AdminApiSecurityTest {
 	@MockitoBean
 	private TeamService teamService;
 
+	@MockitoBean
+	private CsvImportService csvImportService;
+
 	private String bearer(AuthenticatedUser user) {
 		return SliceAuth.bearer(jwtTokenService, userPrincipalService, user);
 	}
@@ -73,6 +83,27 @@ class AdminApiSecurityTest {
 		mvc.perform(get("/api/users")).andExpect(status().isUnauthorized());
 		mvc.perform(get("/api/team")).andExpect(status().isUnauthorized());
 		mvc.perform(get("/api/departments")).andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void userImportNeedsUserManageAndReturnsPasswordsUncached() throws Exception {
+		MockMultipartFile file = new MockMultipartFile("file", "team.csv", "text/csv", "email".getBytes());
+		String employee = bearer(SliceAuth.EMPLOYEE);
+		mvc.perform(get("/api/users/import").header(HttpHeaders.AUTHORIZATION, employee))
+			.andExpect(status().isForbidden());
+		mvc.perform(multipart("/api/users/import/preview").file(file).header(HttpHeaders.AUTHORIZATION, employee))
+			.andExpect(status().isForbidden());
+		mvc.perform(multipart("/api/users/import/commit").file(file).param("checksum", "abc")
+			.header(HttpHeaders.AUTHORIZATION, employee)).andExpect(status().isForbidden());
+		verifyNoInteractions(csvImportService);
+
+		when(csvImportService.commit(eq(Area.USERS), eq("users"), any(), eq("abc"), eq(false), any(), any()))
+			.thenReturn(new ImportResult("users", 1, 0, new ResultFile("new-users.csv", "email,name,temporary_password")));
+		mvc.perform(multipart("/api/users/import/commit").file(file).param("checksum", "abc")
+			.header(HttpHeaders.AUTHORIZATION, bearer(SliceAuth.USER_ADMIN)))
+			.andExpect(status().isOk())
+			.andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
+			.andExpect(jsonPath("$.resultFile.fileName").value("new-users.csv"));
 	}
 
 	@Test

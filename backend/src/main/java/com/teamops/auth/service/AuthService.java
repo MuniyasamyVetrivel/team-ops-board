@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import com.teamops.auth.dto.ChangePasswordRequest;
 import com.teamops.auth.dto.LoginRequest;
 import com.teamops.auth.dto.MeResponse;
 import com.teamops.common.audit.AuditAction;
@@ -19,6 +20,7 @@ import com.teamops.common.security.AccessToken;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.security.AuthenticatedUserFactory;
 import com.teamops.common.security.JwtTokenService;
+import com.teamops.common.security.PasswordPolicy;
 import com.teamops.common.web.ClientInfo;
 import com.teamops.user.entity.User;
 import com.teamops.user.repository.UserRepository;
@@ -107,6 +109,30 @@ public class AuthService {
 		}
 		refreshTokenService.revoke(rawRefreshToken)
 			.ifPresent(userId -> auditService.record(AuditAction.LOGOUT, userId, "USER", userId, Map.of(), client));
+	}
+
+	/**
+	 * Replaces the user's password after checking the current one, clears the "must change password" flag, signs the
+	 * user out on every other device and starts a fresh session here.
+	 */
+	@Transactional
+	public AuthResult changePassword(Long userId, ChangePasswordRequest request, ClientInfo client) {
+		User user = userRepository.findWithAuthoritiesById(userId)
+			.filter(User::isActive)
+			.orElseThrow(() -> ApiException.unauthorized("SESSION_EXPIRED",
+					"Your session has expired. Please sign in again."));
+		if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+			throw ApiException.badRequest("WRONG_PASSWORD", "Your current password is not correct");
+		}
+		PasswordPolicy.validate(request.newPassword());
+		if (request.newPassword().equals(request.currentPassword())) {
+			throw ApiException.badRequest("PASSWORD_UNCHANGED", "Choose a password different from the current one");
+		}
+		user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+		user.setMustChangePassword(false);
+		refreshTokenService.revokeAll(user.getId());
+		auditService.record(AuditAction.PASSWORD_CHANGED, user.getId(), "USER", user.getId(), Map.of(), client);
+		return startSession(user, client);
 	}
 
 	@Transactional(readOnly = true)

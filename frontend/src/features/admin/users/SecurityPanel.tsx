@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { KeyRound, LoaderCircle, UserCheck, UserX } from 'lucide-react';
+import { KeyRound, LoaderCircle, LockKeyhole, UserCheck, UserX } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -8,6 +8,7 @@ import { FormBanner, FormField } from '@/components/common/FormField';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PASSWORD_HINT } from '@/features/auth/password-schema';
 import { useAuth } from '@/features/auth/use-auth';
 import { errorMessage } from '@/lib/api/errors';
 import { formatRelative } from '@/lib/format';
@@ -45,7 +46,7 @@ export function SecurityPanel({ user }: { user: UserDetail }) {
     try {
       await resetPassword.mutateAsync(values.newPassword);
       reset();
-      toast.success('Password reset. They have been signed out of every device.');
+      toast.success('Password reset. They have been signed out and must choose a new password at their next sign-in.');
     } catch (error) {
       setBanner(errorMessage(error));
     }
@@ -95,8 +96,14 @@ export function SecurityPanel({ user }: { user: UserDetail }) {
 
       <section className="space-y-3">
         <h3 className="text-sm font-semibold">Reset password</h3>
+        {user.mustChangePassword && (
+          <p className="flex items-start gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm text-muted-foreground" role="status">
+            <LockKeyhole className="mt-0.5 size-4 shrink-0 text-status-warning" aria-hidden />
+            They have not chosen their own password yet. They will be asked to at their next sign-in.
+          </p>
+        )}
         <form onSubmit={onReset} noValidate className="space-y-4 rounded-lg border p-4">
-          <FormField id="newPassword" label="New password" hint="8+ characters with a letter and a number" error={errors.newPassword?.message}>
+          <FormField id="newPassword" label="New password" hint={`${PASSWORD_HINT}. They must change it at their next sign-in.`} error={errors.newPassword?.message}>
             <Input id="newPassword" type="password" autoComplete="new-password" aria-invalid={errors.newPassword ? true : undefined} {...register('newPassword')} />
           </FormField>
           <FormField id="confirm" label="Confirm password" error={errors.confirm?.message}>

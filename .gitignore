@@ -24,3 +24,6 @@ dist/
 !.vscode/extensions.json
 .DS_Store
 Thumbs.db
+
+# Private, never committed (real team data, temporary passwords)
+/private/

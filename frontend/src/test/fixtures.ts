@@ -13,6 +13,7 @@ export function makeUser(roles: RoleCode[], permissions: PermissionCode[], overr
     department: { id: 1, name: 'IT', code: 'IT' },
     roles,
     permissions,
+    mustChangePassword: false,
     ...overrides,
   };
 }

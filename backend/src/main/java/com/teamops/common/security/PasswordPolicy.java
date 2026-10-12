@@ -2,10 +2,10 @@ package com.teamops.common.security;
 
 import com.teamops.common.exception.ApiException;
 
-/** Password rules for passwords set through the API (admin create / reset). */
+/** Password rules for passwords set through the API (admin create / reset, a user changing their own). */
 public final class PasswordPolicy {
 
-	public static final int MIN_LENGTH = 8;
+	public static final int MIN_LENGTH = 10;
 
 	public static final int MAX_LENGTH = 128;
 

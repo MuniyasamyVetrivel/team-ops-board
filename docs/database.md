@@ -17,7 +17,7 @@ change is a new migration. See [architecture.md](architecture.md) for how the ap
 | Optimistic locking | Editable records have a `version` column (`@Version`); stale writes answer 409 `STALE_UPDATE` |
 | Derived values | Never stored: rates, remaining, achievement %, target status, workload %, SLA state and project progress are computed in services. The exceptions are deliberate snapshots, such as SLA due times taken at ticket creation and the previous position recorded with each monthly ranking |
 | Codes | `TSK-`, `TKT-`, `PRJ-`, `APR-`, `LEAD-`, `BLK-` codes come from `code_sequences` (one row per prefix, read with `SELECT … FOR UPDATE` inside the caller's transaction) |
-| Dev data | Never in Flyway. Development data comes from the Java `DevDataSeeder` (`DEV_SEED_ENABLED=true`) |
+| Dev data | Never in Flyway. Demo data lives only in the test sources (`DevDataSeeder`); real users come from the bootstrap admin and the users CSV import ([go-live-data.md](go-live-data.md)) |
 
 ## Migrations
 
@@ -47,6 +47,7 @@ change is a new migration. See [architecture.md](architecture.md) for how the ap
 | V22 remove_leave_and_hr_policy_content | Leave moved to Zoho People: deletes `LEAVE` calendar events, drops `calendar_events.user_id`, removes the leave-policy announcement, article, document, ticket and task from earlier dev seeds |
 | V23 celebrations_important_days_events | `CELEBRATIONS_EDIT`, the reminder days-before setting, `employees`, `important_days`, `marketing_events`, `linkedin_posts`, `occasion_attachments` |
 | V24 work_history_indexes | Team member work history: `tasks (assignee_id, status, completed_at)` and `(assignee_id, due_date)`, `tickets (assignee_id, status, resolved_at)` and `(assignee_id, resolution_due_at)`, replacing the `(assignee_id, status)` indexes |
+| V25 user_password_change_and_time_zone | `users.must_change_password` (an admin-set password must be replaced at the next sign-in) and `users.time_zone` |
 
 Never edit an applied migration; add `V{n+1}__description.sql` instead, in the phase that first needs it.
 

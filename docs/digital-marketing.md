@@ -270,7 +270,7 @@ and `GET /api/marketing/integrations` shows which source each module uses.
 
 ## Development data
 
-With `DEV_SEED_ENABLED=true` the seeders create the brief's worked examples relative to today:
+The demo seeders, which live only in the test sources, create the brief's worked examples relative to today:
 - SAP Testing Services ranked 18 → 12 → 7, and S4HANA Testing 25 → 15 → 9.
 - Website Leads 250 / 200 this month (organic 80, email 45, LinkedIn 35, blog 20, paid 20).
 - Backlinks: 50 target, 35 submitted, 28 approved, 22 live.

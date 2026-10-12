@@ -45,7 +45,8 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
 ## Secrets & config
 - Credentials live **only** in `backend/.env`, which is git-ignored and imported with `spring.config.import=optional:file:.env[.properties]`. Never hard-code or commit them.
 - Keep `backend/.env.example` and `frontend/.env.example` up to date with placeholder values.
-- Dev seed data comes from the Java `DevDataSeeder`, switched on with `DEV_SEED_ENABLED=true` (not a Spring profile, because `.env` can't activate profiles). Dates are relative to today, and the seeder must stay idempotent. Never put dev data in Flyway.
+- There is no demo data in the app. The demo seeders (`DevDataSeeder` and friends) live in `src/test/java/com/teamops/devdata` for automated tests only and run only when a test sets `app.dev-seed.enabled=true`. `DEV_SEED_ENABLED` stays `false`. No test may depend on seeded data. Never put dev data in Flyway.
+- Real users come from `BOOTSTRAP_ADMIN_*` (first Super Admin on an empty database) and Admin → Users (one at a time or `UserCsvImporter`). See `docs/go-live-data.md`. Real team data stays in the git-ignored `private/` folder.
 - The `dev` Spring profile only turns on verbose SQL and debug logging.
 
 ## Coding rules
@@ -90,6 +91,7 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
 - Human-readable codes come from `CodeGenerator.next(...)`, which must run inside the caller's transaction.
 - Reports: build a `ReportDocument` and return `ReportExporters.download(document, format)`. CSV is the only exporter for now; a PDF exporter just implements `ReportExporter`. Count tasks with `TaskWorkScope` (the dashboard rule), not a new scope query.
 - Uploads go through `FileService` (validation in `UploadPolicy`, bytes stored by `FileStorageService`), and downloads are always served as attachments with `nosniff`.
+- A password chosen by an admin (create, import, bootstrap, reset) sets `users.must_change_password`. `PasswordChangeRequiredFilter` then allows only `GET /api/auth/me` and `POST /api/auth/change-password`; the frontend sends such users to `/change-password`. Password rules live in `PasswordPolicy` and `password-schema.ts` (10+ characters, letters and numbers).
 - Task authorization lives in `TaskAccess`; reuse it and don't re-implement the checks. Return 404 (not 403) for tasks the user can't see.
 - Editable records carry `@Version`. Clients send `version` and get 409 `STALE_UPDATE` on a conflict.
 - Throw `ApiException` (with a stable `code`) for business errors. Don't build error responses by hand.

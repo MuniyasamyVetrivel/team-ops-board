@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.teamops.common.audit.AuditAction;
 import com.teamops.common.audit.AuditService;
+import com.teamops.common.csv.CsvImporter.Area;
 import com.teamops.common.csv.CsvImporter.ImportSession;
 import com.teamops.common.csv.CsvReader.CsvTable;
 import com.teamops.common.csv.ImportDtos.CellError;
@@ -68,27 +69,27 @@ public class CsvImportService {
 		}
 	}
 
-	/** Importers the actor may use. */
-	public List<ImportDefinition> definitions(AuthenticatedUser actor) {
+	/** Importers of the area the actor may use. */
+	public List<ImportDefinition> definitions(Area area, AuthenticatedUser actor) {
 		return importers.values()
 			.stream()
-			.filter(importer -> allowed(importer, actor))
+			.filter(importer -> importer.area() == area && allowed(importer, actor))
 			.sorted(Comparator.comparing(CsvImporter::label))
 			.map(CsvImportService::definition)
 			.toList();
 	}
 
 	/** A header row plus one example row. */
-	public byte[] template(String type, AuthenticatedUser actor) {
-		CsvImporter<?> importer = importer(type, actor);
+	public byte[] template(Area area, String type, AuthenticatedUser actor) {
+		CsvImporter<?> importer = importer(area, type, actor);
 		List<String> header = importer.columns().stream().map(CsvColumn::name).toList();
 		List<String> example = importer.columns().stream().map(c -> c.example() == null ? "" : c.example()).toList();
 		return CsvWriter.write(header, List.of(example));
 	}
 
 	@Transactional(readOnly = true)
-	public ImportPreview preview(String type, MultipartFile file, AuthenticatedUser actor) {
-		CsvImporter<?> importer = importer(type, actor);
+	public ImportPreview preview(Area area, String type, MultipartFile file, AuthenticatedUser actor) {
+		CsvImporter<?> importer = importer(area, type, actor);
 		Upload upload = read(file);
 		Parsed<?> parsed = parse(importer, upload, actor);
 		return new ImportPreview(importer.type(), upload.fileName(), upload.checksum(),
@@ -99,9 +100,9 @@ public class CsvImportService {
 	}
 
 	@Transactional
-	public ImportResult commit(String type, MultipartFile file, String checksum, boolean skipInvalid,
+	public ImportResult commit(Area area, String type, MultipartFile file, String checksum, boolean skipInvalid,
 			AuthenticatedUser actor, ClientInfo client) {
-		CsvImporter<?> importer = importer(type, actor);
+		CsvImporter<?> importer = importer(area, type, actor);
 		Upload upload = read(file);
 		if (!upload.checksum().equalsIgnoreCase(checksum == null ? "" : checksum.strip())) {
 			throw ApiException.conflict("IMPORT_FILE_CHANGED",
@@ -121,12 +122,12 @@ public class CsvImportService {
 				Map.of("type", importer.type(), "fileName", upload.fileName(), "checksum", upload.checksum(),
 						"imported", imported, "skipped", parsed.invalidCount()),
 				client);
-		return new ImportResult(importer.type(), imported, parsed.invalidCount());
+		return new ImportResult(importer.type(), imported, parsed.invalidCount(), parsed.session().resultFile());
 	}
 
-	private CsvImporter<?> importer(String type, AuthenticatedUser actor) {
+	private CsvImporter<?> importer(Area area, String type, AuthenticatedUser actor) {
 		CsvImporter<?> importer = importers.get(type);
-		if (importer == null) {
+		if (importer == null || importer.area() != area) {
 			throw ApiException.notFound("IMPORT_TYPE_NOT_FOUND", "There is no import for '" + type + "'");
 		}
 		if (!allowed(importer, actor)) {

@@ -90,8 +90,8 @@ npm run dev
 | `JWT_ACCESS_TTL_MINUTES` / `JWT_REFRESH_TTL_DAYS` | 60 / 7 | Access token and session lifetimes |
 | `REFRESH_COOKIE_SECURE` | `true` | `true` behind HTTPS; `false` only for local http |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Comma-separated browser origins allowed to call the API |
-| `DEV_SEED_ENABLED`, `DEV_SEED_PASSWORD` | `false`, — | Development data and users (**never in production**) |
-| `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`, `BOOTSTRAP_ADMIN_FIRST_NAME`, `BOOTSTRAP_ADMIN_DEPARTMENT_CODE` | —, —, Rakesh, IT | Creates the first Super Admin when the users table is empty. Remove them after the first start |
+| `DEV_SEED_ENABLED` | `false` | Keep `false`. Demo data lives only in the automated tests |
+| `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`, `BOOTSTRAP_ADMIN_FIRST_NAME`, `BOOTSTRAP_ADMIN_LAST_NAME`, `BOOTSTRAP_ADMIN_DEPARTMENT_CODE` | —, —, Admin, —, IT | Creates the first Super Admin when the users table is empty. The password is temporary and must be changed at first sign-in. Remove the password after the first start |
 | `FILE_STORAGE_DIR`, `FILE_MAX_SIZE_MB` | `./uploads`, 20 | Where uploads are stored, and the server's upload limit |
 | `APP_TIME_ZONE` | `Asia/Kolkata` | Business time zone for "today", due dates, overdue and marketing months |
 | `APP_SCHEDULING_ENABLED` | `true` | Background jobs on or off |
@@ -109,38 +109,20 @@ threshold, upload limit) are edited in the app under **Settings** and stored in 
 |---|---|---|
 | `VITE_API_BASE_URL` | `/api` | API base URL, bundled into the build (not secret). The default goes through the Vite dev proxy in development and a same-origin reverse proxy in production |
 
-## Development credentials
+## Users and first sign-in
 
-With `DEV_SEED_ENABLED=true`, 22 users are created on startup: Rakesh, plus a manager and at least one employee for
-each of the 10 departments. Seeding is idempotent: existing users are left alone, and a department's manager is only
-set if it has none. Every manager reports to Rakesh and every employee to their department manager. **They all use
-the password set in `DEV_SEED_PASSWORD`** in `backend/.env`.
+The app has no demo users. On an empty database, `BOOTSTRAP_ADMIN_*` creates the first Super Admin. Everyone else
+is added in **Admin → Users**, one at a time or with **Import CSV**. The import checks every row first, shows valid
+and invalid rows, and returns each new person's temporary password once, in a file to download.
 
-| Email | Role | Department | Use it to check |
-|---|---|---|---|
-| `rakesh@teamops.local` | Super Admin | IT | Everything, including Digital Marketing and administration |
-| `priya.menon@teamops.local` | Department Manager | Digital Marketing | A marketing manager with every marketing permission |
-| `arun.kumar@teamops.local` | Employee | Digital Marketing | SEO executive with partial marketing permissions |
-| `kavya.suresh@teamops.local` | Employee | Digital Marketing | Content writer with content permissions |
-| `karthik.raj@teamops.local` | Employee | Web Development | No marketing or admin access: the menus and APIs are hidden |
-| `sanjay.varma@teamops.local` | Department Manager | Web Development | Karthik's manager, with no marketing access |
-| `suresh.babu@teamops.local` | Department Manager | IT | Runs the IT help desk queue: assigns tickets, reopens closed ones |
-| `vignesh.raman@teamops.local` | Employee + `TICKET_EDIT` | IT | Help desk agent: works on IT tickets, writes internal notes |
+Anyone whose password was set by an administrator (new account, import, bootstrap or reset) must choose their own
+password before using the app. The backend refuses every other request until they do. Passwords need at least 10
+characters, with letters and numbers.
 
-The other department managers are `anitha.raj` (Cyber Security), `lakshmi.priya` (HR), `ramesh.kannan` (Talent
-Acquisition), `harish.prabhu` (App Development), `gokul.ravi` (Pre-Sales), `ajay.dev` (Graphic & Media) and
-`revathi.sundar` (Payroll). The full list is in `DevDataSeeder.java`.
+[docs/go-live-data.md](docs/go-live-data.md) walks through resetting a database and loading the real team.
 
-The seeders fill every module with data relative to today, each part only while its table is empty:
-- About 175 tasks with a deliberately uneven load: Karthik, Priya and Deepak are overloaded.
-- 19 help desk tickets, some met, at risk, breached or paused.
-- Projects with milestones and risks, approvals in every state, announcements, knowledge base articles, documents and
-  calendar events.
-- The brief's Digital Marketing examples: SEO history, the 250 / 200 lead target, 50 / 35 / 28 / 22 backlinks, 9 of
-  12 blogs, the ₹42,000 / 84-lead LinkedIn campaign, the 25,000-email Zoho campaign, and recurring activities.
-  [digital-marketing.md](docs/digital-marketing.md#development-data) has the details.
-
-These are development-only accounts on a `.local` domain. Never use them, or the seed flag, in production.
+The demo seeders (`DevDataSeeder` and its module seeders) live in the **test sources** only, so a built application
+cannot create demo data. Automated tests never depend on them: each test creates its own users and records.
 
 ## Build and test
 
@@ -177,7 +159,7 @@ site as the app.
    ```
    Provide the variables above as real environment variables (or a `.env` file in the working directory):
    - `REFRESH_COOKIE_SECURE=true` and a strong `JWT_SECRET`.
-   - `DEV_SEED_ENABLED=false`.
+   - `DEV_SEED_ENABLED=false` (the demo data is not part of the build anyway).
    - `FILE_STORAGE_DIR` on persistent storage.
    - `BOOTSTRAP_ADMIN_*` for the first start only, then remove them.
    - Run the background jobs (`APP_SCHEDULING_ENABLED=true`) on one instance. They are idempotent, but there's no

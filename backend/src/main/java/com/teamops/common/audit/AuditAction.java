@@ -12,6 +12,10 @@ public enum AuditAction {
 	USER_DISABLED,
 	USER_ENABLED,
 	USER_PASSWORD_RESET,
+	/** A user replaced their password (required after an admin set it). */
+	PASSWORD_CHANGED,
+	/** Users created from a CSV file (one USER_CREATED entry per person as well). */
+	USERS_IMPORTED,
 	/** Roles or direct permission grants changed (brief section 63: "User permission change"). */
 	USER_ACCESS_CHANGED,
 	DEPARTMENT_CREATED,

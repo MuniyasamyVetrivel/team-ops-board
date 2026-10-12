@@ -39,9 +39,14 @@ describe('UsersPage', () => {
     mockApi({
       'GET /users': () => page([priya, formerStaff]),
       'GET /departments': () => [],
+      'GET /users/import': () => ({ type: 'users', label: 'Users', description: 'People to add.', columns: [], maxRows: 5000 }),
     });
 
     renderPage(<UsersPage />, superAdmin);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Import CSV' }));
+    expect(await screen.findByRole('heading', { name: 'Import users' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
     const row = await screen.findByRole('row', { name: 'Open Priya Menon' });
     expect(within(row).getByText('Department Manager')).toBeInTheDocument();

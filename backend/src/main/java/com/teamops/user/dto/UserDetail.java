@@ -22,11 +22,14 @@ public record UserDetail(
 		String phone,
 		String location,
 		String workingHours,
+		String timeZone,
 		BigDecimal weeklyCapacityHours,
 		DepartmentSummary department,
 		UserSummary reportsTo,
 		UserStatus status,
 		Instant lastLoginAt,
+		/** The admin-set password has not been replaced yet. */
+		boolean mustChangePassword,
 		Instant createdAt,
 		List<String> roles,
 		List<String> directPermissions,
@@ -36,8 +39,9 @@ public record UserDetail(
 	public static UserDetail of(User user, AuthenticatedUser effective) {
 		return new UserDetail(user.getId(), user.getEmail(), user.getFirstName(), user.getLastName(),
 				user.getFullName(), user.getJobTitle(), user.getPhone(), user.getLocation(), user.getWorkingHours(),
-				user.getWeeklyCapacityHours(), DepartmentSummary.of(user.getDepartment()),
-				UserSummary.of(user.getReportsTo()), user.getStatus(), user.getLastLoginAt(), user.getCreatedAt(),
+				user.getTimeZone(), user.getWeeklyCapacityHours(), DepartmentSummary.of(user.getDepartment()),
+				UserSummary.of(user.getReportsTo()), user.getStatus(), user.getLastLoginAt(), user.isMustChangePassword(),
+				user.getCreatedAt(),
 				user.getRoles().stream().map(Role::getCode).sorted().toList(),
 				user.getDirectPermissions().stream().map(Permission::getCode).sorted().toList(),
 				effective.permissions().stream().sorted().toList());

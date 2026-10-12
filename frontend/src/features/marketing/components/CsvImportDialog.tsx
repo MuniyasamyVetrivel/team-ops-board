@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, CircleAlert, CircleCheck, Download, FileSpreadsheet, LoaderCircle, Rows3, TriangleAlert, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, CircleAlert, CircleCheck, Download, FileSpreadsheet, KeyRound, LoaderCircle, Rows3, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -13,10 +13,22 @@ import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, Dia
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { saveBlob } from '@/lib/api/download';
 import { errorMessage } from '@/lib/api/errors';
 import { cn } from '@/lib/utils';
 
-import { downloadImportTemplate, useCommitImport, usePreviewImport, type ImportDefinition, type ImportPreview, type ImportResult, type PreviewRow } from '../api';
+import {
+  downloadImportTemplate,
+  MARKETING_IMPORTS,
+  useCommitImport,
+  usePreviewImport,
+  type ImportDefinition,
+  type ImportEndpoint,
+  type ImportPreview,
+  type ImportResult,
+  type PreviewRow,
+  type ResultFile,
+} from '../api';
 import { formatCount } from '../marketing-format';
 
 /** Mirrors CsvImportService.MAX_BYTES. */
@@ -35,6 +47,8 @@ interface CsvImportDialogProps {
   definition: ImportDefinition;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Defaults to the marketing imports. */
+  endpoint?: ImportEndpoint;
 }
 
 /**
@@ -42,15 +56,15 @@ interface CsvImportDialogProps {
  * invalid rows and errors → import. Nothing is saved before the last step, invalid rows are never imported, and a
  * file with errors needs an explicit "skip invalid rows" confirmation.
  */
-export function CsvImportDialog({ definition, open, onOpenChange }: CsvImportDialogProps) {
+export function CsvImportDialog({ definition, open, onOpenChange, endpoint = MARKETING_IMPORTS }: CsvImportDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">{open && <ImportFlow definition={definition} onClose={() => onOpenChange(false)} />}</DialogContent>
+      <DialogContent className="max-w-4xl">{open && <ImportFlow definition={definition} endpoint={endpoint} onClose={() => onOpenChange(false)} />}</DialogContent>
     </Dialog>
   );
 }
 
-function ImportFlow({ definition, onClose }: { definition: ImportDefinition; onClose: () => void }) {
+function ImportFlow({ definition, endpoint, onClose }: { definition: ImportDefinition; endpoint: ImportEndpoint; onClose: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
@@ -60,6 +74,7 @@ function ImportFlow({ definition, onClose }: { definition: ImportDefinition; onC
     return (
       <PreviewStep
         definition={definition}
+        endpoint={endpoint}
         file={file}
         preview={preview}
         onBack={() => setPreview(null)}
@@ -73,6 +88,7 @@ function ImportFlow({ definition, onClose }: { definition: ImportDefinition; onC
   return (
     <ChooseStep
       definition={definition}
+      endpoint={endpoint}
       onCancel={onClose}
       onPreviewed={(chosen, validated) => {
         setFile(chosen);
@@ -82,8 +98,18 @@ function ImportFlow({ definition, onClose }: { definition: ImportDefinition; onC
   );
 }
 
-function ChooseStep({ definition, onCancel, onPreviewed }: { definition: ImportDefinition; onCancel: () => void; onPreviewed: (file: File, preview: ImportPreview) => void }) {
-  const previewImport = usePreviewImport(definition.type);
+function ChooseStep({
+  definition,
+  endpoint,
+  onCancel,
+  onPreviewed,
+}: {
+  definition: ImportDefinition;
+  endpoint: ImportEndpoint;
+  onCancel: () => void;
+  onPreviewed: (file: File, preview: ImportPreview) => void;
+}) {
+  const previewImport = usePreviewImport(definition.type, endpoint);
   const [banner, setBanner] = useState<string | null>(null);
   const {
     register,
@@ -112,7 +138,7 @@ function ChooseStep({ definition, onCancel, onPreviewed }: { definition: ImportD
         <div>
           <div className="mb-2 flex items-center justify-between gap-2">
             <h3 className="text-sm font-medium">Columns</h3>
-            <Button type="button" variant="outline" size="sm" onClick={() => void downloadImportTemplate(definition.type).catch((error: unknown) => setBanner(errorMessage(error)))}>
+            <Button type="button" variant="outline" size="sm" onClick={() => void downloadImportTemplate(definition.type, endpoint).catch((error: unknown) => setBanner(errorMessage(error)))}>
               <Download aria-hidden />
               Download template
             </Button>
@@ -162,8 +188,22 @@ function ChooseStep({ definition, onCancel, onPreviewed }: { definition: ImportD
   );
 }
 
-function PreviewStep({ definition, file, preview, onBack, onImported }: { definition: ImportDefinition; file: File; preview: ImportPreview; onBack: () => void; onImported: (result: ImportResult) => void }) {
-  const commit = useCommitImport(definition.type);
+function PreviewStep({
+  definition,
+  endpoint,
+  file,
+  preview,
+  onBack,
+  onImported,
+}: {
+  definition: ImportDefinition;
+  endpoint: ImportEndpoint;
+  file: File;
+  preview: ImportPreview;
+  onBack: () => void;
+  onImported: (result: ImportResult) => void;
+}) {
+  const commit = useCommitImport(definition.type, endpoint);
   const [skipInvalid, setSkipInvalid] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
   const hasInvalid = preview.invalidCount > 0;
@@ -304,6 +344,8 @@ function RowsTable({ columns, rows, total, showErrors, empty }: { columns: strin
 }
 
 function ResultStep({ definition, result, onClose }: { definition: ImportDefinition; result: ImportResult; onClose: () => void }) {
+  const [saved, setSaved] = useState(false);
+  const file = result.resultFile;
   return (
     <>
       <DialogHeader>
@@ -324,12 +366,43 @@ function ResultStep({ definition, result, onClose }: { definition: ImportDefinit
             </p>
           )}
         </div>
+        {file && <ResultFileNotice file={file} saved={saved} onSaved={() => setSaved(true)} />}
       </DialogBody>
       <DialogFooter>
-        <Button type="button" onClick={onClose}>
+        {file && !saved && <p className="mr-auto self-center text-xs text-muted-foreground">Download the file before closing.</p>}
+        <Button type="button" onClick={onClose} disabled={Boolean(file) && !saved}>
           Done
         </Button>
       </DialogFooter>
     </>
+  );
+}
+
+/** A file the server returns only once (e.g. temporary passwords): it is not stored, so it must be saved now. */
+function ResultFileNotice({ file, saved, onSaved }: { file: ResultFile; saved: boolean; onSaved: () => void }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-warning/40 bg-status-warning/5 px-4 py-3 text-sm" role="alert">
+      <span className="flex min-w-0 flex-1 items-start gap-2">
+        <KeyRound className="mt-0.5 size-4 shrink-0 text-status-warning" aria-hidden />
+        <span>
+          <span className="block font-medium">Temporary passwords are shown only once</span>
+          <span className="block text-muted-foreground">
+            {file.fileName} is not stored anywhere. Download it now, share each password privately, then delete the file. Everyone must choose their own password at first
+            sign-in.
+          </span>
+        </span>
+      </span>
+      <Button
+        type="button"
+        variant={saved ? 'outline' : 'default'}
+        onClick={() => {
+          saveBlob(new Blob([file.content], { type: 'text/csv;charset=utf-8' }), file.fileName);
+          onSaved();
+        }}
+      >
+        {saved ? <CircleCheck aria-hidden /> : <Download aria-hidden />}
+        {saved ? 'Downloaded' : 'Download file'}
+      </Button>
+    </div>
   );
 }
