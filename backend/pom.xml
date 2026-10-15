@@ -178,11 +178,21 @@
 		<!-- Integration tests (*IT.java) need a live MySQL. Run with: mvnw verify -Pit -->
 		<profile>
 			<id>it</id>
+			<properties>
+				<!-- Integration tests get their own database, so they never leave rows in the real one.
+				     Create it once (docs/database.md); override with -Dit.db.url=... -->
+				<it.db.url>jdbc:mysql://localhost:3306/team_ops_board_it?connectionTimeZone=UTC&amp;forceConnectionTimeZoneToSession=true&amp;useSSL=false&amp;allowPublicKeyRetrieval=true</it.db.url>
+			</properties>
 			<build>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-failsafe-plugin</artifactId>
+						<configuration>
+							<systemPropertyVariables>
+								<spring.datasource.url>${it.db.url}</spring.datasource.url>
+							</systemPropertyVariables>
+						</configuration>
 						<executions>
 							<execution>
 								<goals>
