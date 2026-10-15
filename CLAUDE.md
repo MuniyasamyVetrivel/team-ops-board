@@ -4,9 +4,10 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
 
 ## Workflow
 - Build **one phase at a time** in the order in `docs/implementation-plan.md`. Wait for the user's go-ahead before starting the next phase.
+- Keep `main` up to date: either work directly on `main`, or work on a phase branch and, when the phase is finished, merge it into `main`, push `main`, and delete the merged branch locally and on GitHub.
 - After every phase:
   - Run `backend\mvnw.cmd verify` (unit + MVC slice tests, no DB) with **JDK 21** (`C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot`). If the wrapper cannot write to `~/.m2/wrapper`, use the installed `mvn` (same 3.9.16).
-  - When MySQL is available, also run `mvnw verify -Pit`, which runs the `*IT.java` integration tests against the real DB.
+  - When MySQL is available, also run `mvnw verify -Pit`, which runs the `*IT.java` integration tests against the separate `team_ops_board_it` database (never the real one).
   - In `frontend/`, run `npm run typecheck`, `npm run lint`, `npm test` and `npm run build`. Builds must have no warnings.
   - Fix all compile, TypeScript and API errors. The app must stay runnable.
 - Test layout:
