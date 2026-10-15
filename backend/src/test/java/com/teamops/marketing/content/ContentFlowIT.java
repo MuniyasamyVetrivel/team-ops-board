@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.util.List;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
@@ -115,6 +116,7 @@ class ContentFlowIT {
 		jdbc.update("DELETE FROM marketing_leads WHERE owner_id = ? OR created_by IN (?, ?)", editorId, editorId, adminId);
 		jdbc.update("DELETE FROM content_items WHERE owner_id = ? OR created_by IN (?, ?)", editorId, editorId, adminId);
 		jdbc.update("DELETE FROM files WHERE uploaded_by IN (?, ?)", editorId, adminId);
+		jdbc.update("DELETE FROM recycle_bin_items WHERE deleted_by IN (?, ?)", editorId, adminId);
 		jdbc.update("""
 				DELETE FROM audit_logs WHERE actor_id IN (?, ?) AND (action LIKE 'CONTENT_%' OR action LIKE 'LEAD_%')
 				""", editorId, adminId);
@@ -312,10 +314,17 @@ class ContentFlowIT {
 		as(editorToken, delete(path + "/" + fileId)).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
 		as(viewerToken, get(path + "/" + fileId)).andExpect(status().isNotFound());
 
-		// Deleting the item removes its files too.
+		// Deleting the item keeps its files in the recycle bin; the permanent delete removes them.
 		Long other = ((Number) JsonPath.read(as(viewerToken, get(path)).andReturn().getResponse().getContentAsString(),
 				"$[0].fileId")).longValue();
 		as(editorToken, delete("/api/marketing/content/" + item)).andExpect(status().isNoContent());
+		assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM files WHERE id = ?", Integer.class, other)).isEqualTo(1);
+		String bin = as(adminToken, get("/api/recycle-bin").param("entityType", "CONTENT_ITEM").param("size", "100"))
+			.andReturn().getResponse().getContentAsString();
+		Number binId = JsonPath.<List<Number>>read(bin, "$.content[?(@.entityId == %d)].id".formatted(item)).get(0);
+		String confirm = JsonPath.<List<String>>read(bin, "$.content[?(@.entityId == %d)].confirmationText".formatted(item)).get(0);
+		as(adminToken, post("/api/recycle-bin/%d/purge".formatted(binId.longValue())).contentType(MediaType.APPLICATION_JSON)
+			.content("{\"confirm\":\"%s\"}".formatted(confirm))).andExpect(status().isNoContent());
 		assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM files WHERE id IN (?, ?)", Integer.class, fileId, other))
 			.isZero();
 	}

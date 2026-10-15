@@ -33,8 +33,8 @@ import com.teamops.department.entity.Department;
 import com.teamops.department.entity.DepartmentStatus;
 import com.teamops.department.repository.DepartmentRepository;
 import com.teamops.marketing.common.MarketingPeriod;
-import com.teamops.marketing.common.TargetProgress;
 import com.teamops.marketing.common.TargetProgress.TargetStatus;
+import com.teamops.marketing.common.TargetProgress;
 import com.teamops.marketing.dto.MarketingDtos.Period;
 import com.teamops.marketing.service.MarketingContextService;
 import com.teamops.marketing.target.dto.TargetDtos.CreateTarget;
@@ -53,6 +53,7 @@ import com.teamops.marketing.target.entity.TargetType;
 import com.teamops.marketing.target.repository.MarketingTargetRepository;
 import com.teamops.marketing.target.repository.TargetTypeRepository;
 import com.teamops.marketing.target.service.TargetRules.ResolvedActual;
+import com.teamops.recyclebin.service.RecycleBinService;
 import com.teamops.user.dto.UserSummary;
 import com.teamops.user.entity.User;
 import com.teamops.user.entity.UserStatus;
@@ -95,6 +96,8 @@ public class TargetService {
 	private final AuditService auditService;
 
 	private final BusinessCalendar calendar;
+
+	private final RecycleBinService recycleBin;
 
 	public MarketingPeriod period(Integer month, Integer year) {
 		return MarketingPeriod.resolve(month, year, calendar.today());
@@ -181,6 +184,9 @@ public class TargetService {
 		if (targetRepository.existsByTypeIdAndMonthAndYear(type.getId(), period.month(), period.year())) {
 			throw alreadySet(type, period);
 		}
+		recycleBin.requireNotInBin(MarketingTarget.class,
+				Map.of("target_type_id", type.getId(), "month", period.month(), "year", period.year()),
+				type.getName() + "'s target for " + period.label());
 		MarketingTarget target = new MarketingTarget();
 		target.setType(type);
 		target.setMonth(period.month());
@@ -237,7 +243,7 @@ public class TargetService {
 		MarketingTarget target = load(id);
 		MarketingPeriod period = periodOf(target);
 		requireChangeable(period, actor);
-		targetRepository.delete(target);
+		recycleBin.moveToBin(target, actor);
 		auditService.record(AuditAction.TARGET_DELETED, actor.id(), ENTITY, id, Map.of("typeCode",
 				target.getType().getCode(), "month", period.month(), "year", period.year(), "targetValue",
 				target.getTargetValue()), client);
@@ -264,6 +270,11 @@ public class TargetService {
 			throw ApiException.conflict("TARGET_EXISTS", period.label() + " already has targets for "
 					+ existing.stream().map(id -> types.get(id).getName()).sorted().collect(Collectors.joining(", "))
 					+ ". Change those targets instead.");
+		}
+		for (Long typeId : typeIds) {
+			recycleBin.requireNotInBin(MarketingTarget.class,
+					Map.of("target_type_id", typeId, "month", period.month(), "year", period.year()),
+					types.get(typeId).getName() + "'s target for " + period.label());
 		}
 		User owner = resolveOwner(request.ownerId());
 		Department department = resolveDepartment(request.departmentId());

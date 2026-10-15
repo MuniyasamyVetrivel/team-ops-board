@@ -46,6 +46,12 @@ public class AppSettingsService {
 
 	public static final int MAX_REMINDER_DAYS_BEFORE = 30;
 
+	public static final String RECYCLE_BIN_RETENTION_DAYS = "recycleBin.retentionDays";
+
+	public static final int DEFAULT_RETENTION_DAYS = 90;
+
+	public static final int MAX_RETENTION_DAYS = 3650;
+
 	private final AppSettingRepository repository;
 
 	/** Days ahead (plus overdue) counted towards workload %. */
@@ -86,6 +92,12 @@ public class AppSettingsService {
 	public int celebrationReminderDaysBefore() {
 		int days = decimal(CELEBRATION_REMINDER_DAYS_BEFORE, BigDecimal.valueOf(DEFAULT_REMINDER_DAYS_BEFORE)).intValue();
 		return days < 0 || days > MAX_REMINDER_DAYS_BEFORE ? DEFAULT_REMINDER_DAYS_BEFORE : days;
+	}
+
+	/** Days a deleted item stays in the recycle bin before it is permanently deleted automatically (1–3650). */
+	public int recycleBinRetentionDays() {
+		int days = decimal(RECYCLE_BIN_RETENTION_DAYS, BigDecimal.valueOf(DEFAULT_RETENTION_DAYS)).intValue();
+		return days < 1 || days > MAX_RETENTION_DAYS ? DEFAULT_RETENTION_DAYS : days;
 	}
 
 	/**

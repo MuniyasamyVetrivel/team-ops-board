@@ -3,9 +3,10 @@ package com.teamops.marketing.lead.entity;
 import java.time.LocalDate;
 
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
-import com.teamops.common.persistence.BaseEntity;
+import com.teamops.common.persistence.SoftDeletableEntity;
 import com.teamops.department.entity.Department;
 import com.teamops.marketing.common.LeadSource;
 import com.teamops.marketing.common.MarketingPeriod;
@@ -33,8 +34,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@SQLRestriction(SoftDeletableEntity.NOT_DELETED)
 @Table(name = "marketing_leads")
-public class MarketingLead extends BaseEntity {
+public class MarketingLead extends SoftDeletableEntity {
 
 	@Column(name = "code", nullable = false, length = 20, updatable = false)
 	private String code;

@@ -5,6 +5,7 @@ import java.lang.reflect.Modifier;
 import java.sql.PreparedStatement;
 import java.sql.Types;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -49,6 +50,7 @@ import org.springframework.stereotype.Component;
 import com.teamops.common.web.ClientInfo;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
 import tools.jackson.databind.ObjectMapper;
@@ -79,7 +81,7 @@ public class EntityChangeAuditor implements PostInsertEventListener, PostUpdateE
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""";
 
 	/** Audit stamps say who and when; the entry itself records that. */
-	private static final Set<String> STAMPS = Set.of("createdAt", "createdById", "updatedAt", "updatedById");
+	private static final Set<String> STAMPS = Set.of("createdAt", "createdById", "updatedAt", "updatedById", "deletedById");
 
 	/** The first of these a record has names it in the log ("TSK-000123", a title, a name, an email). */
 	private static final List<String> LABEL_FIELDS = List.of("code", "title", "name", "subject", "keyword",
@@ -277,6 +279,23 @@ public class EntityChangeAuditor implements PostInsertEventListener, PostUpdateE
 	private static boolean isBeingDeleted(SharedSessionContractImplementor session, Object entity) {
 		EntityEntry entry = session.getPersistenceContext().getEntry(entity);
 		return entry != null && (entry.getStatus() == Status.DELETED || entry.getStatus() == Status.GONE);
+	}
+
+	/**
+	 * Logs that a record came back from the recycle bin. The restore itself is an SQL update (Hibernate cannot see a
+	 * deleted row), so it raises no event; this adds the entry to the current transaction's history instead.
+	 */
+	public void restored(EntityManager entityManager, Object entity, Instant deletedAt) {
+		SharedSessionContractImplementor session = entityManager.unwrap(SharedSessionContractImplementor.class);
+		EntityPersister persister = session.getEntityPersister(null, entity);
+		EntityModel model = model(persister);
+		if (model == null) {
+			return;
+		}
+		RecordChange change = start(AuditAction.RECORD_RESTORED, model, persister.getIdentifier(entity, session),
+				entity, persister.getValues(entity));
+		change.change("deletedAt", deletedAt == null ? null : deletedAt.toString(), null, null, false);
+		buffer(session).add(change);
 	}
 
 	// --- writing ----------------------------------------------------------------------------------------------

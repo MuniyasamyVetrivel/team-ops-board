@@ -39,6 +39,7 @@ import com.teamops.common.web.ClientInfo;
 import com.teamops.department.entity.Department;
 import com.teamops.department.repository.DepartmentRepository;
 import com.teamops.project.repository.ProjectRepository;
+import com.teamops.recyclebin.service.RecycleBinService;
 import com.teamops.support.SliceAuth;
 import com.teamops.support.TestFixtures;
 import com.teamops.tag.TagService;
@@ -100,7 +101,8 @@ class TaskServiceTest {
 		service = new TaskService(taskRepository, mock(TaskCommentRepository.class),
 				mock(TaskChecklistItemRepository.class), historyRepository, mock(TaskAttachmentRepository.class),
 				departmentRepository, mock(ProjectRepository.class), userRepository, tagService, codeGenerator, scopes,
-				auditService, new BusinessCalendar(Clock.fixed(NOW, ZoneOffset.UTC), "Asia/Kolkata"), events);
+				auditService, new BusinessCalendar(Clock.fixed(NOW, ZoneOffset.UTC), "Asia/Kolkata"), events,
+				mock(RecycleBinService.class));
 		when(scopes.scopeFor(employee)).thenReturn(AccessScope.own(employee.id()));
 		when(scopes.scopeFor(SliceAuth.SUPER_ADMIN)).thenReturn(AccessScope.all(1L));
 		when(departmentRepository.findById(5L)).thenReturn(Optional.of(webDev));

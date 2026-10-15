@@ -1,6 +1,8 @@
 package com.teamops.document.entity;
 
-import com.teamops.common.persistence.BaseEntity;
+import org.hibernate.annotations.SQLRestriction;
+
+import com.teamops.common.persistence.SoftDeletableEntity;
 import com.teamops.department.entity.Department;
 import com.teamops.project.entity.Project;
 import com.teamops.user.entity.User;
@@ -23,8 +25,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@SQLRestriction(SoftDeletableEntity.NOT_DELETED)
 @Table(name = "documents")
-public class Document extends BaseEntity {
+public class Document extends SoftDeletableEntity {
 
 	@Column(name = "name", nullable = false, length = 200)
 	private String name;

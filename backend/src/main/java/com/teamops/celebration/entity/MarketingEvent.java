@@ -3,9 +3,12 @@ package com.teamops.celebration.entity;
 import java.time.Instant;
 
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
-import com.teamops.common.persistence.BaseEntity;
+import com.teamops.common.persistence.SoftDeletableEntity;
 import com.teamops.marketing.email.entity.EmailCampaign;
 import com.teamops.user.entity.User;
 
@@ -25,8 +28,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@SQLRestriction(SoftDeletableEntity.NOT_DELETED)
 @Table(name = "marketing_events")
-public class MarketingEvent extends BaseEntity {
+public class MarketingEvent extends SoftDeletableEntity {
 
 	@Column(name = "title", nullable = false, length = 200)
 	private String title;
@@ -63,7 +67,12 @@ public class MarketingEvent extends BaseEntity {
 	@JoinColumn(name = "owner_id", nullable = false)
 	private User owner;
 
-	@ManyToOne(fetch = FetchType.LAZY)
+	/**
+	 * While the target is in the recycle bin this reads as no link; it comes back when the target is restored, unless
+	 * this record was saved meanwhile. A permanent delete clears the column. @NotFound loads the link eagerly.
+	 */
+	@ManyToOne(fetch = FetchType.EAGER)
+	@NotFound(action = NotFoundAction.IGNORE)
 	@JoinColumn(name = "email_campaign_id")
 	private EmailCampaign emailCampaign;
 

@@ -2,6 +2,7 @@ package com.teamops.common.exception;
 
 import java.util.List;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -92,6 +93,18 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ApiError> handleMissingPart(MissingServletRequestPartException ex,
 			HttpServletRequest request) {
 		return respond(HttpStatus.BAD_REQUEST, "MISSING_FILE", "No file was uploaded", request, List.of());
+	}
+
+	/**
+	 * A unique value or link the database protects, which no service check caught first: most often a value still held
+	 * by a deleted record in the recycle bin (released only by the permanent delete).
+	 */
+	@ExceptionHandler(DataIntegrityViolationException.class)
+	public ResponseEntity<ApiError> handleIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
+		log.info("Data integrity violation on {}: {}", request.getRequestURI(), ex.getMostSpecificCause().getMessage());
+		return respond(HttpStatus.CONFLICT, "CONFLICTS_WITH_EXISTING_DATA",
+				"This clashes with an existing record, possibly one in the recycle bin. Restore or permanently delete that record, or use a different value.",
+				request, List.of());
 	}
 
 	/** Two people saved the same record at once; the later save must reload first. */

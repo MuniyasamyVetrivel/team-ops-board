@@ -36,6 +36,7 @@ Packages are organised by feature, each with `controller/ dto/ entity/ repositor
 | `announcement`, `knowledge`, `document`, `calendar`, `notification`, `tag` | Collaboration modules |
 | `dashboard`, `report`, `search` | Home dashboard, management reports with CSV export, global search |
 | `marketing.*` | The Digital Marketing module (see [digital-marketing.md](digital-marketing.md)) |
+| `recyclebin` | The recycle bin: listing, restore, permanent delete and the nightly purge over soft-deleted records (`RecycleBinService`; module rules in `RecycleBinHandler` beans) |
 | `admin`, `history` | Admin settings, the role permission matrix, the audit log viewer, and each record's History tab (`RecordHistoryAccess` reuses the module's read check) |
 | `devdata` (test sources) | `DevDataSeeder` and its module seeders, for automated tests only; never part of the application |
 | `common` | Cross-cutting pieces listed below |

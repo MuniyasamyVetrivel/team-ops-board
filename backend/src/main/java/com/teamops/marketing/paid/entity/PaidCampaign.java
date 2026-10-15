@@ -4,10 +4,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
 import com.teamops.common.audit.AuditFinance;
-import com.teamops.common.persistence.BaseEntity;
+import com.teamops.common.persistence.SoftDeletableEntity;
 import com.teamops.marketing.common.MarketingPeriod;
 import com.teamops.user.entity.User;
 
@@ -27,8 +28,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@SQLRestriction(SoftDeletableEntity.NOT_DELETED)
 @Table(name = "paid_campaigns")
-public class PaidCampaign extends BaseEntity {
+public class PaidCampaign extends SoftDeletableEntity {
 
 	@Column(name = "name", nullable = false, length = 200)
 	private String name;

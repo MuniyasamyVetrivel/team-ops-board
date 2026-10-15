@@ -57,8 +57,8 @@ import com.teamops.marketing.lead.dto.LeadDtos.StatusCount;
 import com.teamops.marketing.lead.entity.LeadOrigin;
 import com.teamops.marketing.lead.entity.LeadStatus;
 import com.teamops.marketing.lead.entity.MarketingLead;
-import com.teamops.marketing.lead.repository.LeadQuery;
 import com.teamops.marketing.lead.repository.LeadQuery.LinkKind;
+import com.teamops.marketing.lead.repository.LeadQuery;
 import com.teamops.marketing.lead.repository.MarketingLeadRepository;
 import com.teamops.marketing.paid.entity.AdPlatform;
 import com.teamops.marketing.paid.entity.PaidCampaign;
@@ -70,6 +70,7 @@ import com.teamops.marketing.target.entity.ActualSource;
 import com.teamops.marketing.target.entity.TargetType;
 import com.teamops.marketing.target.repository.TargetTypeRepository;
 import com.teamops.marketing.target.service.TargetService;
+import com.teamops.recyclebin.service.RecycleBinService;
 import com.teamops.user.dto.UserSummary;
 import com.teamops.user.entity.User;
 import com.teamops.user.entity.UserStatus;
@@ -128,6 +129,8 @@ public class LeadService {
 	private final AuditService auditService;
 
 	private final BusinessCalendar calendar;
+
+	private final RecycleBinService recycleBin;
 
 	/** List filters; every field is optional. {@code period} limits the list to leads dated in that month. */
 	public record LeadFilter(String search, Set<LeadSource> sources, Set<LeadStatus> statuses, Long ownerId,
@@ -348,7 +351,7 @@ public class LeadService {
 	public void delete(Long id, AuthenticatedUser actor, ClientInfo client) {
 		MarketingLead lead = load(id);
 		requireOpen(lead.getLeadDate(), actor, "This lead counts towards");
-		leadRepository.delete(lead);
+		recycleBin.moveToBin(lead, actor);
 		auditService.record(AuditAction.LEAD_DELETED, actor.id(), ENTITY, id,
 				Map.of("code", lead.getCode(), "source", lead.getSource(), "leadDate", lead.getLeadDate().toString()),
 				client);

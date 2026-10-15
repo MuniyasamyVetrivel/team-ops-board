@@ -1,6 +1,7 @@
 package com.teamops.marketing.seo.service;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -49,6 +50,7 @@ import com.teamops.marketing.seo.repository.SeoPageRepository;
 import com.teamops.marketing.seo.repository.SeoRankingQuery;
 import com.teamops.marketing.seo.repository.SeoSpecifications;
 import com.teamops.marketing.service.MarketingContextService;
+import com.teamops.recyclebin.service.RecycleBinService;
 import com.teamops.user.dto.UserSummary;
 import com.teamops.user.entity.User;
 import com.teamops.user.entity.UserStatus;
@@ -90,6 +92,8 @@ public class SeoService {
 
 	private final BusinessCalendar calendar;
 
+	private final RecycleBinService recycleBin;
+
 	public MarketingPeriod period(Integer month, Integer year) {
 		return MarketingPeriod.resolve(month, year, calendar.today());
 	}
@@ -123,6 +127,7 @@ public class SeoService {
 		if (pageRepository.existsByUrl(url)) {
 			throw duplicateUrl();
 		}
+		recycleBin.requireNotInBin(SeoPage.class, Map.of("url", url), "This URL");
 		SeoPage page = new SeoPage();
 		page.setUrl(url);
 		page.setTitle(request.title().trim());
@@ -143,6 +148,9 @@ public class SeoService {
 		String url = request.url().trim();
 		if (!url.equals(page.getUrl()) && pageRepository.existsByUrlAndIdNot(url, id)) {
 			throw duplicateUrl();
+		}
+		if (!url.equals(page.getUrl())) {
+			recycleBin.requireNotInBin(SeoPage.class, Map.of("url", url), "This URL");
 		}
 		Department department = page.getDepartment().getId().equals(request.departmentId()) ? page.getDepartment()
 				: resolveDepartment(request.departmentId());
@@ -178,7 +186,7 @@ public class SeoService {
 			throw ApiException.conflict("PAGE_HAS_KEYWORDS",
 					"This page has keywords. Archive it instead, so its ranking history is kept.");
 		}
-		pageRepository.delete(page);
+		recycleBin.moveToBin(page, actor);
 		auditService.record(AuditAction.SEO_PAGE_DELETED, actor.id(), PAGE, id,
 				Map.of("url", page.getUrl(), "title", page.getTitle()), client);
 	}
@@ -272,7 +280,7 @@ public class SeoService {
 			throw ApiException.conflict("KEYWORD_HAS_HISTORY",
 					"This keyword has ranking history. Archive it instead, so the history is kept.");
 		}
-		keywordRepository.delete(keyword);
+		recycleBin.moveToBin(keyword, actor);
 		auditService.record(AuditAction.SEO_KEYWORD_DELETED, actor.id(), KEYWORD, id,
 				Map.of("keyword", keyword.getKeyword(), "pageId", keyword.getPage().getId()), client);
 	}
@@ -343,6 +351,13 @@ public class SeoService {
 			throw ApiException.conflict("DUPLICATE_KEYWORD",
 					"This page already tracks that keyword for the same search engine, location and device");
 		}
+		Map<String, Object> identity = new LinkedHashMap<>();
+		identity.put("page_id", page.getId());
+		identity.put("keyword", keyword);
+		identity.put("search_engine", engine);
+		identity.put("location", location);
+		identity.put("device", device);
+		recycleBin.requireNotInBin(SeoKeyword.class, identity, "This keyword");
 	}
 
 	private Department resolveDepartment(Long departmentId) {

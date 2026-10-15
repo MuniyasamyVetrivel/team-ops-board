@@ -49,7 +49,7 @@ class LandingPagesActualSource implements TargetActualSource {
 			.addValue("end", utc(calendar.startOf(to.next().firstDay())));
 		jdbc.query("""
 				select created_at from marketing_pages
-				where page_type = 'LANDING_PAGE' and created_at >= :start and created_at < :end
+				where page_type = 'LANDING_PAGE' and deleted_at is null and created_at >= :start and created_at < :end
 				""", params, rs -> {
 			LocalDateTime created = rs.getObject("created_at", LocalDateTime.class);
 			MarketingPeriod period = MarketingPeriod.of(created.toInstant(ZoneOffset.UTC).atZone(zone).toLocalDate());

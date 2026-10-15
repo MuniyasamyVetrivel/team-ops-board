@@ -27,6 +27,7 @@ import com.teamops.marketing.target.entity.ActualSource;
 import com.teamops.marketing.target.entity.TargetType;
 import com.teamops.marketing.target.repository.MarketingTargetRepository;
 import com.teamops.marketing.target.repository.TargetTypeRepository;
+import com.teamops.recyclebin.service.RecycleBinService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -52,6 +53,8 @@ public class TargetTypeService {
 
 	private final AuditService auditService;
 
+	private final RecycleBinService recycleBin;
+
 	public List<TargetTypeItem> list(boolean includeInactive) {
 		Map<Long, Long> counts = targetRepository.countByType()
 			.stream()
@@ -76,6 +79,8 @@ public class TargetTypeService {
 		if (typeRepository.existsByName(name)) {
 			throw duplicateName();
 		}
+		recycleBin.requireNotInBin(TargetType.class, Map.of("code", code), "The code " + code);
+		recycleBin.requireNotInBin(TargetType.class, Map.of("name", name), "The name " + name);
 		TargetType type = new TargetType();
 		type.setCode(code);
 		type.setName(name);
@@ -101,6 +106,9 @@ public class TargetTypeService {
 		String name = request.name().trim();
 		if (!name.equalsIgnoreCase(type.getName()) && typeRepository.existsByNameAndIdNot(name, id)) {
 			throw duplicateName();
+		}
+		if (!name.equalsIgnoreCase(type.getName())) {
+			recycleBin.requireNotInBin(TargetType.class, Map.of("name", name), "The name " + name);
 		}
 		boolean inUse = targetRepository.existsByTypeId(id);
 		if (inUse && (type.getUnit() != request.unit() || type.getActualSource() != request.actualSource())) {
@@ -142,7 +150,7 @@ public class TargetTypeService {
 			throw ApiException.conflict("TYPE_IN_USE",
 					"This type has monthly targets. Deactivate it instead, so its history is kept.");
 		}
-		typeRepository.delete(type);
+		recycleBin.moveToBin(type, actor);
 		auditService.record(AuditAction.TARGET_TYPE_DELETED, actor.id(), ENTITY, id,
 				Map.of("code", type.getCode(), "name", type.getName()), client);
 	}

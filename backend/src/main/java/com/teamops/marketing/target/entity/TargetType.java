@@ -3,10 +3,11 @@ package com.teamops.marketing.target.entity;
 import java.math.BigDecimal;
 
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
 import com.teamops.common.audit.AuditType;
-import com.teamops.common.persistence.BaseEntity;
+import com.teamops.common.persistence.SoftDeletableEntity;
 import com.teamops.marketing.common.LeadSource;
 
 import jakarta.persistence.Column;
@@ -25,9 +26,10 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@SQLRestriction(SoftDeletableEntity.NOT_DELETED)
 @AuditType("MARKETING_TARGET_TYPE")
 @Table(name = "marketing_target_types")
-public class TargetType extends BaseEntity {
+public class TargetType extends SoftDeletableEntity {
 
 	@Column(name = "code", nullable = false, length = 50)
 	private String code;

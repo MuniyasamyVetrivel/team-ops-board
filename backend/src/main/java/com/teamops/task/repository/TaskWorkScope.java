@@ -10,7 +10,7 @@ import com.teamops.task.entity.TaskStatus;
 /**
  * The SQL form of {@link TaskSpecifications#workOf}: the work a viewer counts on dashboards and reports. Everything
  * (ALL), tasks in managed departments plus the viewer's own assignments (DEPARTMENTS), or only their own assignments
- * (OWN). Conditions use the alias {@code t} for {@code tasks}.
+ * (OWN), never counting tasks in the recycle bin. Conditions use the alias {@code t} for {@code tasks}.
  */
 public final class TaskWorkScope {
 
@@ -30,8 +30,9 @@ public final class TaskWorkScope {
 		return params;
 	}
 
+	/** The viewer's work, without tasks in the recycle bin. */
 	public static String clause(AccessScope scope) {
-		return switch (scope.kind()) {
+		return "t.deleted_at is null and " + switch (scope.kind()) {
 			case ALL -> "1 = 1";
 			case DEPARTMENTS -> scope.departmentIds().isEmpty() ? "t.assignee_id = :me"
 					: "(t.department_id in (:scopeDepartments) or t.assignee_id = :me)";

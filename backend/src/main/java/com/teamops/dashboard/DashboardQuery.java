@@ -103,7 +103,7 @@ public class DashboardQuery {
 				        and date(timestampadd(second, :offset, t.completed_at)) <= t.due_date
 				      then 1 else 0 end) as on_time
 				from tasks t
-				where t.department_id in (:departmentIds)
+				where t.department_id in (:departmentIds) and t.deleted_at is null
 				group by t.department_id
 				""";
 		Map<Long, DepartmentCounts> result = new HashMap<>();

@@ -102,7 +102,8 @@ public class SeoRankingQuery {
 				  sum(case when h.ranking_position between 1 and 10 then 1 else 0 end) as top10
 				from keyword_ranking_history h
 				join marketing_keywords k on k.id = h.keyword_id
-				where k.status <> 'ARCHIVED' and h.ranking_year * 12 + h.ranking_month between :from and :to%s
+				where k.deleted_at is null and k.status <> 'ARCHIVED'
+				  and h.ranking_year * 12 + h.ranking_month between :from and :to%s
 				group by h.ranking_year, h.ranking_month
 				""".formatted(owner), params, rs -> {
 			counts.put(new MarketingPeriod(rs.getInt("m"), rs.getInt("y")), rs.getLong("top10"));

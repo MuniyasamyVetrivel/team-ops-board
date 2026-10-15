@@ -103,7 +103,7 @@ public class SeoRankingTableQuery {
 				select h.keyword_id, h.ranking_year, h.ranking_month, h.ranking_position
 				from keyword_ranking_history h
 				join marketing_keywords k on k.id = h.keyword_id
-				where k.page_id = :pageId and k.status <> 'ARCHIVED'
+				where k.page_id = :pageId and k.status <> 'ARCHIVED' and k.deleted_at is null
 				  and h.ranking_year * 12 + h.ranking_month between :from and :to
 				""", params, rs -> {
 			points.add(new HistoryPoint(rs.getLong("keyword_id"),
@@ -126,7 +126,8 @@ public class SeoRankingTableQuery {
 	}
 
 	private static String where(Filter filter, MapSqlParameterSource params) {
-		StringBuilder where = new StringBuilder("where 1 = 1");
+		// Keywords and pages in the recycle bin are left out.
+		StringBuilder where = new StringBuilder("where k.deleted_at is null and p.deleted_at is null");
 		if (StringUtils.hasText(filter.search())) {
 			where.append(" and lower(k.keyword) like :search escape '!'");
 			params.addValue("search", "%" + filter.search()

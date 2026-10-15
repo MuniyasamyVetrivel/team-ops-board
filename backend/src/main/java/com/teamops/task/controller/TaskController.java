@@ -129,6 +129,15 @@ public class TaskController {
 		return collaborationService.editComment(id, commentId, request.body(), actor);
 	}
 
+	/** Moves the task to the recycle bin (TASK_DELETE; restore from the bin). */
+	@DeleteMapping("/{id}")
+	@PreAuthorize("hasAuthority('TASK_DELETE')")
+	public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal AuthenticatedUser actor,
+			HttpServletRequest http) {
+		taskService.delete(id, actor, ClientInfo.from(http));
+		return ResponseEntity.noContent().build();
+	}
+
 	@DeleteMapping("/{id}/comments/{commentId}")
 	public TaskDetail deleteComment(@PathVariable Long id, @PathVariable Long commentId,
 			@AuthenticationPrincipal AuthenticatedUser actor) {

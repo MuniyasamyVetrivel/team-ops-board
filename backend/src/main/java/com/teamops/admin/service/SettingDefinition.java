@@ -31,6 +31,9 @@ public enum SettingDefinition {
 	CELEBRATION_REMINDER_DAYS_BEFORE(AppSettingsService.CELEBRATION_REMINDER_DAYS_BEFORE, "Calendar",
 			"Reminder days before", "days", ValueType.INTEGER, 0, AppSettingsService.MAX_REMINDER_DAYS_BEFORE),
 
+	RECYCLE_BIN_RETENTION_DAYS(AppSettingsService.RECYCLE_BIN_RETENTION_DAYS, "Recycle bin",
+			"Permanently delete after", "days", ValueType.INTEGER, 1, AppSettingsService.MAX_RETENTION_DAYS),
+
 	/** The maximum is the multipart limit the server runs with (see {@link #max(int)}). */
 	UPLOAD_MAX_SIZE_MB(AppSettingsService.UPLOAD_MAX_SIZE_MB, "Files", "Maximum upload size", "MB", ValueType.INTEGER, 1,
 			-1);

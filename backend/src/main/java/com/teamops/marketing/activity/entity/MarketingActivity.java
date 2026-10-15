@@ -5,9 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
-import com.teamops.common.persistence.BaseEntity;
+import com.teamops.common.persistence.SoftDeletableEntity;
 import com.teamops.department.entity.Department;
 import com.teamops.task.entity.TaskPriority;
 import com.teamops.user.entity.User;
@@ -34,8 +35,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@SQLRestriction(SoftDeletableEntity.NOT_DELETED)
 @Table(name = "marketing_activities")
-public class MarketingActivity extends BaseEntity {
+public class MarketingActivity extends SoftDeletableEntity {
 
 	@Column(name = "name", nullable = false, length = 200)
 	private String name;

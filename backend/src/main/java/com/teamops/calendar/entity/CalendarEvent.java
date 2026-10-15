@@ -3,9 +3,10 @@ package com.teamops.calendar.entity;
 import java.time.Instant;
 
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
-import com.teamops.common.persistence.BaseEntity;
+import com.teamops.common.persistence.SoftDeletableEntity;
 import com.teamops.department.entity.Department;
 import com.teamops.user.entity.User;
 
@@ -28,8 +29,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@SQLRestriction(SoftDeletableEntity.NOT_DELETED)
 @Table(name = "calendar_events")
-public class CalendarEvent extends BaseEntity {
+public class CalendarEvent extends SoftDeletableEntity {
 
 	@Column(name = "title", nullable = false, length = 200)
 	private String title;

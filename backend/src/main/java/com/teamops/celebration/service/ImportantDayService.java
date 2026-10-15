@@ -36,6 +36,7 @@ import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.web.ClientInfo;
 import com.teamops.common.web.PageResponse;
+import com.teamops.recyclebin.service.RecycleBinService;
 import com.teamops.user.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -67,6 +68,8 @@ public class ImportantDayService {
 	private final AuditService auditService;
 
 	private final BusinessCalendar calendar;
+
+	private final RecycleBinService recycleBin;
 
 	/** @param year only one-off days dated in that year, and yearly days that had started by then */
 	public record DayFilter(String search, Set<ImportantDayCategory> categories, Set<Region> regions,
@@ -143,9 +146,8 @@ public class ImportantDayService {
 	@Transactional
 	public void delete(Long id, AuthenticatedUser actor, ClientInfo client) {
 		ImportantDay day = load(id);
-		attachments.deleteAll(OccasionKind.IMPORTANT_DAY, id);
-		linkedInPosts.deleteFor(Set.of(OccasionKind.IMPORTANT_DAY), id);
-		repository.delete(day);
+		// Creatives and LinkedIn posts stay with the record in the recycle bin (OccasionRecycleHandlers).
+		recycleBin.moveToBin(day, actor);
 		Map<String, Object> details = new HashMap<>();
 		details.put("name", day.getName());
 		details.put("date", day.getDate());

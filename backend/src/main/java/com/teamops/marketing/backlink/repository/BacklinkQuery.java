@@ -94,7 +94,7 @@ public class BacklinkQuery {
 		Map<Long, StageCounts> counts = new LinkedHashMap<>();
 		Map<Long, String> names = new HashMap<>();
 		String sql = union("b.owner_id as owner_id, u.first_name as first_name, u.last_name as last_name",
-				"b.owner_id, u.first_name, u.last_name", " left join users u on u.id = b.owner_id", "");
+				"b.owner_id, u.first_name, u.last_name", " left join users u on u.id = b.owner_id", owner(null));
 		jdbc.query(sql, params(period, period, null), rs -> {
 			long id = rs.getLong("owner_id");
 			Long ownerId = rs.wasNull() ? null : id;
@@ -139,8 +139,9 @@ public class BacklinkQuery {
 		return String.join(" union all ", parts);
 	}
 
+	/** Backlinks in the recycle bin never count; optionally only one owner's. */
 	private static String owner(Long ownerId) {
-		return ownerId == null ? "" : " and b.owner_id = :ownerId";
+		return " and b.deleted_at is null" + (ownerId == null ? "" : " and b.owner_id = :ownerId");
 	}
 
 	private static MapSqlParameterSource params(MarketingPeriod from, MarketingPeriod to, Long ownerId) {

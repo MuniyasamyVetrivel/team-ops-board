@@ -1,7 +1,6 @@
 package com.teamops.document.service;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -39,6 +38,7 @@ import com.teamops.project.dto.ProjectRef;
 import com.teamops.project.entity.Project;
 import com.teamops.project.repository.ProjectRepository;
 import com.teamops.project.service.ProjectAccess;
+import com.teamops.recyclebin.service.RecycleBinService;
 import com.teamops.user.dto.UserSummary;
 import com.teamops.user.repository.UserRepository;
 
@@ -70,6 +70,8 @@ public class DocumentService {
 	private final FileService fileService;
 
 	private final AuditService auditService;
+
+	private final RecycleBinService recycleBin;
 
 	@Transactional(readOnly = true)
 	public PageResponse<DocumentItem> search(String search, Long departmentId, Long projectId, Pageable pageable,
@@ -155,13 +157,11 @@ public class DocumentService {
 	@Transactional
 	public void delete(Long id, AuthenticatedUser actor, ClientInfo client) {
 		Document document = editable(id, actor, accessScopeService.scopeFor(actor));
-		List<DocumentVersion> versions = documentRepository.findVersions(id);
-		versionRepository.deleteAll(versions);
-		versionRepository.flush();
-		versions.forEach(version -> fileService.delete(version.getFile()));
-		documentRepository.delete(document);
+		// Versions and their files stay with the record in the recycle bin (DocumentRecycleHandler).
+		int versions = documentRepository.findVersions(id).size();
+		recycleBin.moveToBin(document, actor);
 		auditService.record(AuditAction.DOCUMENT_DELETED, actor.id(), "DOCUMENT", id,
-				Map.of("name", document.getName(), "versions", versions.size()), client);
+				Map.of("name", document.getName(), "versions", versions), client);
 	}
 
 	@Transactional(readOnly = true)

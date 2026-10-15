@@ -45,8 +45,8 @@ public class ActivityQuery {
 				  coalesce(sum(case when o.status in ('PENDING', 'IN_PROGRESS') then 1 else 0 end), 0) as open_count,
 				  coalesce(sum(case when o.status in ('PENDING', 'IN_PROGRESS') and o.due_date < :today then 1 else 0 end), 0) as overdue
 				from marketing_activity_occurrences o
-				join marketing_activities a on a.id = o.activity_id
-				left join tasks t on t.id = o.task_id
+				join marketing_activities a on a.id = o.activity_id and a.deleted_at is null
+				left join tasks t on t.id = o.task_id and t.deleted_at is null
 				where o.due_date between :from and :to%s
 				""".formatted(person), params,
 				(rs, row) -> new MonthCounts(rs.getLong("due"), rs.getLong("completed"), rs.getLong("skipped"),

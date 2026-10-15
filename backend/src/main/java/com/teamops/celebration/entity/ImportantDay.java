@@ -3,9 +3,10 @@ package com.teamops.celebration.entity;
 import java.time.LocalDate;
 
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
-import com.teamops.common.persistence.BaseEntity;
+import com.teamops.common.persistence.SoftDeletableEntity;
 import com.teamops.user.entity.User;
 
 import jakarta.persistence.Column;
@@ -27,8 +28,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@SQLRestriction(SoftDeletableEntity.NOT_DELETED)
 @Table(name = "important_days")
-public class ImportantDay extends BaseEntity {
+public class ImportantDay extends SoftDeletableEntity {
 
 	@Column(name = "name", nullable = false, length = 150)
 	private String name;

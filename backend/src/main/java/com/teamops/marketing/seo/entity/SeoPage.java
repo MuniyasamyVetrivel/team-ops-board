@@ -1,9 +1,10 @@
 package com.teamops.marketing.seo.entity;
 
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
-import com.teamops.common.persistence.BaseEntity;
+import com.teamops.common.persistence.SoftDeletableEntity;
 import com.teamops.department.entity.Department;
 import com.teamops.user.entity.User;
 
@@ -23,8 +24,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@SQLRestriction(SoftDeletableEntity.NOT_DELETED)
 @Table(name = "marketing_pages")
-public class SeoPage extends BaseEntity {
+public class SeoPage extends SoftDeletableEntity {
 
 	@Column(name = "url", nullable = false, length = 500)
 	private String url;

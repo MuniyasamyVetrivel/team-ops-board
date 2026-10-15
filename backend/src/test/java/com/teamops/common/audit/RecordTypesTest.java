@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.hibernate.annotations.SQLRestriction;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
@@ -15,6 +16,7 @@ import org.springframework.util.ClassUtils;
 import com.teamops.auth.entity.RefreshToken;
 import com.teamops.common.audit.AuditCatalog.Module;
 import com.teamops.common.persistence.AuditedEntity;
+import com.teamops.common.persistence.SoftDeletableEntity;
 import com.teamops.common.settings.AppSetting;
 import com.teamops.knowledge.entity.KnowledgeArticle;
 import com.teamops.marketing.lead.entity.MarketingLead;
@@ -25,6 +27,7 @@ import com.teamops.task.entity.Task;
 import com.teamops.task.entity.TaskComment;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 
 /** Every entity has a record type, a module and the audit stamps; types match the modules' own audit entries. */
 class RecordTypesTest {
@@ -71,6 +74,20 @@ class RecordTypesTest {
 		assertThat(RecordTypes.isAudited(AuditLog.class)).isFalse();
 		assertThat(RecordTypes.isAudited(RefreshToken.class)).isFalse();
 		assertThat(RecordTypes.isAudited(Notification.class)).isFalse();
+	}
+
+	/** A soft-deletable entity without the restriction would show deleted rows everywhere. */
+	@Test
+	void everyRecycleBinEntityHidesDeletedRows() throws Exception {
+		List<Class<?>> soft = entities().stream().filter(SoftDeletableEntity.class::isAssignableFrom).toList();
+		assertThat(soft).hasSizeGreaterThanOrEqualTo(17);
+		for (Class<?> entity : soft) {
+			SQLRestriction restriction = entity.getAnnotation(SQLRestriction.class);
+			assertThat(restriction).as(entity.getName() + " needs @SQLRestriction(SoftDeletableEntity.NOT_DELETED)")
+				.isNotNull();
+			assertThat(restriction.value()).isEqualTo(SoftDeletableEntity.NOT_DELETED);
+			assertThat(entity.getAnnotation(Table.class)).as(entity.getName()).isNotNull();
+		}
 	}
 
 	@Test

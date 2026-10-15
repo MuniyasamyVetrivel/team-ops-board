@@ -3,9 +3,10 @@ package com.teamops.marketing.email.entity;
 import java.time.LocalDate;
 
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
-import com.teamops.common.persistence.BaseEntity;
+import com.teamops.common.persistence.SoftDeletableEntity;
 import com.teamops.marketing.email.service.EmailCounts;
 import com.teamops.user.entity.User;
 
@@ -25,8 +26,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@SQLRestriction(SoftDeletableEntity.NOT_DELETED)
 @Table(name = "email_campaigns")
-public class EmailCampaign extends BaseEntity {
+public class EmailCampaign extends SoftDeletableEntity {
 
 	@Column(name = "name", nullable = false, length = 200)
 	private String name;

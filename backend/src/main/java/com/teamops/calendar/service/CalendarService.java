@@ -39,6 +39,7 @@ import com.teamops.project.entity.Project;
 import com.teamops.project.entity.ProjectMilestone;
 import com.teamops.project.repository.ProjectMilestoneRepository;
 import com.teamops.project.service.ProjectAccess;
+import com.teamops.recyclebin.service.RecycleBinService;
 import com.teamops.task.dto.DueState;
 import com.teamops.task.entity.Task;
 import com.teamops.task.entity.TaskStatus;
@@ -88,6 +89,8 @@ public class CalendarService {
 	private final OccasionCalendar occasionCalendar;
 
 	private final BusinessCalendar calendar;
+
+	private final RecycleBinService recycleBin;
 
 	/**
 	 * @param mine only the viewer's own deadlines (My Calendar); events and occasions are unchanged
@@ -166,7 +169,7 @@ public class CalendarService {
 		AccessScope scope = accessScopeService.scopeFor(actor);
 		CalendarEvent event = loadVisible(id, scope, actor);
 		requireEdit(event, scope, actor);
-		eventRepository.delete(event);
+		recycleBin.moveToBin(event, actor);
 	}
 
 	// --- helpers --------------------------------------------------------------------------------------------

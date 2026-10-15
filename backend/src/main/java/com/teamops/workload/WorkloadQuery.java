@@ -100,7 +100,7 @@ public class WorkloadQuery {
 				                  else greatest(t.estimated_hours - coalesce(t.actual_hours, 0), 0) end
 				        else 0 end) as remaining_hours
 				from tasks t
-				where t.assignee_id in (:userIds)
+				where t.assignee_id in (:userIds) and t.deleted_at is null
 				group by t.assignee_id
 				""".formatted(activeInRange, completedInRange, countFilter);
 

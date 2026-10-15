@@ -19,9 +19,9 @@ import com.teamops.announcement.dto.AnnouncementDtos.Stats;
 import com.teamops.announcement.dto.AnnouncementDtos.UnreadCount;
 import com.teamops.announcement.entity.Announcement;
 import com.teamops.announcement.entity.AnnouncementState;
-import com.teamops.announcement.repository.AnnouncementReadRepository;
 import com.teamops.announcement.repository.AnnouncementReadRepository.Counts;
 import com.teamops.announcement.repository.AnnouncementReadRepository.Receipt;
+import com.teamops.announcement.repository.AnnouncementReadRepository;
 import com.teamops.announcement.repository.AnnouncementRepository;
 import com.teamops.common.audit.AuditAction;
 import com.teamops.common.audit.AuditService;
@@ -38,6 +38,7 @@ import com.teamops.department.repository.DepartmentCount;
 import com.teamops.department.repository.DepartmentRepository;
 import com.teamops.notification.entity.NotificationType;
 import com.teamops.notification.service.NotificationService;
+import com.teamops.recyclebin.service.RecycleBinService;
 import com.teamops.user.dto.UserSummary;
 import com.teamops.user.entity.User;
 import com.teamops.user.entity.UserStatus;
@@ -73,6 +74,8 @@ public class AnnouncementService {
 	private final AuditService auditService;
 
 	private final BusinessCalendar calendar;
+
+	private final RecycleBinService recycleBin;
 
 	@Transactional(readOnly = true)
 	public PageResponse<AnnouncementItem> list(AnnouncementState state, Pageable pageable, AuthenticatedUser actor) {
@@ -150,7 +153,7 @@ public class AnnouncementService {
 
 	@Transactional
 	public void delete(Long id, AuthenticatedUser actor) {
-		announcementRepository.delete(manageable(id, actor, accessScopeService.scopeFor(actor)));
+		recycleBin.moveToBin(manageable(id, actor, accessScopeService.scopeFor(actor)), actor);
 	}
 
 	@Transactional

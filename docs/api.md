@@ -386,6 +386,19 @@ Entries are read-only: no endpoint edits or deletes them. Each item has `action`
 
 Record changes (`RECORD_CREATED`, `RECORD_UPDATED`, `RECORD_DELETED`, `RECORD_RESTORED`, `RECORD_PURGED`) are written automatically for every entity. Their `details.changes` is `{field: {from, to}}`; a reference field adds `ref` (the record type, e.g. `USER`) and, for users and departments, `fromLabel`/`toLabel`. Secrets show only `{redacted: true}`. Money fields carry `finance: true`; without `FINANCE_VIEW` (Super Admins have it) their values are replaced by `hidden: true`, money inside business events is blanked and listed in `details.hiddenFields`, and the free-text search skips entries holding amounts.
 
+### Recycle bin: `/api/recycle-bin`
+
+Deleting a task, announcement, calendar event, employee, important day, marketing event, document, marketing activity, backlink, content item, email or paid campaign, lead, SEO page or keyword, target or target type moves it to the recycle bin: it disappears from every list, search, dashboard and report, and its children (comments, checklist, attachments, versions) stay untouched. Unique values (an employee ID, a page URL, a target type code) stay taken until the permanent delete: reusing one answers 409 `IN_RECYCLE_BIN`.
+
+| Method | Path | Permission | Description |
+|---|---|---|---|
+| GET | `/api/recycle-bin` | Super Admin (everything) or Department Manager (their departments' items); 403 `RECYCLE_BIN_FORBIDDEN` otherwise | Newest first. Filters: `module`, `entityType`, `deletedById`, `from`, `to` (business days of the deletion), `search` (name). Sorts: `deleted`, `name`, `type`. Each item: `entityType`, `entityTypeLabel`, `entityId`, `label`, `module`, `moduleLabel`, `department`, `deletedAt`, `deletedBy`, `purgeOn` (automatic permanent delete), `confirmationText`, `canRestore`, `canPurge` |
+| GET | `/api/recycle-bin/catalog` | Same | Modules, record types and people for the filters, and `retentionDays` |
+| POST | `/api/recycle-bin/{id}/restore` | Super Admin, or a manager of the item's department | Puts the record back exactly as it was and answers `{entityType, entityId, label}`. 409 `PARENT_IN_RECYCLE_BIN` (restore the page or target type first) or `RESTORE_CONFLICT` (a live record took its URL or link) |
+| POST | `/api/recycle-bin/{id}/purge` | Super Admin | `{confirm}` must equal the item's `confirmationText` (case and surrounding spaces ignored), else 400 `CONFIRMATION_MISMATCH`. Deletes the record and its children for good, with their stored files. 409 `PURGE_BLOCKED` while other records still point to it |
+
+Items older than the `recycleBin.retentionDays` setting (Admin Settings, default 90) are permanently deleted every night (`RECYCLE_BIN_PURGE_CRON`, default 02:30 in `APP_TIME_ZONE`). Deletes, restores and permanent deletes appear in the record's history (`RECORD_DELETED`, `RECORD_RESTORED`, `RECORD_PURGED`).
+
 ### Record history: `/api/history`
 
 | Method | Path | Permission | Description |

@@ -37,11 +37,12 @@ import com.teamops.marketing.email.dto.EmailCampaignDtos.TypeTotals;
 import com.teamops.marketing.email.entity.EmailCampaign;
 import com.teamops.marketing.email.entity.EmailCampaignStatus;
 import com.teamops.marketing.email.entity.EmailCampaignType;
-import com.teamops.marketing.email.repository.EmailCampaignQuery;
 import com.teamops.marketing.email.repository.EmailCampaignQuery.Totals;
+import com.teamops.marketing.email.repository.EmailCampaignQuery;
 import com.teamops.marketing.email.repository.EmailCampaignRepository;
 import com.teamops.marketing.lead.repository.MarketingLeadRepository;
 import com.teamops.marketing.service.MarketingContextService;
+import com.teamops.recyclebin.service.RecycleBinService;
 import com.teamops.user.entity.User;
 import com.teamops.user.entity.UserStatus;
 import com.teamops.user.repository.UserRepository;
@@ -77,6 +78,8 @@ public class EmailCampaignService {
 	private final AuditService auditService;
 
 	private final BusinessCalendar calendar;
+
+	private final RecycleBinService recycleBin;
 
 	public MarketingPeriod period(Integer month, Integer year) {
 		return MarketingPeriod.resolve(month, year, calendar.today());
@@ -205,7 +208,7 @@ public class EmailCampaignService {
 		if (leadRepository.existsByEmailCampaignId(id)) {
 			throw ApiException.conflict("CAMPAIGN_HAS_LEADS", "Leads name this campaign, so it cannot be deleted");
 		}
-		campaignRepository.delete(campaign);
+		recycleBin.moveToBin(campaign, actor);
 		auditService.record(AuditAction.EMAIL_CAMPAIGN_DELETED, actor.id(), ENTITY, id, Map.of("name", campaign.getName()),
 				client);
 	}

@@ -61,7 +61,7 @@ public class ContentQuery {
 				group("PUBLISHED_BLOG", "c.publication_date", "content_items c where c.content_type = 'BLOG' and " + LIVE + " and ", owner),
 				group("PUBLISHED_ALL", "c.publication_date", "content_items c where " + LIVE + " and ", owner),
 				group("REFRESHED", "c.refreshed_date", "content_items c where c.status = 'UPDATED' and ", owner),
-				group("LEADS", "l.lead_date", "marketing_leads l join content_items c on c.id = l.content_item_id where ", owner));
+				group("LEADS", "l.lead_date", "marketing_leads l join content_items c on c.id = l.content_item_id where l.deleted_at is null and ", owner));
 		Map<MarketingPeriod, MonthFigures> figures = new HashMap<>();
 		jdbc.query(sql, params(from, to, ownerId), rs -> {
 			MarketingPeriod period = new MarketingPeriod(rs.getInt("m"), rs.getInt("y"));
@@ -102,7 +102,7 @@ public class ContentQuery {
 		jdbc.query("""
 				select c.id, c.title, c.content_type, c.url, c.organic_traffic, c.cta_clicks, count(*) as n
 				from marketing_leads l join content_items c on c.id = l.content_item_id
-				where l.lead_date between :from and :to%s
+				where l.deleted_at is null and l.lead_date between :from and :to%s
 				group by c.id, c.title, c.content_type, c.url, c.organic_traffic, c.cta_clicks
 				order by n desc, c.title limit :limit
 				""".formatted(owner(ownerId)), params(period, period, ownerId).addValue("limit", limit), rs -> {
@@ -119,7 +119,7 @@ public class ContentQuery {
 		if (ids.isEmpty()) {
 			return counts;
 		}
-		jdbc.query("select l.content_item_id as id, count(*) as n from marketing_leads l where l.content_item_id in (:ids)"
+		jdbc.query("select l.content_item_id as id, count(*) as n from marketing_leads l where l.deleted_at is null and l.content_item_id in (:ids)"
 				+ " group by l.content_item_id", new MapSqlParameterSource("ids", ids), rs -> {
 					counts.put(rs.getLong("id"), rs.getLong("n"));
 				});
@@ -132,8 +132,9 @@ public class ContentQuery {
 			.formatted(kind, dateColumn, fromWhere, owner);
 	}
 
+	/** Content in the recycle bin never counts; optionally only one owner's. */
 	private static String owner(Long ownerId) {
-		return ownerId == null ? "" : " and c.owner_id = :ownerId";
+		return " and c.deleted_at is null" + (ownerId == null ? "" : " and c.owner_id = :ownerId");
 	}
 
 	private static MapSqlParameterSource params(MarketingPeriod from, MarketingPeriod to, Long ownerId) {

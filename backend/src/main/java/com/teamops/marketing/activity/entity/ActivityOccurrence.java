@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 import org.hibernate.type.SqlTypes;
 
 import com.teamops.common.audit.AuditRef;
@@ -50,7 +52,12 @@ public class ActivityOccurrence extends BaseEntity implements AuditedChild {
 	@Column(name = "status", nullable = false, length = 32)
 	private OccurrenceStatus status = OccurrenceStatus.PENDING;
 
-	@OneToOne(fetch = FetchType.LAZY)
+	/**
+	 * While the target is in the recycle bin this reads as no link; it comes back when the target is restored, unless
+	 * this record was saved meanwhile. A permanent delete clears the column. @NotFound loads the link eagerly.
+	 */
+	@OneToOne(fetch = FetchType.EAGER)
+	@NotFound(action = NotFoundAction.IGNORE)
 	@JoinColumn(name = "task_id")
 	private Task task;
 

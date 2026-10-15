@@ -198,7 +198,8 @@ class RecordHistoryIT {
 			.param("entityId", taskId.toString())).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
 		assertThat(csv).contains("Task edited").contains(taskCode);
 
-		// A delete is logged with the record's last values, and stays in the history.
+		// A delete straight through the repository (outside the recycle bin) is a permanent delete: logged with the
+		// record's last values, and the history stays.
 		as(managerToken, post("/api/tasks/%d/watchers".formatted(taskId)).contentType(MediaType.APPLICATION_JSON)
 			.content("{\"userId\":%d}".formatted(managerId))).andExpect(status().isOk());
 		// Many-to-many links (watchers, tags) are logged on their owner as before → after id lists.
@@ -208,7 +209,7 @@ class RecordHistoryIT {
 				&& List.of("Integration DEPARTMENT_MANAGER").equals(changes(e).get("watchers").get("toLabel")));
 		transactions.executeWithoutResult(status -> taskRepository.deleteById(taskId));
 		tasks.remove(taskId);
-		Map<String, Object> deletion = only(history(auditorToken, "TASK", taskId), "RECORD_DELETED", "TASK");
+		Map<String, Object> deletion = only(history(auditorToken, "TASK", taskId), "RECORD_PURGED", "TASK");
 		assertThat(changes(deletion).get("title")).containsEntry("from", "Audit the supplier list");
 		assertThat(deletion.get("actor")).as("no signed-in user: the system").isNull();
 	}

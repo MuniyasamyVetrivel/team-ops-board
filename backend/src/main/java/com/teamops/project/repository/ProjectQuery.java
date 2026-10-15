@@ -62,7 +62,7 @@ public class ProjectQuery {
 				  sum(case when t.status in ('TODO', 'IN_PROGRESS', 'BLOCKED', 'IN_REVIEW') then 1 else 0 end) as open_tasks,
 				  sum(case when t.status in ('TODO', 'IN_PROGRESS', 'BLOCKED', 'IN_REVIEW') and t.due_date < :today
 				      then 1 else 0 end) as overdue
-				from tasks t where t.project_id in (:ids) group by t.project_id
+				from tasks t where t.project_id in (:ids) and t.deleted_at is null group by t.project_id
 				""", params, rs -> {
 			tasks.put(rs.getLong("project_id"), new TaskCounts(rs.getLong("total"), rs.getLong("completed"),
 					rs.getLong("open_tasks"), rs.getLong("overdue")));

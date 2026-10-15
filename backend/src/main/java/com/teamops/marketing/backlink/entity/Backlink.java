@@ -3,9 +3,12 @@ package com.teamops.marketing.backlink.entity;
 import java.time.LocalDate;
 
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
-import com.teamops.common.persistence.BaseEntity;
+import com.teamops.common.persistence.SoftDeletableEntity;
 import com.teamops.marketing.seo.entity.SeoPage;
 import com.teamops.user.entity.User;
 
@@ -28,13 +31,19 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@SQLRestriction(SoftDeletableEntity.NOT_DELETED)
 @Table(name = "backlinks")
-public class Backlink extends BaseEntity {
+public class Backlink extends SoftDeletableEntity {
 
 	@Column(name = "code", nullable = false, length = 20, updatable = false)
 	private String code;
 
-	@ManyToOne(fetch = FetchType.LAZY)
+	/**
+	 * While the target is in the recycle bin this reads as no link; it comes back when the target is restored, unless
+	 * this record was saved meanwhile. A permanent delete clears the column. @NotFound loads the link eagerly.
+	 */
+	@ManyToOne(fetch = FetchType.EAGER)
+	@NotFound(action = NotFoundAction.IGNORE)
 	@JoinColumn(name = "target_page_id")
 	private SeoPage targetPage;
 

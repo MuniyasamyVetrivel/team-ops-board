@@ -95,7 +95,8 @@ public class LeadQuery {
 
 	/** By lead date (an index range scan), optionally for one owner. */
 	private static String filters(Long ownerId) {
-		return "l.lead_date between :from and :to" + (ownerId == null ? "" : " and l.owner_id = :ownerId");
+		return "l.deleted_at is null and l.lead_date between :from and :to"
+				+ (ownerId == null ? "" : " and l.owner_id = :ownerId");
 	}
 
 }

@@ -45,6 +45,7 @@ import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.department.entity.Department;
 import com.teamops.department.repository.DepartmentRepository;
 import com.teamops.project.repository.ProjectMilestoneRepository;
+import com.teamops.recyclebin.service.RecycleBinService;
 import com.teamops.support.SliceAuth;
 import com.teamops.support.TestFixtures;
 import com.teamops.task.entity.Task;
@@ -82,7 +83,7 @@ class CalendarServiceTest {
 	void setUp() {
 		service = new CalendarService(eventRepository, taskRepository, departmentRepository,
 				userRepository, scopes, mock(ProjectMilestoneRepository.class), mock(ApprovalService.class), occasions,
-				new BusinessCalendar(Clock.fixed(NOW, ZoneOffset.UTC), "Asia/Kolkata"));
+				new BusinessCalendar(Clock.fixed(NOW, ZoneOffset.UTC), "Asia/Kolkata"), mock(RecycleBinService.class));
 		when(scopes.scopeFor(MANAGER)).thenReturn(AccessScope.departments(3L, Set.of(5L)));
 		when(scopes.scopeFor(SliceAuth.EMPLOYEE)).thenReturn(AccessScope.own(4L));
 		when(scopes.scopeFor(SliceAuth.SUPER_ADMIN)).thenReturn(AccessScope.all(1L));

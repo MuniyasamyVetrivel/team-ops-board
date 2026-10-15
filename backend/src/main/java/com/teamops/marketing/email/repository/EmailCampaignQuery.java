@@ -76,8 +76,9 @@ public class EmailCampaignQuery {
 		return params;
 	}
 
+	/** Campaigns in the recycle bin never count; optionally only one owner's. */
 	private static String ownerFilter(Long ownerId) {
-		return ownerId == null ? "" : " and owner_id = :ownerId";
+		return " and deleted_at is null" + (ownerId == null ? "" : " and owner_id = :ownerId");
 	}
 
 	private static Totals totals(ResultSet rs) throws SQLException {

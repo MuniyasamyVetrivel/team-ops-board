@@ -3,9 +3,10 @@ package com.teamops.marketing.seo.entity;
 import java.time.Instant;
 
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
-import com.teamops.common.persistence.BaseEntity;
+import com.teamops.common.persistence.SoftDeletableEntity;
 import com.teamops.user.entity.User;
 
 import jakarta.persistence.Column;
@@ -28,8 +29,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@SQLRestriction(SoftDeletableEntity.NOT_DELETED)
 @Table(name = "marketing_keywords")
-public class SeoKeyword extends BaseEntity {
+public class SeoKeyword extends SoftDeletableEntity {
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "page_id", nullable = false)

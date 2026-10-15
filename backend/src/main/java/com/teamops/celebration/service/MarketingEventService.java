@@ -35,6 +35,7 @@ import com.teamops.common.web.ClientInfo;
 import com.teamops.common.web.PageResponse;
 import com.teamops.marketing.email.entity.EmailCampaign;
 import com.teamops.marketing.email.repository.EmailCampaignRepository;
+import com.teamops.recyclebin.service.RecycleBinService;
 import com.teamops.user.dto.UserSummary;
 import com.teamops.user.entity.User;
 import com.teamops.user.repository.UserRepository;
@@ -66,6 +67,8 @@ public class MarketingEventService {
 	private final AuditService auditService;
 
 	private final BusinessCalendar calendar;
+
+	private final RecycleBinService recycleBin;
 
 	/** {@code from}/{@code to}: business-zone start dates, inclusive. */
 	public record EventFilter(String search, Set<MarketingEventType> types, Set<MarketingEventStatus> statuses,
@@ -132,9 +135,8 @@ public class MarketingEventService {
 	@Transactional
 	public void delete(Long id, AuthenticatedUser actor, ClientInfo client) {
 		MarketingEvent event = load(id);
-		attachments.deleteAll(OccasionKind.EVENT, id);
-		linkedInPosts.deleteFor(Set.of(OccasionKind.EVENT), id);
-		repository.delete(event);
+		// Attachments and LinkedIn posts stay with the record in the recycle bin (OccasionRecycleHandlers).
+		recycleBin.moveToBin(event, actor);
 		Map<String, Object> details = new HashMap<>();
 		details.put("title", event.getTitle());
 		details.put("eventType", event.getEventType());

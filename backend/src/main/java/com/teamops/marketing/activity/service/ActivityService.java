@@ -45,6 +45,7 @@ import com.teamops.marketing.activity.repository.ActivityOccurrenceRepository;
 import com.teamops.marketing.activity.repository.MarketingActivityRepository;
 import com.teamops.marketing.activity.service.Recurrence.Period;
 import com.teamops.marketing.service.MarketingContextService;
+import com.teamops.recyclebin.service.RecycleBinService;
 import com.teamops.task.dto.DueState;
 import com.teamops.task.dto.TaskRef;
 import com.teamops.task.entity.TaskPriority;
@@ -84,6 +85,8 @@ public class ActivityService {
 	private final AuditService auditService;
 
 	private final BusinessCalendar calendar;
+
+	private final RecycleBinService recycleBin;
 
 	// --- reading ----------------------------------------------------------------------------------------------
 
@@ -241,7 +244,7 @@ public class ActivityService {
 			throw ApiException.conflict("ACTIVITY_IN_USE",
 					"This activity has occurrences. Deactivate it instead, so its history is kept.");
 		}
-		activityRepository.delete(activity);
+		recycleBin.moveToBin(activity, actor);
 		auditService.record(AuditAction.MARKETING_ACTIVITY_DELETED, actor.id(), ENTITY, id,
 				Map.of("name", activity.getName()), client);
 	}

@@ -39,6 +39,8 @@ public enum AuditAction {
 	TASK_CREATED,
 	TASK_ASSIGNED,
 	TASK_STATUS_CHANGED,
+	/** Moved to the recycle bin. */
+	TASK_DELETED,
 	TICKET_CREATED,
 	TICKET_ASSIGNED,
 	TICKET_STATUS_CHANGED,

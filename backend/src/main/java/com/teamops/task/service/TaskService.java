@@ -30,6 +30,7 @@ import com.teamops.department.repository.DepartmentRepository;
 import com.teamops.project.dto.ProjectRef;
 import com.teamops.project.entity.Project;
 import com.teamops.project.repository.ProjectRepository;
+import com.teamops.recyclebin.service.RecycleBinService;
 import com.teamops.tag.Tag;
 import com.teamops.tag.TagService;
 import com.teamops.task.dto.DueState;
@@ -44,11 +45,11 @@ import com.teamops.task.dto.TaskRef;
 import com.teamops.task.dto.TaskRequests;
 import com.teamops.task.dto.TaskSearchCriteria;
 import com.teamops.task.entity.Task;
-import com.teamops.task.event.TaskAssignedEvent;
-import com.teamops.task.event.TaskStatusChangedEvent;
 import com.teamops.task.entity.TaskHistory;
 import com.teamops.task.entity.TaskPriority;
 import com.teamops.task.entity.TaskStatus;
+import com.teamops.task.event.TaskAssignedEvent;
+import com.teamops.task.event.TaskStatusChangedEvent;
 import com.teamops.task.repository.TaskAttachmentRepository;
 import com.teamops.task.repository.TaskChecklistItemRepository;
 import com.teamops.task.repository.TaskCommentRepository;
@@ -97,6 +98,8 @@ public class TaskService {
 	private final BusinessCalendar calendar;
 
 	private final ApplicationEventPublisher events;
+
+	private final RecycleBinService recycleBin;
 
 	// --- queries --------------------------------------------------------------------------------------------
 
@@ -274,6 +277,22 @@ public class TaskService {
 		taskRepository.flush();
 		events.publishEvent(new TaskStatusChangedEvent(task.getId(), previous, status, actor.id()));
 		return toDetail(task, access);
+	}
+
+	/**
+	 * Deletes a task into the recycle bin, with its comments, checklist, attachments and history, which stay as they
+	 * are and come back with a restore. Same rule as cancelling: TASK_DELETE and managing the task.
+	 */
+	@Transactional
+	public void delete(Long id, AuthenticatedUser actor, ClientInfo client) {
+		TaskAccess access = access(actor);
+		Task task = loadVisible(id, access);
+		if (!access.canCancel(task)) {
+			throw ApiException.forbidden("CANNOT_DELETE", "You do not have permission to delete this task");
+		}
+		recycleBin.moveToBin(task, actor);
+		auditService.record(AuditAction.TASK_DELETED, actor.id(), "TASK", task.getId(),
+				Map.of("code", task.getCode(), "title", task.getTitle()), client);
 	}
 
 	// --- shared helpers (also used by TaskCollaborationService) -------------------------------------------

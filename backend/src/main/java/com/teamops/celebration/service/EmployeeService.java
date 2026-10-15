@@ -37,6 +37,7 @@ import com.teamops.common.web.PageResponse;
 import com.teamops.department.dto.DepartmentSummary;
 import com.teamops.department.entity.Department;
 import com.teamops.department.repository.DepartmentRepository;
+import com.teamops.recyclebin.service.RecycleBinService;
 import com.teamops.user.dto.UserSummary;
 import com.teamops.user.entity.User;
 import com.teamops.user.repository.UserRepository;
@@ -76,6 +77,8 @@ public class EmployeeService {
 	private final AuditService auditService;
 
 	private final BusinessCalendar calendar;
+
+	private final RecycleBinService recycleBin;
 
 	public record EmployeeFilter(String search, EmployeeStatus status, Long departmentId) {
 	}
@@ -154,13 +157,8 @@ public class EmployeeService {
 	@Transactional
 	public void delete(Long id, AuthenticatedUser actor, ClientInfo client) {
 		Employee employee = load(id);
-		StoredFile photo = employee.getPhoto();
-		linkedInPosts.deleteFor(OWN_KINDS, id);
-		repository.delete(employee);
-		repository.flush();
-		if (photo != null) {
-			fileService.delete(photo);
-		}
+		// The photo and LinkedIn posts stay with the record in the recycle bin (EmployeeRecycleHandler).
+		recycleBin.moveToBin(employee, actor);
 		Map<String, Object> details = new HashMap<>();
 		details.put("employeeCode", employee.getEmployeeCode());
 		details.put("name", employee.getFullName());
@@ -232,6 +230,7 @@ public class EmployeeService {
 					throw ApiException.conflict("EMPLOYEE_USER_TAKEN",
 							"This user is already linked to employee " + other.getEmployeeCode());
 				});
+			recycleBin.requireNotInBin(Employee.class, Map.of("user_id", user.getId()), "This user");
 		}
 		String firstName = fill(request.firstName(), user == null ? null : user.getFirstName());
 		String lastName = fill(request.lastName(), user == null ? null : user.getLastName());
@@ -250,6 +249,7 @@ public class EmployeeService {
 		if (taken) {
 			throw ApiException.conflict("EMPLOYEE_CODE_TAKEN", "Another employee already has the employee ID " + code);
 		}
+		recycleBin.requireNotInBin(Employee.class, Map.of("employee_code", code), "The employee ID " + code);
 		LocalDate today = calendar.today();
 		if (request.dateOfBirth().isAfter(today)) {
 			throw ApiException.badRequest("INVALID_DATE_OF_BIRTH", "The date of birth cannot be in the future");

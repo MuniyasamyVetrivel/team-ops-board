@@ -2,10 +2,12 @@ package com.teamops.task.controller;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -72,6 +74,16 @@ class TaskApiSecurityTest {
 
 	private String bearer(AuthenticatedUser user) {
 		return SliceAuth.bearer(jwtTokenService, userPrincipalService, user);
+	}
+
+	@Test
+	void deletingATaskNeedsTaskDelete() throws Exception {
+		mvc.perform(delete("/api/tasks/7").header(HttpHeaders.AUTHORIZATION, bearer(SliceAuth.EMPLOYEE)))
+			.andExpect(status().isForbidden());
+		verifyNoInteractions(taskService);
+		mvc.perform(delete("/api/tasks/7").header(HttpHeaders.AUTHORIZATION, bearer(SliceAuth.SUPER_ADMIN)))
+			.andExpect(status().isNoContent());
+		verify(taskService).delete(eq(7L), argThat(actor -> actor.isSuperAdmin()), any());
 	}
 
 	@Test

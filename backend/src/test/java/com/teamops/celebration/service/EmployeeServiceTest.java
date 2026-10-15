@@ -37,6 +37,7 @@ import com.teamops.common.storage.FileService;
 import com.teamops.common.web.ClientInfo;
 import com.teamops.department.entity.Department;
 import com.teamops.department.repository.DepartmentRepository;
+import com.teamops.recyclebin.service.RecycleBinService;
 import com.teamops.support.SliceAuth;
 import com.teamops.support.TestFixtures;
 import com.teamops.user.entity.User;
@@ -65,7 +66,8 @@ class EmployeeServiceTest {
 	@BeforeEach
 	void setUp() {
 		service = new EmployeeService(repository, departments, users, mock(FileService.class), linkedInPosts, audit,
-				new BusinessCalendar(Clock.fixed(Instant.parse("2026-10-12T06:00:00Z"), ZoneOffset.UTC), "Asia/Kolkata"));
+				new BusinessCalendar(Clock.fixed(Instant.parse("2026-10-12T06:00:00Z"), ZoneOffset.UTC), "Asia/Kolkata"),
+				mock(RecycleBinService.class));
 		when(repository.saveAndFlush(any())).thenAnswer(inv -> {
 			Employee employee = inv.getArgument(0);
 			ReflectionTestUtils.setField(employee, "id", 40L);

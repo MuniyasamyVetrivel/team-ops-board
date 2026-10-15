@@ -2,7 +2,9 @@ package com.teamops.marketing.target.entity;
 
 import java.math.BigDecimal;
 
-import com.teamops.common.persistence.BaseEntity;
+import org.hibernate.annotations.SQLRestriction;
+
+import com.teamops.common.persistence.SoftDeletableEntity;
 import com.teamops.department.entity.Department;
 import com.teamops.user.entity.User;
 
@@ -23,8 +25,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@SQLRestriction(SoftDeletableEntity.NOT_DELETED)
 @Table(name = "marketing_targets")
-public class MarketingTarget extends BaseEntity {
+public class MarketingTarget extends SoftDeletableEntity {
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "target_type_id", nullable = false, updatable = false)

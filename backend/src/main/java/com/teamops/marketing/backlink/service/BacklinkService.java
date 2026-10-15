@@ -49,9 +49,9 @@ import com.teamops.marketing.backlink.entity.BacklinkDates;
 import com.teamops.marketing.backlink.entity.BacklinkOrigin;
 import com.teamops.marketing.backlink.entity.BacklinkStatus;
 import com.teamops.marketing.backlink.entity.BacklinkType;
-import com.teamops.marketing.backlink.repository.BacklinkQuery;
 import com.teamops.marketing.backlink.repository.BacklinkQuery.StageCounts;
 import com.teamops.marketing.backlink.repository.BacklinkQuery.StageKind;
+import com.teamops.marketing.backlink.repository.BacklinkQuery;
 import com.teamops.marketing.backlink.repository.BacklinkRepository;
 import com.teamops.marketing.common.MarketingMath;
 import com.teamops.marketing.common.MarketingMonths;
@@ -67,6 +67,7 @@ import com.teamops.marketing.target.entity.TargetType;
 import com.teamops.marketing.target.repository.MarketingTargetRepository;
 import com.teamops.marketing.target.repository.TargetTypeRepository;
 import com.teamops.marketing.target.service.TargetService;
+import com.teamops.recyclebin.service.RecycleBinService;
 import com.teamops.user.dto.UserSummary;
 import com.teamops.user.entity.User;
 import com.teamops.user.entity.UserStatus;
@@ -117,6 +118,8 @@ public class BacklinkService {
 	private final AuditService auditService;
 
 	private final BusinessCalendar calendar;
+
+	private final RecycleBinService recycleBin;
 
 	/**
 	 * List filters; every field is optional. {@code period} limits the list to backlinks with a stage in that month:
@@ -333,7 +336,7 @@ public class BacklinkService {
 	public void delete(Long id, AuthenticatedUser actor, ClientInfo client) {
 		Backlink backlink = load(id);
 		requireChangeable(backlink.dates(), BacklinkDates.NONE, actor);
-		backlinkRepository.delete(backlink);
+		recycleBin.moveToBin(backlink, actor);
 		Map<String, Object> details = new HashMap<>();
 		details.put("code", backlink.getCode());
 		details.put("referringDomain", backlink.getReferringDomain());

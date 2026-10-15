@@ -46,7 +46,8 @@ public class PaidCampaignQuery {
 	public Budget running(MarketingPeriod period, Long ownerId, AdPlatform platform) {
 		MapSqlParameterSource params = new MapSqlParameterSource().addValue("first", period.firstDay())
 			.addValue("last", period.lastDay());
-		String where = "c.status <> 'DRAFT' and c.start_date <= :last and (c.end_date is null or c.end_date >= :first)";
+		String where = "c.deleted_at is null and c.status <> 'DRAFT' and c.start_date <= :last"
+				+ " and (c.end_date is null or c.end_date >= :first)";
 		if (ownerId != null) {
 			where += " and c.owner_id = :ownerId";
 			params.addValue("ownerId", ownerId);
@@ -117,7 +118,8 @@ public class PaidCampaignQuery {
 	}
 
 	private static String filters(Long ownerId, AdPlatform platform) {
-		return "m.year * 12 + m.month between :from and :to" + (ownerId == null ? "" : " and c.owner_id = :ownerId")
+		return "c.deleted_at is null and m.year * 12 + m.month between :from and :to"
+				+ (ownerId == null ? "" : " and c.owner_id = :ownerId")
 				+ (platform == null ? "" : " and c.platform = :platform");
 	}
 

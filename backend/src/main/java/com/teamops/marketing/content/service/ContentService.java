@@ -74,6 +74,7 @@ import com.teamops.marketing.target.entity.TargetType;
 import com.teamops.marketing.target.repository.MarketingTargetRepository;
 import com.teamops.marketing.target.repository.TargetTypeRepository;
 import com.teamops.marketing.target.service.TargetService;
+import com.teamops.recyclebin.service.RecycleBinService;
 import com.teamops.user.dto.UserSummary;
 import com.teamops.user.entity.User;
 import com.teamops.user.entity.UserStatus;
@@ -130,6 +131,8 @@ public class ContentService {
 	private final AuditService auditService;
 
 	private final BusinessCalendar calendar;
+
+	private final RecycleBinService recycleBin;
 
 	/** Which date a month filter applies to. */
 	public enum DateField {
@@ -367,12 +370,8 @@ public class ContentService {
 		}
 		requireCountable(item.getStatus(), item.getContentType(), new Dates(item.getPublicationDate(), item.getRefreshedDate()),
 				ContentStatus.IDEA, item.getContentType(), Dates.NONE, actor);
-		// The attachment rows cascade; their stored files go with them.
-		for (ContentAttachment attachment : attachmentRepository.findByContentItemIdOrderByAddedAtAsc(id)) {
-			attachmentRepository.delete(attachment);
-			fileService.delete(attachment.getFile());
-		}
-		contentRepository.delete(item);
+		// Attachments and their files stay with the record in the recycle bin (ContentRecycleHandler).
+		recycleBin.moveToBin(item, actor);
 		Map<String, Object> details = new HashMap<>();
 		details.put("title", item.getTitle());
 		details.put("status", item.getStatus());

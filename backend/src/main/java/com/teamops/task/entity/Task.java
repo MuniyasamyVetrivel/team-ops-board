@@ -8,9 +8,10 @@ import java.util.Set;
 
 import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
-import com.teamops.common.persistence.BaseEntity;
+import com.teamops.common.persistence.SoftDeletableEntity;
 import com.teamops.department.entity.Department;
 import com.teamops.project.entity.Project;
 import com.teamops.tag.Tag;
@@ -33,8 +34,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@SQLRestriction(SoftDeletableEntity.NOT_DELETED)
 @Table(name = "tasks")
-public class Task extends BaseEntity {
+public class Task extends SoftDeletableEntity {
 
 	/** Human-readable id, e.g. TSK-000042. */
 	@Column(name = "code", nullable = false, length = 20)
