@@ -7,9 +7,6 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 import com.teamops.celebration.entity.LinkedInPost;
 import com.teamops.celebration.entity.OccasionKind;
@@ -30,8 +27,7 @@ public interface LinkedInPostRepository extends JpaRepository<LinkedInPost, Long
 	List<LinkedInPost> findBySubjectTypeAndSubjectIdAndOccurrenceDateGreaterThanEqual(OccasionKind subjectType,
 			Long subjectId, LocalDate from);
 
-	@Modifying
-	@Query("delete from LinkedInPost p where p.subjectType in :types and p.subjectId = :subjectId")
-	int deleteForSubject(@Param("types") Collection<OccasionKind> types, @Param("subjectId") Long subjectId);
+	/** A subject's posts, removed one by one with it so each removal reaches the audit history. */
+	List<LinkedInPost> findBySubjectTypeInAndSubjectId(Collection<OccasionKind> types, Long subjectId);
 
 }

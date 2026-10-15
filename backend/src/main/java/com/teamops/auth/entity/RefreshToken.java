@@ -4,6 +4,7 @@ import java.time.Instant;
 
 import org.hibernate.annotations.CreationTimestamp;
 
+import com.teamops.common.audit.AuditIgnore;
 import com.teamops.user.entity.User;
 
 import jakarta.persistence.Column;
@@ -22,6 +23,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@AuditIgnore
 @Table(name = "refresh_tokens")
 public class RefreshToken {
 

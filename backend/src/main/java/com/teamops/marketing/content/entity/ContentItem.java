@@ -87,12 +87,18 @@ public class ContentItem extends BaseEntity {
 	@Column(name = "notes", length = 2000)
 	private String notes;
 
+	/** The creator as a user; the column is written through the audit stamp ({@link #setCreatedBy}). */
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "created_by", updatable = false)
+	@JoinColumn(name = "created_by", insertable = false, updatable = false)
 	private User createdBy;
 
 	@Version
 	@Column(name = "version", nullable = false)
 	private Integer version;
+
+	public void setCreatedBy(User createdBy) {
+		this.createdBy = createdBy;
+		assignCreatedBy(createdBy == null ? null : createdBy.getId());
+	}
 
 }

@@ -5,6 +5,9 @@ import java.time.Instant;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.teamops.common.audit.AuditRef;
+import com.teamops.common.audit.AuditedChild;
+import com.teamops.common.persistence.AuditedEntity;
 import com.teamops.user.entity.Role;
 import com.teamops.user.entity.User;
 
@@ -30,7 +33,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "approval_steps")
-public class ApprovalStep {
+public class ApprovalStep extends AuditedEntity implements AuditedChild {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -70,5 +73,10 @@ public class ApprovalStep {
 
 	@Column(name = "decided_at")
 	private Instant decidedAt;
+
+	@Override
+	public AuditRef auditParent() {
+		return approval == null ? null : AuditRef.of(Approval.class, approval.getId());
+	}
 
 }

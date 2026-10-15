@@ -1,5 +1,7 @@
 package com.teamops.task.entity;
 
+import com.teamops.common.audit.AuditRef;
+import com.teamops.common.audit.AuditedChild;
 import com.teamops.common.persistence.BaseEntity;
 import com.teamops.user.entity.User;
 
@@ -16,7 +18,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "task_comments")
-public class TaskComment extends BaseEntity {
+public class TaskComment extends BaseEntity implements AuditedChild {
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "task_id", nullable = false)
@@ -31,5 +33,10 @@ public class TaskComment extends BaseEntity {
 
 	@Column(name = "edited", nullable = false)
 	private boolean edited;
+
+	@Override
+	public AuditRef auditParent() {
+		return task == null ? null : AuditRef.of(Task.class, task.getId());
+	}
 
 }

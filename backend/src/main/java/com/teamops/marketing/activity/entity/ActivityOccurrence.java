@@ -6,6 +6,8 @@ import java.time.LocalDate;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.teamops.common.audit.AuditRef;
+import com.teamops.common.audit.AuditedChild;
 import com.teamops.common.persistence.BaseEntity;
 import com.teamops.task.entity.Task;
 import com.teamops.user.entity.User;
@@ -28,7 +30,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "marketing_activity_occurrences")
-public class ActivityOccurrence extends BaseEntity {
+public class ActivityOccurrence extends BaseEntity implements AuditedChild {
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "activity_id", nullable = false, updatable = false)
@@ -65,5 +67,10 @@ public class ActivityOccurrence extends BaseEntity {
 	@Version
 	@Column(name = "version", nullable = false)
 	private Integer version;
+
+	@Override
+	public AuditRef auditParent() {
+		return activity == null ? null : AuditRef.of(MarketingActivity.class, activity.getId());
+	}
 
 }

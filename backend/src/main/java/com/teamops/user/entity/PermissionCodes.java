@@ -11,6 +11,11 @@ public final class PermissionCodes {
 
 	public static final String TEAM_VIEW = "TEAM_VIEW";
 
+	public static final String AUDIT_VIEW = "AUDIT_VIEW";
+
+	/** See money amounts (budgets, spend, approval amounts), including in audit history. */
+	public static final String FINANCE_VIEW = "FINANCE_VIEW";
+
 	private PermissionCodes() {
 	}
 

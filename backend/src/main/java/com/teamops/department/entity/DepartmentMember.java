@@ -6,6 +6,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.teamops.common.audit.AuditRef;
+import com.teamops.common.audit.AuditedChild;
+import com.teamops.common.persistence.AuditedEntity;
 import com.teamops.user.entity.User;
 
 import jakarta.persistence.Column;
@@ -26,7 +29,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "department_members")
-public class DepartmentMember {
+public class DepartmentMember extends AuditedEntity implements AuditedChild {
 
 	@EmbeddedId
 	private DepartmentMemberId id;
@@ -57,6 +60,11 @@ public class DepartmentMember {
 		member.setUser(user);
 		member.setMemberRole(role);
 		return member;
+	}
+
+	@Override
+	public AuditRef auditParent() {
+		return department == null ? null : AuditRef.of(Department.class, department.getId());
 	}
 
 }

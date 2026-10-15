@@ -3,6 +3,9 @@ package com.teamops.marketing.seo.entity;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.teamops.common.audit.AuditRef;
+import com.teamops.common.audit.AuditType;
+import com.teamops.common.audit.AuditedChild;
 import com.teamops.common.persistence.BaseEntity;
 import com.teamops.user.entity.User;
 
@@ -26,8 +29,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@AuditType("SEO_RANKING")
 @Table(name = "keyword_ranking_history")
-public class KeywordRanking extends BaseEntity {
+public class KeywordRanking extends BaseEntity implements AuditedChild {
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "keyword_id", nullable = false, updatable = false)
@@ -70,5 +74,10 @@ public class KeywordRanking extends BaseEntity {
 	@Version
 	@Column(name = "version", nullable = false)
 	private Integer version;
+
+	@Override
+	public AuditRef auditParent() {
+		return keyword == null ? null : AuditRef.of(SeoKeyword.class, keyword.getId());
+	}
 
 }

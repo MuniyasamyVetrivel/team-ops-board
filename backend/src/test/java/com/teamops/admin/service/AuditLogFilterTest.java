@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import com.teamops.admin.dto.AuditLogDtos.Filter;
 import com.teamops.common.audit.AuditAction;
+import com.teamops.common.audit.AuditCatalog;
 import com.teamops.common.audit.AuditCatalog.BriefEvent;
 import com.teamops.common.audit.AuditCatalog.Module;
 
@@ -35,6 +36,21 @@ class AuditLogFilterTest {
 			.containsExactly(AuditAction.LOGIN);
 		// Nothing can match a task action inside the Leads module.
 		assertThat(AuditLogService.actionsFor(filter(Set.of(AuditAction.TASK_CREATED), Module.LEADS, null))).isEmpty();
+	}
+
+	@Test
+	void aModuleAlsoMatchesTheRecordChangesOfItsRecordTypes() {
+		assertThat(AuditLogService.recordActionsFor(filter(null, Module.TASKS, null)))
+			.isEqualTo(AuditCatalog.RECORD_ACTIONS);
+		assertThat(AuditLogService.recordActionsFor(filter(Set.of(AuditAction.RECORD_DELETED, AuditAction.TASK_CREATED),
+				Module.TASKS, null)))
+			.containsExactly(AuditAction.RECORD_DELETED);
+		// No module: record actions are filtered like any other action. Brief events are business events only.
+		assertThat(AuditLogService.recordActionsFor(filter(null, null, null))).isEmpty();
+		assertThat(AuditLogService.recordActionsFor(filter(null, Module.TASKS, BriefEvent.TASK_CREATION))).isEmpty();
+		assertThat(AuditLogService.recordActionsFor(filter(null, Module.RECORDS, null))).isEmpty();
+		assertThat(AuditLogService.actionsFor(filter(null, Module.RECORDS, null)))
+			.isEqualTo(AuditCatalog.RECORD_ACTIONS);
 	}
 
 	private static Filter filter(Set<AuditAction> actions, Module module, BriefEvent event) {

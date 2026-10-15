@@ -55,8 +55,9 @@ public class CalendarEvent extends BaseEntity {
 	@JoinColumn(name = "department_id")
 	private Department department;
 
+	/** The creator as a user; the column is written through the audit stamp ({@link #setCreatedBy}). */
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "created_by")
+	@JoinColumn(name = "created_by", insertable = false, updatable = false)
 	private User createdBy;
 
 	@Version
@@ -65,6 +66,11 @@ public class CalendarEvent extends BaseEntity {
 
 	public boolean isCreatedBy(Long userId) {
 		return createdBy != null && createdBy.getId().equals(userId);
+	}
+
+	public void setCreatedBy(User createdBy) {
+		this.createdBy = createdBy;
+		assignCreatedBy(createdBy == null ? null : createdBy.getId());
 	}
 
 }

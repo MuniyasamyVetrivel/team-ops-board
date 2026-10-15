@@ -8,6 +8,7 @@ import java.util.Set;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -21,6 +22,7 @@ import com.teamops.common.audit.AuditAction;
 import com.teamops.common.audit.AuditCatalog;
 import com.teamops.common.report.ReportExporters;
 import com.teamops.common.report.ReportFormat;
+import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.web.PageRequests;
 import com.teamops.common.web.PageResponse;
 
@@ -28,7 +30,8 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * Audit log viewer (AUDIT_VIEW): every audited action, filtered by action, module, brief event (section 63), actor,
- * entity, business-day range and free text; newest first; CSV export.
+ * entity, business-day range and free text; newest first; CSV export. Read-only: entries cannot be edited or deleted.
+ * Finance amounts are hidden from viewers without FINANCE_VIEW.
  */
 @RestController
 @RequestMapping("/api/admin/audit-logs")
@@ -54,9 +57,10 @@ public class AuditLogController {
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
 			@RequestParam(required = false) String search, @RequestParam(defaultValue = "0") int page,
-			@RequestParam(defaultValue = "50") int size, @RequestParam(required = false) String sort) {
+			@RequestParam(defaultValue = "50") int size, @RequestParam(required = false) String sort,
+			@AuthenticationPrincipal AuthenticatedUser viewer) {
 		Filter filter = new Filter(action, module, event, actorId, entityType, entityId, from, to, search);
-		return auditLogService.search(filter, PageRequests.of(page, size, sort, SORT_FIELDS, DEFAULT_SORT));
+		return auditLogService.search(filter, PageRequests.of(page, size, sort, SORT_FIELDS, DEFAULT_SORT), viewer);
 	}
 
 	/** Modules, actions, brief events, entity types and actors for the filters. */
@@ -74,10 +78,10 @@ public class AuditLogController {
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
 			@RequestParam(required = false) String search, @RequestParam(required = false) String sort,
-			@RequestParam(defaultValue = "CSV") ReportFormat format) {
+			@RequestParam(defaultValue = "CSV") ReportFormat format, @AuthenticationPrincipal AuthenticatedUser viewer) {
 		Filter filter = new Filter(action, module, event, actorId, entityType, entityId, from, to, search);
 		return exporters.download(
-				auditLogService.export(filter, PageRequests.of(0, 1, sort, SORT_FIELDS, DEFAULT_SORT)), format);
+				auditLogService.export(filter, PageRequests.of(0, 1, sort, SORT_FIELDS, DEFAULT_SORT), viewer), format);
 	}
 
 }

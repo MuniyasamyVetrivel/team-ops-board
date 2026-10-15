@@ -3,6 +3,7 @@ package com.teamops.common.audit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -20,7 +21,9 @@ public final class AuditCatalog {
 		TICKETS("Help desk"), PROJECTS("Projects"), APPROVALS("Approvals"), COLLABORATION("Collaboration"),
 		IMPORTS("CSV imports"), SEO("SEO"), TARGETS("Marketing targets"), ACTIVITIES("Marketing activities"),
 		CAMPAIGNS("Campaigns"), LEADS("Leads"), BACKLINKS("Backlinks"), CONTENT("Content"),
-		CELEBRATIONS("Celebrations and events"), REPORTS("Reports"), SETTINGS("Settings");
+		CELEBRATIONS("Celebrations and events"), REPORTS("Reports"), SETTINGS("Settings"),
+		/** The automatic record changes of every module (each entry also belongs to its record's module). */
+		RECORDS("Record changes");
 
 		private final String label;
 
@@ -86,8 +89,35 @@ public final class AuditCatalog {
 	private AuditCatalog() {
 	}
 
+	/** Created, updated, deleted, restored and permanently deleted records, written for every entity. */
+	public static final Set<AuditAction> RECORD_ACTIONS = Set.of(AuditAction.RECORD_CREATED,
+			AuditAction.RECORD_UPDATED, AuditAction.RECORD_DELETED, AuditAction.RECORD_RESTORED,
+			AuditAction.RECORD_PURGED);
+
+	/**
+	 * Money amounts inside the details of business events, as dotted paths ("changes.budget" is a whole from/to pair).
+	 * Only users who can see finance see them; {@link AuditDetails#mask} hides them for everyone else.
+	 */
+	private static final Map<AuditAction, List<String>> FINANCE_PATHS = Map.of(AuditAction.APPROVAL_SUBMITTED,
+			List.of("amount"), AuditAction.PAID_CAMPAIGN_CREATED, List.of("budget"), AuditAction.PAID_CAMPAIGN_UPDATED,
+			List.of("changes.budget"), AuditAction.PAID_RESULTS_RECORDED, List.of("results.spend"),
+			AuditAction.PAID_RESULTS_CORRECTED, List.of("changes.results.from.spend", "changes.results.to.spend"));
+
+	public static List<String> financePaths(AuditAction action) {
+		return FINANCE_PATHS.getOrDefault(action, List.of());
+	}
+
+	public static boolean isRecordChange(AuditAction action) {
+		return RECORD_ACTIONS.contains(action);
+	}
+
+	/**
+	 * The module an action is filed under. Record changes are filed under {@link Module#RECORDS} here; an entry's own
+	 * module comes from its entity type ({@link RecordTypes}).
+	 */
 	public static Module moduleOf(AuditAction action) {
 		return switch (action) {
+			case RECORD_CREATED, RECORD_UPDATED, RECORD_DELETED, RECORD_RESTORED, RECORD_PURGED -> Module.RECORDS;
 			case LOGIN, LOGIN_FAILED, LOGOUT, REFRESH_TOKEN_REUSE, PASSWORD_CHANGED -> Module.SIGN_IN;
 			case USER_CREATED, USER_UPDATED, USER_DISABLED, USER_ENABLED, USER_PASSWORD_RESET, USER_ACCESS_CHANGED,
 					ROLE_PERMISSIONS_CHANGED, USERS_IMPORTED ->
@@ -140,11 +170,24 @@ public final class AuditCatalog {
 			case SEO_RANKING_RECORDED -> "SEO ranking recorded";
 			case SEO_RANKING_CORRECTED -> "SEO ranking corrected";
 			case SLA_POLICY_UPDATED -> "SLA policy updated";
+			case RECORD_CREATED -> "Created";
+			case RECORD_UPDATED -> "Edited";
+			case RECORD_DELETED -> "Deleted";
+			case RECORD_RESTORED -> "Restored";
+			case RECORD_PURGED -> "Permanently deleted";
 			default -> {
 				String words = action.name().replace('_', ' ').toLowerCase(Locale.ROOT);
 				yield Character.toUpperCase(words.charAt(0)) + words.substring(1);
 			}
 		};
+	}
+
+	/** "Task edited", "Marketing lead created": a record change named after its record type. */
+	public static String labelOf(AuditAction action, String entityType) {
+		if (!isRecordChange(action) || entityType == null) {
+			return labelOf(action);
+		}
+		return RecordTypes.labelOf(entityType) + " " + labelOf(action).toLowerCase(Locale.ROOT);
 	}
 
 	public static Optional<AuditAction> parse(String action) {

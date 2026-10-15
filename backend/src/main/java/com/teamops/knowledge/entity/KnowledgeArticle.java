@@ -7,6 +7,8 @@ import java.util.Set;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.teamops.common.audit.AuditIgnore;
+import com.teamops.common.audit.AuditType;
 import com.teamops.common.persistence.BaseEntity;
 import com.teamops.department.entity.Department;
 import com.teamops.tag.Tag;
@@ -30,6 +32,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@AuditType("ARTICLE")
 @Table(name = "knowledge_articles")
 public class KnowledgeArticle extends BaseEntity {
 
@@ -62,6 +65,7 @@ public class KnowledgeArticle extends BaseEntity {
 	@Column(name = "published_at")
 	private Instant publishedAt;
 
+	@AuditIgnore
 	@Column(name = "view_count", nullable = false)
 	private int viewCount;
 

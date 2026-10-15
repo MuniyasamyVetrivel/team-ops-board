@@ -10,6 +10,7 @@ import java.util.Optional;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.teamops.common.audit.AuditFinance;
 import com.teamops.common.persistence.BaseEntity;
 import com.teamops.department.entity.Department;
 import com.teamops.user.entity.User;
@@ -58,6 +59,7 @@ public class Approval extends BaseEntity {
 	@JoinColumn(name = "department_id", nullable = false)
 	private Department department;
 
+	@AuditFinance
 	@Column(name = "amount", precision = 14, scale = 2)
 	private BigDecimal amount;
 

@@ -57,8 +57,9 @@ public class ImportantDay extends BaseEntity {
 	@Column(name = "marketing_notes", columnDefinition = "text")
 	private String marketingNotes;
 
+	/** The creator as a user; the column is written through the audit stamp ({@link #setCreatedBy}). */
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "created_by")
+	@JoinColumn(name = "created_by", insertable = false, updatable = false)
 	private User createdBy;
 
 	@Version
@@ -67,6 +68,11 @@ public class ImportantDay extends BaseEntity {
 
 	public boolean isYearly() {
 		return recurrence == DayRecurrence.YEARLY;
+	}
+
+	public void setCreatedBy(User createdBy) {
+		this.createdBy = createdBy;
+		assignCreatedBy(createdBy == null ? null : createdBy.getId());
 	}
 
 }

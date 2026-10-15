@@ -52,8 +52,9 @@ public class Announcement extends BaseEntity {
 	@Column(name = "ack_required", nullable = false)
 	private boolean ackRequired;
 
+	/** The creator as a user; the column is written through the audit stamp ({@link #setCreatedBy}). */
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "created_by")
+	@JoinColumn(name = "created_by", insertable = false, updatable = false)
 	private User createdBy;
 
 	@Version
@@ -70,6 +71,11 @@ public class Announcement extends BaseEntity {
 
 	public boolean isCreatedBy(Long userId) {
 		return createdBy != null && createdBy.getId().equals(userId);
+	}
+
+	public void setCreatedBy(User createdBy) {
+		this.createdBy = createdBy;
+		assignCreatedBy(createdBy == null ? null : createdBy.getId());
 	}
 
 }

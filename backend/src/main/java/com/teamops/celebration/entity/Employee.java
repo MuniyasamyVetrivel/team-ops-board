@@ -76,8 +76,9 @@ public class Employee extends BaseEntity {
 	@Column(name = "status", nullable = false, length = 16)
 	private EmployeeStatus status = EmployeeStatus.ACTIVE;
 
+	/** The creator as a user; the column is written through the audit stamp ({@link #setCreatedBy}). */
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "created_by")
+	@JoinColumn(name = "created_by", insertable = false, updatable = false)
 	private User createdBy;
 
 	@Version
@@ -90,6 +91,11 @@ public class Employee extends BaseEntity {
 
 	public boolean isActive() {
 		return status == EmployeeStatus.ACTIVE;
+	}
+
+	public void setCreatedBy(User createdBy) {
+		this.createdBy = createdBy;
+		assignCreatedBy(createdBy == null ? null : createdBy.getId());
 	}
 
 }

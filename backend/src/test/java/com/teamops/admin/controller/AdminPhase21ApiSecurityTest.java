@@ -118,7 +118,7 @@ class AdminPhase21ApiSecurityTest {
 
 	@Test
 	void theAuditLogNeedsAuditView() throws Exception {
-		when(auditLogService.search(any(), any())).thenReturn(new PageResponse<>(List.of(), 0, 50, 0, 0));
+		when(auditLogService.search(any(), any(), any())).thenReturn(new PageResponse<>(List.of(), 0, 50, 0, 0));
 		mvc.perform(get("/api/admin/audit-logs").header(HttpHeaders.AUTHORIZATION, bearer(SliceAuth.EMPLOYEE)))
 			.andExpect(status().isForbidden());
 		mvc.perform(get("/api/admin/audit-logs/catalog").header(HttpHeaders.AUTHORIZATION, bearer(SliceAuth.EMPLOYEE)))
@@ -136,7 +136,7 @@ class AdminPhase21ApiSecurityTest {
 			.param("sort", "action,asc")).andExpect(status().isOk());
 		verify(auditLogService).search(argThat(f -> f.actions().equals(Set.of(AuditAction.TASK_CREATED, AuditAction.LOGIN))
 				&& f.module() == AuditCatalog.Module.TASKS && f.event() == AuditCatalog.BriefEvent.TASK_CREATION
-				&& f.from().toString().equals("2026-10-01")), any());
+				&& f.from().toString().equals("2026-10-01")), any(), argThat(viewer -> viewer.isSuperAdmin()));
 	}
 
 	@Test

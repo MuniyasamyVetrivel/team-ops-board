@@ -1,5 +1,7 @@
 package com.teamops.ticket.entity;
 
+import com.teamops.common.audit.AuditRef;
+import com.teamops.common.audit.AuditedChild;
 import com.teamops.common.persistence.BaseEntity;
 import com.teamops.user.entity.User;
 
@@ -17,7 +19,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "ticket_comments")
-public class TicketComment extends BaseEntity {
+public class TicketComment extends BaseEntity implements AuditedChild {
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "ticket_id", nullable = false)
@@ -35,5 +37,10 @@ public class TicketComment extends BaseEntity {
 
 	@Column(name = "edited", nullable = false)
 	private boolean edited;
+
+	@Override
+	public AuditRef auditParent() {
+		return ticket == null ? null : AuditRef.of(Ticket.class, ticket.getId());
+	}
 
 }

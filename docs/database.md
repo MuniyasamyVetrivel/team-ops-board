@@ -13,7 +13,7 @@ change is a new migration. See [architecture.md](architecture.md) for how the ap
 | Money | `DECIMAL(14,2)` plus a `VARCHAR(3)` currency column, default `INR` |
 | Text | `VARCHAR(n)` (never `CHAR`); long text is `TEXT`/`MEDIUMTEXT` (knowledge base articles); audit details and frozen reports are `JSON` |
 | Enums | Stored as `VARCHAR`, mapped with `@Enumerated(STRING)` + `@JdbcTypeCode(VARCHAR)` |
-| Timestamps | Tables with both `created_at` and `updated_at` map to `BaseEntity` |
+| Audit stamps | Every record table has `created_at`, `created_by`, `updated_at`, `updated_by`, mapped by `AuditedEntity` (`BaseEntity` adds the id) and filled by Hibernate: the signed-in user, or NULL for the system. The `*_by` columns have no foreign keys so they outlive removed users. Pure join tables are not records; their changes are logged on the owning record |
 | Optimistic locking | Editable records have a `version` column (`@Version`); stale writes answer 409 `STALE_UPDATE` |
 | Derived values | Never stored: rates, remaining, achievement %, target status, workload %, SLA state and project progress are computed in services. The exceptions are deliberate snapshots, such as SLA due times taken at ticket creation and the previous position recorded with each monthly ranking |
 | Codes | `TSK-`, `TKT-`, `PRJ-`, `APR-`, `LEAD-`, `BLK-` codes come from `code_sequences` (one row per prefix, read with `SELECT … FOR UPDATE` inside the caller's transaction) |
@@ -48,6 +48,7 @@ change is a new migration. See [architecture.md](architecture.md) for how the ap
 | V23 celebrations_important_days_events | `CELEBRATIONS_EDIT`, the reminder days-before setting, `employees`, `important_days`, `marketing_events`, `linkedin_posts`, `occasion_attachments` |
 | V24 work_history_indexes | Team member work history: `tasks (assignee_id, status, completed_at)` and `(assignee_id, due_date)`, `tickets (assignee_id, status, resolved_at)` and `(assignee_id, resolution_due_at)`, replacing the `(assignee_id, status)` indexes |
 | V25 user_password_change_and_time_zone | `users.must_change_password` (an admin-set password must be replaced at the next sign-in) and `users.time_zone` |
+| V26 audit_history | Phase X1: `created_at`/`created_by`/`updated_at`/`updated_by` on every record table (backfilled from the author, requester, uploader or recorder column where there was one, otherwise NULL = system); `audit_logs.entity_label`, `parent_type`, `parent_id`, `finance` and `(entity_type, entity_id, created_at)` / `(parent_type, parent_id, created_at)` indexes; the `FINANCE_VIEW` permission (Super Admin) |
 
 Never edit an applied migration; add `V{n+1}__description.sql` instead, in the phase that first needs it.
 
@@ -63,7 +64,7 @@ Never edit an applied migration; add `V{n+1}__description.sql` instead, in the p
 | `departments` | Department with optional `manager_id` and status | Unique `code`, unique `name` |
 | `department_members` | Secondary memberships (`MEMBER` or `MANAGER`) | Composite primary key |
 | `refresh_tokens` | SHA-256 hash of each refresh token, expiry, revocation time, user agent and IP | Unique `token_hash` |
-| `audit_logs` | Actor, action, entity, JSON details, IP and user agent | Indexes on `(action, created_at)`, `(actor_id, created_at)`, `(entity_type, entity_id)` |
+| `audit_logs` | Actor, action, entity (type, id, label), parent record, JSON details, finance flag, IP and user agent. Append-only | Indexes on `(action, created_at)`, `(actor_id, created_at)`, `(entity_type, entity_id, created_at)`, `(parent_type, parent_id, created_at)` |
 | `app_settings` | Admin settings (workload window, default task hours, SLA warning %, marketing behind %, upload limit, default capacity) | Unique `setting_key` |
 | `code_sequences` | Next number per code prefix | One row per prefix |
 

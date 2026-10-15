@@ -32,6 +32,7 @@ public class AuditService {
 		log.setEntityType(entityType);
 		log.setEntityId(entityId);
 		log.setDetails(details == null || details.isEmpty() ? null : objectMapper.writeValueAsString(details));
+		log.setFinance(AuditDetails.hasFinance(action, details));
 		if (client != null) {
 			log.setIpAddress(client.ipAddress());
 			log.setUserAgent(client.userAgent());

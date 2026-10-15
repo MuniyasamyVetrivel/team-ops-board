@@ -3,6 +3,7 @@ package com.teamops.common.audit;
 import java.time.Instant;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Immutable;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -13,9 +14,16 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * One audit entry. Entries are append-only: the entity is immutable, the repository offers no update or delete, and
+ * no endpoint changes them. Record changes are written by {@link EntityChangeAuditor}, business events by
+ * {@link AuditService}.
+ */
 @Getter
 @Setter
 @Entity
+@Immutable
+@AuditIgnore
 @Table(name = "audit_logs")
 public class AuditLog {
 
@@ -35,9 +43,24 @@ public class AuditLog {
 	@Column(name = "entity_id")
 	private Long entityId;
 
+	/** The record's name when it was logged ("TSK-000123", a title, a person's name). */
+	@Column(name = "entity_label", length = 255)
+	private String entityLabel;
+
+	/** The record this one belongs to (a comment's task), so it shows in the parent's history too. */
+	@Column(name = "parent_type", length = 60)
+	private String parentType;
+
+	@Column(name = "parent_id")
+	private Long parentId;
+
 	/** JSON document; serialised by {@link AuditService}. */
 	@Column(name = "details", columnDefinition = "json")
 	private String details;
+
+	/** The details hold money amounts, shown only to users who can see finance. */
+	@Column(name = "finance", nullable = false)
+	private boolean finance;
 
 	@Column(name = "ip_address", length = 45)
 	private String ipAddress;

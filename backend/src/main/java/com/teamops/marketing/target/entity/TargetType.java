@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.teamops.common.audit.AuditType;
 import com.teamops.common.persistence.BaseEntity;
 import com.teamops.marketing.common.LeadSource;
 
@@ -24,6 +25,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@AuditType("MARKETING_TARGET_TYPE")
 @Table(name = "marketing_target_types")
 public class TargetType extends BaseEntity {
 

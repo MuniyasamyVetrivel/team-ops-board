@@ -1,8 +1,7 @@
 package com.teamops.common.storage;
 
-import java.time.Instant;
-
-import org.hibernate.annotations.CreationTimestamp;
+import com.teamops.common.audit.AuditType;
+import com.teamops.common.persistence.AuditedEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -17,8 +16,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@AuditType("FILE")
 @Table(name = "files")
-public class StoredFile {
+public class StoredFile extends AuditedEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,9 +45,5 @@ public class StoredFile {
 
 	@Column(name = "uploaded_by")
 	private Long uploadedBy;
-
-	@CreationTimestamp
-	@Column(name = "created_at", nullable = false, updatable = false)
-	private Instant createdAt;
 
 }

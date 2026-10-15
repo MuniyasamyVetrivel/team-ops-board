@@ -1,5 +1,9 @@
 package com.teamops.marketing.activity.entity;
 
+import com.teamops.common.audit.AuditRef;
+import com.teamops.common.audit.AuditedChild;
+import com.teamops.common.persistence.AuditedEntity;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -17,7 +21,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "marketing_activity_checklist_items")
-public class ActivityChecklistItem {
+public class ActivityChecklistItem extends AuditedEntity implements AuditedChild {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,5 +36,10 @@ public class ActivityChecklistItem {
 
 	@Column(name = "position", nullable = false)
 	private int position;
+
+	@Override
+	public AuditRef auditParent() {
+		return activity == null ? null : AuditRef.of(MarketingActivity.class, activity.getId());
+	}
 
 }

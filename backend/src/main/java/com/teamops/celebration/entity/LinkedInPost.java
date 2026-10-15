@@ -5,6 +5,9 @@ import java.time.LocalDate;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.teamops.common.audit.AuditRef;
+import com.teamops.common.audit.AuditType;
+import com.teamops.common.audit.AuditedChild;
 import com.teamops.common.persistence.BaseEntity;
 import com.teamops.user.entity.User;
 
@@ -27,8 +30,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@AuditType("LINKEDIN_POST")
 @Table(name = "linkedin_posts")
-public class LinkedInPost extends BaseEntity {
+public class LinkedInPost extends BaseEntity implements AuditedChild {
 
 	@Enumerated(EnumType.STRING)
 	@JdbcTypeCode(SqlTypes.VARCHAR)
@@ -59,12 +63,21 @@ public class LinkedInPost extends BaseEntity {
 	@Column(name = "post_link", length = 500)
 	private String postLink;
 
+	/**
+	 * Who last changed the post, as a user. The column is the audit stamp, written on every update; setting this only
+	 * keeps the loaded entity in step.
+	 */
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "updated_by")
+	@JoinColumn(name = "updated_by", insertable = false, updatable = false)
 	private User updatedBy;
 
 	@Version
 	@Column(name = "version", nullable = false)
 	private Integer version;
+
+	@Override
+	public AuditRef auditParent() {
+		return OccasionSubjects.of(subjectType, subjectId);
+	}
 
 }

@@ -95,8 +95,9 @@ public class MarketingLead extends BaseEntity {
 	@Column(name = "external_id", length = 100, updatable = false)
 	private String externalId;
 
+	/** The creator as a user; the column is written through the audit stamp ({@link #setCreatedBy}). */
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "created_by", updatable = false)
+	@JoinColumn(name = "created_by", insertable = false, updatable = false)
 	private User createdBy;
 
 	@Version
@@ -105,6 +106,11 @@ public class MarketingLead extends BaseEntity {
 
 	public MarketingPeriod period() {
 		return MarketingPeriod.of(leadDate);
+	}
+
+	public void setCreatedBy(User createdBy) {
+		this.createdBy = createdBy;
+		assignCreatedBy(createdBy == null ? null : createdBy.getId());
 	}
 
 }

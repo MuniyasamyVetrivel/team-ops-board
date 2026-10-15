@@ -3,6 +3,8 @@ package com.teamops.project.entity;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.teamops.common.audit.AuditRef;
+import com.teamops.common.audit.AuditedChild;
 import com.teamops.common.persistence.BaseEntity;
 import com.teamops.user.entity.User;
 
@@ -22,7 +24,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "project_risks")
-public class ProjectRisk extends BaseEntity {
+public class ProjectRisk extends BaseEntity implements AuditedChild {
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "project_id", nullable = false)
@@ -55,5 +57,10 @@ public class ProjectRisk extends BaseEntity {
 	@JdbcTypeCode(SqlTypes.VARCHAR)
 	@Column(name = "status", nullable = false, length = 32)
 	private RiskStatus status = RiskStatus.OPEN;
+
+	@Override
+	public AuditRef auditParent() {
+		return project == null ? null : AuditRef.of(Project.class, project.getId());
+	}
 
 }

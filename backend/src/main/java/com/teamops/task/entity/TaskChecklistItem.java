@@ -2,8 +2,9 @@ package com.teamops.task.entity;
 
 import java.time.Instant;
 
-import org.hibernate.annotations.CreationTimestamp;
-
+import com.teamops.common.audit.AuditRef;
+import com.teamops.common.audit.AuditedChild;
+import com.teamops.common.persistence.AuditedEntity;
 import com.teamops.user.entity.User;
 
 import jakarta.persistence.Column;
@@ -22,7 +23,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "task_checklists")
-public class TaskChecklistItem {
+public class TaskChecklistItem extends AuditedEntity implements AuditedChild {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -48,8 +49,9 @@ public class TaskChecklistItem {
 	@Column(name = "position", nullable = false)
 	private int position;
 
-	@CreationTimestamp
-	@Column(name = "created_at", nullable = false, updatable = false)
-	private Instant createdAt;
+	@Override
+	public AuditRef auditParent() {
+		return task == null ? null : AuditRef.of(Task.class, task.getId());
+	}
 
 }

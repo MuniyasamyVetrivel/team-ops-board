@@ -378,9 +378,19 @@ Each report needs `REPORT_VIEW` plus the module's view permission; each `/export
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/admin/audit-logs` | Newest first. Filters: `action` (repeatable), `actorId`, `entityType`, `entityId`, `from`, `to` (business days), `search` (details, actor name or email, IP) |
-| GET | `/api/admin/audit-logs/catalog` | Actions grouped by module, and the 13 brief section 63 events, for the filters |
+| GET | `/api/admin/audit-logs` | Newest first. Filters: `action` (repeatable), `module` (also matches the record changes of the module's record types), `event`, `actorId`, `entityType`, `entityId` (with `entityType`, also the record's children), `from`, `to` (business days), `search` (details, record name, actor name or email, IP) |
+| GET | `/api/admin/audit-logs/catalog` | Actions grouped by module, the 13 brief section 63 events, the entity types in the log and every `recordTypes` entry (type, label, module), for the filters |
 | GET | `/api/admin/audit-logs/export` | Same filters, CSV, up to 5,000 rows |
+
+Entries are read-only: no endpoint edits or deletes them. Each item has `action`, `actionLabel` ("Task edited"), `module`, `actor` (null = the system), `entityType`, `entityTypeLabel`, `entityId`, `entityLabel` (the record's code, title or name when logged), `parentType`/`parentId` (the record it belongs to), `details`, `ipAddress`, `userAgent`, `createdAt`.
+
+Record changes (`RECORD_CREATED`, `RECORD_UPDATED`, `RECORD_DELETED`, `RECORD_RESTORED`, `RECORD_PURGED`) are written automatically for every entity. Their `details.changes` is `{field: {from, to}}`; a reference field adds `ref` (the record type, e.g. `USER`) and, for users and departments, `fromLabel`/`toLabel`. Secrets show only `{redacted: true}`. Money fields carry `finance: true`; without `FINANCE_VIEW` (Super Admins have it) their values are replaced by `hidden: true`, money inside business events is blanked and listed in `details.hiddenFields`, and the free-text search skips entries holding amounts.
+
+### Record history: `/api/history`
+
+| Method | Path | Permission | Description |
+|---|---|---|---|
+| GET | `/api/history/{entityType}/{entityId}` | Whoever may open the record | A record's History tab, newest first (`page`, `size`): its own entries and those of its children (comments, checklist items, attachments, steps, versions). Same item shape as the audit log, without IP address and browser unless the viewer has `AUDIT_VIEW`. 404 `RECORD_NOT_FOUND` when the viewer may not open the record. `AUDIT_VIEW` opens any record's history, including deleted records |
 
 ## Digital Marketing
 

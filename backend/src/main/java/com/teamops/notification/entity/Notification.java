@@ -2,9 +2,11 @@ package com.teamops.notification.entity;
 
 import java.time.Instant;
 
-import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+
+import com.teamops.common.audit.AuditIgnore;
+import com.teamops.common.persistence.AuditedEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -21,8 +23,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@AuditIgnore
 @Table(name = "notifications")
-public class Notification {
+public class Notification extends AuditedEntity {
 
 	public static final int MAX_TITLE_LENGTH = 200;
 
@@ -57,9 +60,5 @@ public class Notification {
 
 	@Column(name = "read_at")
 	private Instant readAt;
-
-	@CreationTimestamp
-	@Column(name = "created_at", nullable = false, updatable = false)
-	private Instant createdAt;
 
 }

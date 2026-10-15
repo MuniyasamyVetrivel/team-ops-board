@@ -1,5 +1,7 @@
 package com.teamops.knowledge.entity;
 
+import com.teamops.common.persistence.AuditedEntity;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -14,7 +16,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "knowledge_categories")
-public class KnowledgeCategory {
+public class KnowledgeCategory extends AuditedEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

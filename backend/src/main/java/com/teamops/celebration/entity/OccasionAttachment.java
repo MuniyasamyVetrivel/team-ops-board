@@ -6,6 +6,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.teamops.common.audit.AuditRef;
+import com.teamops.common.audit.AuditedChild;
+import com.teamops.common.persistence.AuditedEntity;
 import com.teamops.common.storage.StoredFile;
 import com.teamops.user.entity.User;
 
@@ -28,7 +31,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "occasion_attachments")
-public class OccasionAttachment {
+public class OccasionAttachment extends AuditedEntity implements AuditedChild {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -53,5 +56,10 @@ public class OccasionAttachment {
 	@CreationTimestamp
 	@Column(name = "added_at", nullable = false, updatable = false)
 	private Instant addedAt;
+
+	@Override
+	public AuditRef auditParent() {
+		return OccasionSubjects.of(subjectType, subjectId);
+	}
 
 }

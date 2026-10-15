@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.teamops.common.audit.AuditFinance;
 import com.teamops.common.persistence.BaseEntity;
 import com.teamops.marketing.common.MarketingPeriod;
 import com.teamops.user.entity.User;
@@ -48,6 +49,7 @@ public class PaidCampaign extends BaseEntity {
 	@Column(name = "end_date")
 	private LocalDate endDate;
 
+	@AuditFinance
 	@Column(name = "budget", nullable = false, precision = 14, scale = 2)
 	private BigDecimal budget;
 

@@ -3,9 +3,12 @@ package com.teamops.project.entity;
 import java.time.Instant;
 import java.time.LocalDate;
 
-import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+
+import com.teamops.common.audit.AuditRef;
+import com.teamops.common.audit.AuditedChild;
+import com.teamops.common.persistence.AuditedEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -25,7 +28,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "project_milestones")
-public class ProjectMilestone {
+public class ProjectMilestone extends AuditedEntity implements AuditedChild {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -55,8 +58,9 @@ public class ProjectMilestone {
 	@Column(name = "position", nullable = false)
 	private int position;
 
-	@CreationTimestamp
-	@Column(name = "created_at", nullable = false, updatable = false)
-	private Instant createdAt;
+	@Override
+	public AuditRef auditParent() {
+		return project == null ? null : AuditRef.of(Project.class, project.getId());
+	}
 
 }

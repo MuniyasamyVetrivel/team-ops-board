@@ -1,10 +1,9 @@
 package com.teamops.user.entity;
 
-import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.hibernate.annotations.UpdateTimestamp;
+import com.teamops.common.persistence.AuditedEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,7 +22,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "roles")
-public class Role {
+public class Role extends AuditedEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,10 +42,6 @@ public class Role {
 	@Version
 	@Column(name = "version", nullable = false)
 	private Integer version;
-
-	@UpdateTimestamp
-	@Column(name = "updated_at")
-	private Instant updatedAt;
 
 	@ManyToMany
 	@JoinTable(name = "role_permissions", joinColumns = @JoinColumn(name = "role_id"),

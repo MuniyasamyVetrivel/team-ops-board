@@ -244,11 +244,17 @@ class AdminSettingsFlowIT {
 			.andExpect(status().isConflict());
 
 		get(adminToken, "/api/admin/audit-logs", "module", "APPROVALS", "entityType", "APPROVAL_TYPE", "entityId",
-				id.toString())
+				id.toString(), "action", "APPROVAL_TYPE_UPDATED", "action", "APPROVAL_TYPE_CREATED")
 			.andExpect(jsonPath("$.totalElements").value(2))
 			.andExpect(jsonPath("$.content[0].action").value("APPROVAL_TYPE_UPDATED"))
 			.andExpect(jsonPath("$.content[0].details.changes.active.to").value(false))
 			.andExpect(jsonPath("$.content[1].action").value("APPROVAL_TYPE_CREATED"));
+		// The module filter also holds the automatic record changes of the type (Phase X1).
+		get(adminToken, "/api/admin/audit-logs", "module", "APPROVALS", "entityType", "APPROVAL_TYPE", "entityId",
+				id.toString(), "action", "RECORD_UPDATED")
+			.andExpect(jsonPath("$.content[0].module").value("APPROVALS"))
+			.andExpect(jsonPath("$.content[0].details.changes.active.from").value(true))
+			.andExpect(jsonPath("$.content[0].details.changes.active.to").value(false));
 	}
 
 	@Test
@@ -285,7 +291,7 @@ class AdminSettingsFlowIT {
 
 		get(adminToken, "/api/admin/audit-logs/export", "actorId", employee).andExpect(status().isOk())
 			.andExpect(content().contentTypeCompatibleWith("text/csv"))
-			.andExpect(content().string(containsString("Time,Action,Module,Actor,Actor email")))
+			.andExpect(content().string(containsString("Time,Action,Description,Module,Actor,Actor email")))
 			.andExpect(content().string(containsString(users.email(employeeId))));
 		get(adminToken, "/api/admin/audit-logs/export", "format", "PDF").andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("FORMAT_NOT_AVAILABLE"));

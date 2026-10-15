@@ -90,8 +90,9 @@ public class Backlink extends BaseEntity {
 	@Column(name = "provider", nullable = false, length = 32, updatable = false)
 	private BacklinkOrigin provider = BacklinkOrigin.MANUAL;
 
+	/** The creator as a user; the column is written through the audit stamp ({@link #setCreatedBy}). */
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "created_by", updatable = false)
+	@JoinColumn(name = "created_by", insertable = false, updatable = false)
 	private User createdBy;
 
 	@Version
@@ -108,6 +109,11 @@ public class Backlink extends BaseEntity {
 		liveDate = dates.live();
 		rejectedDate = dates.rejected();
 		lostDate = dates.lost();
+	}
+
+	public void setCreatedBy(User createdBy) {
+		this.createdBy = createdBy;
+		assignCreatedBy(createdBy == null ? null : createdBy.getId());
 	}
 
 }

@@ -5,6 +5,9 @@ import java.math.BigDecimal;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.teamops.common.audit.AuditFinance;
+import com.teamops.common.audit.AuditRef;
+import com.teamops.common.audit.AuditedChild;
 import com.teamops.common.persistence.BaseEntity;
 import com.teamops.marketing.paid.service.PaidResults;
 import com.teamops.user.entity.User;
@@ -26,7 +29,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "paid_campaign_metrics")
-public class PaidCampaignMonth extends BaseEntity {
+public class PaidCampaignMonth extends BaseEntity implements AuditedChild {
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "campaign_id", nullable = false, updatable = false)
@@ -38,6 +41,7 @@ public class PaidCampaignMonth extends BaseEntity {
 	@Column(name = "year", nullable = false, updatable = false)
 	private Integer year;
 
+	@AuditFinance
 	@Column(name = "amount_spent", nullable = false, precision = 14, scale = 2)
 	private BigDecimal amountSpent = BigDecimal.ZERO;
 
@@ -79,6 +83,11 @@ public class PaidCampaignMonth extends BaseEntity {
 		clicks = (int) results.clicks();
 		leads = (int) results.leads();
 		conversions = (int) results.conversions();
+	}
+
+	@Override
+	public AuditRef auditParent() {
+		return campaign == null ? null : AuditRef.of(PaidCampaign.class, campaign.getId());
 	}
 
 }

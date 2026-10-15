@@ -59,6 +59,23 @@ class AuditCatalogTest {
 	}
 
 	@Test
+	void recordChangesAreNamedAfterTheirRecordType() {
+		assertThat(AuditCatalog.moduleOf(AuditAction.RECORD_UPDATED)).isEqualTo(Module.RECORDS);
+		assertThat(AuditCatalog.actionsIn(Module.RECORDS)).isEqualTo(AuditCatalog.RECORD_ACTIONS);
+		assertThat(AuditCatalog.labelOf(AuditAction.RECORD_UPDATED, "MARKETING_LEAD")).isEqualTo("Marketing lead edited");
+		assertThat(AuditCatalog.labelOf(AuditAction.RECORD_PURGED, "TASK")).isEqualTo("Task permanently deleted");
+		assertThat(AuditCatalog.labelOf(AuditAction.LOGIN, "USER")).isEqualTo("Signed in");
+		assertThat(AuditCatalog.isRecordChange(AuditAction.TASK_CREATED)).isFalse();
+	}
+
+	@Test
+	void financeAmountsInBusinessEventsAreKnown() {
+		assertThat(AuditCatalog.financePaths(AuditAction.APPROVAL_SUBMITTED)).containsExactly("amount");
+		assertThat(AuditCatalog.financePaths(AuditAction.PAID_CAMPAIGN_UPDATED)).containsExactly("changes.budget");
+		assertThat(AuditCatalog.financePaths(AuditAction.TASK_CREATED)).isEmpty();
+	}
+
+	@Test
 	void parseOnlyKnowsRealActions() {
 		assertThat(AuditCatalog.parse("LEAD_UPDATED")).contains(AuditAction.LEAD_UPDATED);
 		assertThat(AuditCatalog.parse("DROP_TABLES")).isEmpty();

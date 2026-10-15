@@ -1,8 +1,6 @@
 package com.teamops.tag;
 
-import java.time.Instant;
-
-import org.hibernate.annotations.CreationTimestamp;
+import com.teamops.common.persistence.AuditedEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -18,7 +16,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "tags")
-public class Tag {
+public class Tag extends AuditedEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,9 +27,5 @@ public class Tag {
 
 	@Column(name = "color", length = 20)
 	private String color;
-
-	@CreationTimestamp
-	@Column(name = "created_at", nullable = false, updatable = false)
-	private Instant createdAt;
 
 }

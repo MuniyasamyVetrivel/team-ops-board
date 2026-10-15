@@ -214,7 +214,7 @@ public class LinkedInPostService {
 
 	@Transactional
 	public void deleteFor(Collection<OccasionKind> kinds, Long subjectId) {
-		repository.deleteForSubject(kinds, subjectId);
+		repository.deleteAll(repository.findBySubjectTypeInAndSubjectId(kinds, subjectId));
 	}
 
 	private static ApiException stale() {

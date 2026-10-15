@@ -49,14 +49,14 @@ public class SettingsAdminService {
 			.stream()
 			.collect(Collectors.toMap(AppSetting::getSettingKey, Function.identity()));
 		Map<Long, User> editors = userRepository
-			.findAllById(byKey.values().stream().map(AppSetting::getUpdatedBy).filter(Objects::nonNull).toList())
+			.findAllById(byKey.values().stream().map(AppSetting::getUpdatedById).filter(Objects::nonNull).toList())
 			.stream()
 			.collect(Collectors.toMap(User::getId, Function.identity()));
 		return Arrays.stream(SettingDefinition.values())
 			.filter(d -> byKey.containsKey(d.key()))
 			.map(d -> {
 				AppSetting setting = byKey.get(d.key());
-				User editor = setting.getUpdatedBy() == null ? null : editors.get(setting.getUpdatedBy());
+				User editor = setting.getUpdatedById() == null ? null : editors.get(setting.getUpdatedById());
 				return SettingItem.of(d, setting, storage.maxFileSizeMb(), UserSummary.of(editor));
 			})
 			.toList();
@@ -76,12 +76,11 @@ public class SettingsAdminService {
 		AuditChanges changes = new AuditChanges().track(key, setting.getSettingValue(), value);
 		if (!changes.isEmpty()) {
 			setting.setSettingValue(value);
-			setting.setUpdatedBy(actor.id());
 			settingRepository.flush();
 			auditService.record(AuditAction.SETTING_UPDATED, actor.id(), "SETTING", setting.getId(),
 					changes.toDetails(), client);
 		}
-		User editor = setting.getUpdatedBy() == null ? null : userRepository.findById(setting.getUpdatedBy()).orElse(null);
+		User editor = setting.getUpdatedById() == null ? null : userRepository.findById(setting.getUpdatedById()).orElse(null);
 		return SettingItem.of(definition, setting, storage.maxFileSizeMb(), UserSummary.of(editor));
 	}
 

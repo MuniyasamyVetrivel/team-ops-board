@@ -1,8 +1,7 @@
 package com.teamops.common.settings;
 
-import java.time.Instant;
-
-import org.hibernate.annotations.UpdateTimestamp;
+import com.teamops.common.audit.AuditType;
+import com.teamops.common.persistence.AuditedEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -18,8 +17,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@AuditType("SETTING")
 @Table(name = "app_settings")
-public class AppSetting {
+public class AppSetting extends AuditedEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,13 +36,6 @@ public class AppSetting {
 
 	@Column(name = "description")
 	private String description;
-
-	@Column(name = "updated_by")
-	private Long updatedBy;
-
-	@UpdateTimestamp
-	@Column(name = "updated_at", nullable = false)
-	private Instant updatedAt;
 
 	@Version
 	@Column(name = "version", nullable = false)

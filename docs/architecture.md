@@ -36,7 +36,7 @@ Packages are organised by feature, each with `controller/ dto/ entity/ repositor
 | `announcement`, `knowledge`, `document`, `calendar`, `notification`, `tag` | Collaboration modules |
 | `dashboard`, `report`, `search` | Home dashboard, management reports with CSV export, global search |
 | `marketing.*` | The Digital Marketing module (see [digital-marketing.md](digital-marketing.md)) |
-| `admin` | Admin settings, the role permission matrix and the audit log viewer |
+| `admin`, `history` | Admin settings, the role permission matrix, the audit log viewer, and each record's History tab (`RecordHistoryAccess` reuses the module's read check) |
 | `devdata` (test sources) | `DevDataSeeder` and its module seeders, for automated tests only; never part of the application |
 | `common` | Cross-cutting pieces listed below |
 
@@ -48,7 +48,8 @@ Packages are organised by feature, each with `controller/ dto/ entity/ repositor
 | `security.AccessScopeService` | Data scope: `ALL` (Super Admin), `DEPARTMENTS` (a manager's departments) or `OWN`; `canViewWorkOf`, `canManageDepartment` |
 | `exception.ApiException`, `GlobalExceptionHandler` | Business errors with a stable `code`; one error body for every failure |
 | `web.PageRequests`, `PageResponse` | Paging with a sort-field whitelist per list (`page`, `size` ≤ 100, `sort=field,dir`) |
-| `audit.AuditService`, `AuditChanges`, `AuditCatalog` | Audit entries written in their own transaction (`REQUIRES_NEW`), field-level `{from, to}` changes |
+| `audit.AuditService`, `AuditChanges`, `AuditCatalog` | Business audit events written in their own transaction (`REQUIRES_NEW`), field-level `{from, to}` changes |
+| `audit.EntityChangeAuditor`, `persistence.AuditedEntity` | Record history for every entity: Hibernate insert/update/delete (and many-to-many) events become `RECORD_*` entries with a field diff, collected per transaction and written just before commit on the same connection (rolled-back changes leave nothing). Stamps `created_by`/`updated_by` with the signed-in user (`@CurrentActor`). `@AuditIgnore`, `@AuditFinance`, `@AuditType` and `AuditedChild` (parent record) tune it per entity; secrets are redacted by name |
 | `sequence.CodeGenerator` | Human-readable codes (`TSK-`, `TKT-`, `PRJ-`, `APR-`, `LEAD-`, `BLK-`) from `code_sequences` with `SELECT … FOR UPDATE` |
 | `config.BusinessCalendar` | "Today" in `APP_TIME_ZONE` (default Asia/Kolkata); the server and browser clocks are never used for due dates |
 | `storage.FileStorageService`, `FileService`, `UploadPolicy` | Upload validation (type, size, filename) and local storage behind an interface (S3 later) |

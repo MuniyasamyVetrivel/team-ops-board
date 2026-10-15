@@ -3,6 +3,9 @@ package com.teamops.approval.entity;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.teamops.common.audit.AuditRef;
+import com.teamops.common.audit.AuditedChild;
+import com.teamops.common.persistence.AuditedEntity;
 import com.teamops.user.entity.Role;
 import com.teamops.user.entity.User;
 
@@ -25,7 +28,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "approval_type_steps")
-public class ApprovalTypeStep {
+public class ApprovalTypeStep extends AuditedEntity implements AuditedChild {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -50,5 +53,10 @@ public class ApprovalTypeStep {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "approver_user_id")
 	private User approverUser;
+
+	@Override
+	public AuditRef auditParent() {
+		return approvalType == null ? null : AuditRef.of(ApprovalType.class, approvalType.getId());
+	}
 
 }

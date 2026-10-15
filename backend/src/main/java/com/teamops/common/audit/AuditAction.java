@@ -1,7 +1,21 @@
 package com.teamops.common.audit;
 
-/** Audited event types. Extend as modules are added (task, ticket, target, ranking, campaign, ...). */
+/**
+ * Audited event types. The {@code RECORD_*} actions are written automatically for every entity
+ * ({@link EntityChangeAuditor}); the others are business events the modules record themselves.
+ */
 public enum AuditAction {
+
+	/** Any record was created; {@code changes} holds its first values. */
+	RECORD_CREATED,
+	/** Any record was edited; {@code changes} holds each field's {@code from} and {@code to}. */
+	RECORD_UPDATED,
+	/** Any record was deleted (moved to the recycle bin when it has one); {@code changes} holds its last values. */
+	RECORD_DELETED,
+	/** A deleted record was put back. */
+	RECORD_RESTORED,
+	/** A record was removed for good from the recycle bin. */
+	RECORD_PURGED,
 
 	LOGIN,
 	LOGIN_FAILED,

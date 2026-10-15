@@ -6,6 +6,9 @@ import java.util.Objects;
 
 import org.hibernate.annotations.CreationTimestamp;
 
+import com.teamops.common.audit.AuditRef;
+import com.teamops.common.audit.AuditedChild;
+import com.teamops.common.persistence.AuditedEntity;
 import com.teamops.common.storage.StoredFile;
 import com.teamops.user.entity.User;
 
@@ -26,7 +29,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "task_attachments")
-public class TaskAttachment {
+public class TaskAttachment extends AuditedEntity implements AuditedChild {
 
 	@EmbeddedId
 	private Id id;
@@ -84,6 +87,11 @@ public class TaskAttachment {
 			return Objects.hash(taskId, fileId);
 		}
 
+	}
+
+	@Override
+	public AuditRef auditParent() {
+		return id == null ? null : AuditRef.of(Task.class, id.getTaskId());
 	}
 
 }

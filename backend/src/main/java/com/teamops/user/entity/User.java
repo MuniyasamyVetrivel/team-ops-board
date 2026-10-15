@@ -8,6 +8,7 @@ import java.util.Set;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.teamops.common.audit.AuditIgnore;
 import com.teamops.common.persistence.BaseEntity;
 import com.teamops.department.entity.Department;
 
@@ -79,6 +80,8 @@ public class User extends BaseEntity {
 	@Column(name = "status", nullable = false, length = 32)
 	private UserStatus status = UserStatus.ACTIVE;
 
+	/** Sign-ins are logged as LOGIN events; the timestamp is not a record change. */
+	@AuditIgnore
 	@Column(name = "last_login_at")
 	private Instant lastLoginAt;
 
