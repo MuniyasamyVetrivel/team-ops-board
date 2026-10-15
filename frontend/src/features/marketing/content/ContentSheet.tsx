@@ -9,6 +9,7 @@ import { UserCell } from '@/components/common/UserAvatar';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogDescription, DialogHeader, DialogTitle, SheetContent } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
 import { parseLocalDate } from '@/features/tasks/task-meta';
 import { errorMessage } from '@/lib/api/errors';
 
@@ -91,47 +92,49 @@ function ContentBody({ itemId, canEdit, onClose }: { itemId: number; canEdit: bo
           </div>
         )}
       </DialogHeader>
-      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
-        {canEdit && <StatusPicker item={c} />}
+      <DetailsWithHistory type="CONTENT_ITEM" id={c.id}>
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
+          {canEdit && <StatusPicker item={c} />}
 
-        <section aria-labelledby="content-details" className="space-y-2">
-          <h3 id="content-details" className="text-sm font-semibold">
-            Details
-          </h3>
-          <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-            <Detail label="Planned for">{day(c.plannedDate) ?? <Muted>Not planned</Muted>}</Detail>
-            <Detail label="Published on">
-              {day(c.publicationDate) ?? <Muted>Not published</Muted>}
-              {c.publicationLocked && (
-                <span className="ml-1 inline-flex items-center gap-1 text-xs text-muted-foreground" title="Published in a closed month">
-                  <Lock className="size-3.5" aria-hidden />
-                  Month closed
-                </span>
-              )}
-            </Detail>
-            {c.refreshedDate && <Detail label="Refreshed on">{day(c.refreshedDate)}</Detail>}
-            <Detail label="Author">{c.author ? <UserCell name={c.author.fullName} /> : <Muted>No author</Muted>}</Detail>
-            <Detail label="Owner">{c.owner ? <UserCell name={c.owner.fullName} /> : <Muted>No owner</Muted>}</Detail>
-            <Detail label="Target keyword">{c.targetKeywordText ?? <Muted>None</Muted>}</Detail>
-            <Detail label="Target page">{c.targetPage ? c.targetPage.title : <Muted>None</Muted>}</Detail>
-          </dl>
-        </section>
+          <section aria-labelledby="content-details" className="space-y-2">
+            <h3 id="content-details" className="text-sm font-semibold">
+              Details
+            </h3>
+            <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+              <Detail label="Planned for">{day(c.plannedDate) ?? <Muted>Not planned</Muted>}</Detail>
+              <Detail label="Published on">
+                {day(c.publicationDate) ?? <Muted>Not published</Muted>}
+                {c.publicationLocked && (
+                  <span className="ml-1 inline-flex items-center gap-1 text-xs text-muted-foreground" title="Published in a closed month">
+                    <Lock className="size-3.5" aria-hidden />
+                    Month closed
+                  </span>
+                )}
+              </Detail>
+              {c.refreshedDate && <Detail label="Refreshed on">{day(c.refreshedDate)}</Detail>}
+              <Detail label="Author">{c.author ? <UserCell name={c.author.fullName} /> : <Muted>No author</Muted>}</Detail>
+              <Detail label="Owner">{c.owner ? <UserCell name={c.owner.fullName} /> : <Muted>No owner</Muted>}</Detail>
+              <Detail label="Target keyword">{c.targetKeywordText ?? <Muted>None</Muted>}</Detail>
+              <Detail label="Target page">{c.targetPage ? c.targetPage.title : <Muted>None</Muted>}</Detail>
+            </dl>
+          </section>
 
-        <section aria-label="Results" className="grid grid-cols-3 gap-3">
-          <Figure label="Leads" value={c.leads} />
-          <Figure label="Organic traffic" value={c.organicTraffic} />
-          <Figure label="CTA clicks" value={c.ctaClicks} />
-        </section>
+          <section aria-label="Results" className="grid grid-cols-3 gap-3">
+            <Figure label="Leads" value={c.leads} />
+            <Figure label="Organic traffic" value={c.organicTraffic} />
+            <Figure label="CTA clicks" value={c.ctaClicks} />
+          </section>
 
-        {c.notes && <p className="rounded-lg border bg-muted/30 px-3 py-2 text-sm whitespace-pre-line">{c.notes}</p>}
+          {c.notes && <p className="rounded-lg border bg-muted/30 px-3 py-2 text-sm whitespace-pre-line">{c.notes}</p>}
 
-        <section aria-labelledby="content-files" className="space-y-2">
-          <h3 id="content-files" className="text-sm font-semibold">
-            Attachments
-          </h3>
-          <Attachments item={c} canEdit={canEdit} />
-        </section>
-      </div>
+          <section aria-labelledby="content-files" className="space-y-2">
+            <h3 id="content-files" className="text-sm font-semibold">
+              Attachments
+            </h3>
+            <Attachments item={c} canEdit={canEdit} />
+          </section>
+        </div>
+      </DetailsWithHistory>
       <ContentFormDialog open={editing} onOpenChange={setEditing} item={c} onDeleted={onClose} />
     </div>
   );

@@ -8,6 +8,7 @@ import { UserCell } from '@/components/common/UserAvatar';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogDescription, DialogHeader, DialogTitle, SheetContent } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
 import { parseLocalDate } from '@/features/tasks/task-meta';
 import { errorMessage } from '@/lib/api/errors';
 
@@ -80,84 +81,86 @@ function LeadBody({ leadId, canEdit, onClose }: { leadId: number; canEdit: boole
           </div>
         )}
       </DialogHeader>
-      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
-        {canEdit && <StatusPicker lead={l} />}
+      <DetailsWithHistory type="MARKETING_LEAD" id={l.id}>
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
+          {canEdit && <StatusPicker lead={l} />}
 
-        <section aria-labelledby="lead-contact" className="space-y-2">
-          <h3 id="lead-contact" className="text-sm font-semibold">
-            Contact
-          </h3>
-          <ul className="space-y-1.5 text-sm">
-            <ContactLine icon={Mail} label="Email">
-              {l.email ? (
-                <a className="hover:underline" href={`mailto:${l.email}`}>
-                  {l.email}
-                </a>
-              ) : null}
-            </ContactLine>
-            <ContactLine icon={Phone} label="Phone">
-              {l.phone}
-            </ContactLine>
-            <ContactLine icon={Building} label="Company">
-              {l.company}
-            </ContactLine>
-          </ul>
-        </section>
-
-        <section aria-labelledby="lead-details" className="space-y-2">
-          <h3 id="lead-details" className="text-sm font-semibold">
-            Details
-          </h3>
-          <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-            <Detail label="Lead date">
-              <span className="inline-flex items-center gap-1">
-                <CalendarDays className="size-3.5 text-muted-foreground" aria-hidden />
-                {dayFormat.format(parseLocalDate(l.leadDate))}
-                {l.countLocked && (
-                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title="The month is closed: date and source stay as counted">
-                    <Lock className="size-3.5" aria-hidden />
-                    Month closed
-                  </span>
-                )}
-              </span>
-            </Detail>
-            <Detail label="Source">{LEAD_SOURCE_LABELS[l.source]}</Detail>
-            <Detail label="Campaign or content">
-              {l.link ? (
-                <>
-                  {l.link.name}
-                  <span className="block text-xs text-muted-foreground">
-                    {LINK_KIND_LABELS[l.link.kind]}
-                    {l.link.date && ` · ${dayFormat.format(parseLocalDate(l.link.date))}`}
-                  </span>
-                </>
-              ) : (
-                <span className="text-muted-foreground">None</span>
-              )}
-            </Detail>
-            <Detail label="Owner">{l.owner ? <UserCell name={l.owner.fullName} /> : <span className="text-muted-foreground">No owner</span>}</Detail>
-            <Detail label="Department">{l.department?.name ?? <span className="text-muted-foreground">None</span>}</Detail>
-            <Detail label="Recorded from">
-              {LEAD_ORIGIN_LABELS[l.provider]}
-              {l.externalId && <span className="block font-mono text-xs text-muted-foreground">{l.externalId}</span>}
-            </Detail>
-          </dl>
-        </section>
-
-        {l.notes && (
-          <section aria-labelledby="lead-notes-heading" className="space-y-2">
-            <h3 id="lead-notes-heading" className="text-sm font-semibold">
-              Notes
+          <section aria-labelledby="lead-contact" className="space-y-2">
+            <h3 id="lead-contact" className="text-sm font-semibold">
+              Contact
             </h3>
-            <p className="rounded-lg border bg-muted/30 px-3 py-2 text-sm whitespace-pre-line">{l.notes}</p>
+            <ul className="space-y-1.5 text-sm">
+              <ContactLine icon={Mail} label="Email">
+                {l.email ? (
+                  <a className="hover:underline" href={`mailto:${l.email}`}>
+                    {l.email}
+                  </a>
+                ) : null}
+              </ContactLine>
+              <ContactLine icon={Phone} label="Phone">
+                {l.phone}
+              </ContactLine>
+              <ContactLine icon={Building} label="Company">
+                {l.company}
+              </ContactLine>
+            </ul>
           </section>
-        )}
 
-        <p className="text-xs text-muted-foreground">
-          Added by {l.createdBy?.fullName ?? 'Unknown'} · {timeFormat.format(new Date(l.createdAt))}
-          {l.updatedAt !== l.createdAt && ` · updated ${timeFormat.format(new Date(l.updatedAt))}`}
-        </p>
-      </div>
+          <section aria-labelledby="lead-details" className="space-y-2">
+            <h3 id="lead-details" className="text-sm font-semibold">
+              Details
+            </h3>
+            <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+              <Detail label="Lead date">
+                <span className="inline-flex items-center gap-1">
+                  <CalendarDays className="size-3.5 text-muted-foreground" aria-hidden />
+                  {dayFormat.format(parseLocalDate(l.leadDate))}
+                  {l.countLocked && (
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title="The month is closed: date and source stay as counted">
+                      <Lock className="size-3.5" aria-hidden />
+                      Month closed
+                    </span>
+                  )}
+                </span>
+              </Detail>
+              <Detail label="Source">{LEAD_SOURCE_LABELS[l.source]}</Detail>
+              <Detail label="Campaign or content">
+                {l.link ? (
+                  <>
+                    {l.link.name}
+                    <span className="block text-xs text-muted-foreground">
+                      {LINK_KIND_LABELS[l.link.kind]}
+                      {l.link.date && ` · ${dayFormat.format(parseLocalDate(l.link.date))}`}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">None</span>
+                )}
+              </Detail>
+              <Detail label="Owner">{l.owner ? <UserCell name={l.owner.fullName} /> : <span className="text-muted-foreground">No owner</span>}</Detail>
+              <Detail label="Department">{l.department?.name ?? <span className="text-muted-foreground">None</span>}</Detail>
+              <Detail label="Recorded from">
+                {LEAD_ORIGIN_LABELS[l.provider]}
+                {l.externalId && <span className="block font-mono text-xs text-muted-foreground">{l.externalId}</span>}
+              </Detail>
+            </dl>
+          </section>
+
+          {l.notes && (
+            <section aria-labelledby="lead-notes-heading" className="space-y-2">
+              <h3 id="lead-notes-heading" className="text-sm font-semibold">
+                Notes
+              </h3>
+              <p className="rounded-lg border bg-muted/30 px-3 py-2 text-sm whitespace-pre-line">{l.notes}</p>
+            </section>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            Added by {l.createdBy?.fullName ?? 'Unknown'} · {timeFormat.format(new Date(l.createdAt))}
+            {l.updatedAt !== l.createdAt && ` · updated ${timeFormat.format(new Date(l.updatedAt))}`}
+          </p>
+        </div>
+      </DetailsWithHistory>
       <LeadFormDialog open={editing} onOpenChange={setEditing} lead={l} onDeleted={onClose} />
     </div>
   );

@@ -8,6 +8,7 @@ import { UserCell } from '@/components/common/UserAvatar';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogDescription, DialogHeader, DialogTitle, SheetContent } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
 import { parseLocalDate } from '@/features/tasks/task-meta';
 import { errorMessage } from '@/lib/api/errors';
 
@@ -82,69 +83,71 @@ function BacklinkBody({ backlinkId, canEdit, onClose }: { backlinkId: number; ca
           </div>
         )}
       </DialogHeader>
-      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
-        {canEdit && <StatusPicker backlink={b} />}
+      <DetailsWithHistory type="BACKLINK" id={b.id}>
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
+          {canEdit && <StatusPicker backlink={b} />}
 
-        <section aria-labelledby="backlink-stages" className="space-y-2">
-          <h3 id="backlink-stages" className="text-sm font-semibold">
-            Stages
-          </h3>
-          <ol className="grid gap-2 sm:grid-cols-5" aria-label="Stage dates">
-            {STAGES.map((stage) => {
-              const field = STAGE_FIELDS[stage];
-              const date = b[field];
-              return (
-                <li key={stage} className="rounded-lg border px-3 py-2">
-                  <p className="text-xs text-muted-foreground">{STAGE_LABELS[stage]}</p>
-                  <p className="flex items-center gap-1 text-sm font-medium">
-                    {date ? dayFormat.format(parseLocalDate(date)) : <span className="text-muted-foreground">—</span>}
-                    {locked.has(field) && (
-                      <span className="text-muted-foreground" title="Counted in a closed month">
-                        <Lock className="size-3.5" aria-hidden />
-                        <span className="sr-only">(month closed)</span>
-                      </span>
-                    )}
-                  </p>
-                </li>
-              );
-            })}
-          </ol>
-          <p className="text-xs text-muted-foreground">Each stage counts in the month of its own date.</p>
-        </section>
+          <section aria-labelledby="backlink-stages" className="space-y-2">
+            <h3 id="backlink-stages" className="text-sm font-semibold">
+              Stages
+            </h3>
+            <ol className="grid gap-2 sm:grid-cols-5" aria-label="Stage dates">
+              {STAGES.map((stage) => {
+                const field = STAGE_FIELDS[stage];
+                const date = b[field];
+                return (
+                  <li key={stage} className="rounded-lg border px-3 py-2">
+                    <p className="text-xs text-muted-foreground">{STAGE_LABELS[stage]}</p>
+                    <p className="flex items-center gap-1 text-sm font-medium">
+                      {date ? dayFormat.format(parseLocalDate(date)) : <span className="text-muted-foreground">—</span>}
+                      {locked.has(field) && (
+                        <span className="text-muted-foreground" title="Counted in a closed month">
+                          <Lock className="size-3.5" aria-hidden />
+                          <span className="sr-only">(month closed)</span>
+                        </span>
+                      )}
+                    </p>
+                  </li>
+                );
+              })}
+            </ol>
+            <p className="text-xs text-muted-foreground">Each stage counts in the month of its own date.</p>
+          </section>
 
-        <section aria-labelledby="backlink-details" className="space-y-2">
-          <h3 id="backlink-details" className="text-sm font-semibold">
-            Details
-          </h3>
-          <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-            <Detail label="Links to">
-              {b.targetPage ? (
-                <>
-                  {b.targetPage.title}
-                  <span className="block text-xs text-muted-foreground">{b.targetUrl}</span>
-                </>
-              ) : (
-                b.targetUrl
-              )}
-            </Detail>
-            <Detail label="Link URL">
-              {b.linkUrl ? (
-                <a href={b.linkUrl} target="_blank" rel="noreferrer" className="inline-flex max-w-full items-center gap-1 break-all hover:underline">
-                  {b.linkUrl}
-                  <ExternalLink className="size-3.5 shrink-0" aria-hidden />
-                </a>
-              ) : (
-                <span className="text-muted-foreground">Not known yet</span>
-              )}
-            </Detail>
-            <Detail label="Anchor text">{b.anchorText ?? <span className="text-muted-foreground">None</span>}</Detail>
-            <Detail label="Owner">{b.owner ? <UserCell name={b.owner.fullName} /> : <span className="text-muted-foreground">No owner</span>}</Detail>
-            <Detail label="Recorded from">{b.provider === 'CSV' ? 'CSV import' : 'Entered by hand'}</Detail>
-          </dl>
-        </section>
+          <section aria-labelledby="backlink-details" className="space-y-2">
+            <h3 id="backlink-details" className="text-sm font-semibold">
+              Details
+            </h3>
+            <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+              <Detail label="Links to">
+                {b.targetPage ? (
+                  <>
+                    {b.targetPage.title}
+                    <span className="block text-xs text-muted-foreground">{b.targetUrl}</span>
+                  </>
+                ) : (
+                  b.targetUrl
+                )}
+              </Detail>
+              <Detail label="Link URL">
+                {b.linkUrl ? (
+                  <a href={b.linkUrl} target="_blank" rel="noreferrer" className="inline-flex max-w-full items-center gap-1 break-all hover:underline">
+                    {b.linkUrl}
+                    <ExternalLink className="size-3.5 shrink-0" aria-hidden />
+                  </a>
+                ) : (
+                  <span className="text-muted-foreground">Not known yet</span>
+                )}
+              </Detail>
+              <Detail label="Anchor text">{b.anchorText ?? <span className="text-muted-foreground">None</span>}</Detail>
+              <Detail label="Owner">{b.owner ? <UserCell name={b.owner.fullName} /> : <span className="text-muted-foreground">No owner</span>}</Detail>
+              <Detail label="Recorded from">{b.provider === 'CSV' ? 'CSV import' : 'Entered by hand'}</Detail>
+            </dl>
+          </section>
 
-        {b.notes && <p className="rounded-lg border bg-muted/30 px-3 py-2 text-sm whitespace-pre-line">{b.notes}</p>}
-      </div>
+          {b.notes && <p className="rounded-lg border bg-muted/30 px-3 py-2 text-sm whitespace-pre-line">{b.notes}</p>}
+        </div>
+      </DetailsWithHistory>
       <BacklinkFormDialog open={editing} onOpenChange={setEditing} backlink={b} onDeleted={onClose} />
     </div>
   );

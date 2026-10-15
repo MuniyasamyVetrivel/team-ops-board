@@ -1,4 +1,4 @@
-import { ArrowRight, Globe, Monitor } from 'lucide-react';
+import { ArrowRight, Globe, KeyRound, Lock, Monitor } from 'lucide-react';
 
 import { UserCell } from '@/components/common/UserAvatar';
 import { Badge } from '@/components/ui/badge';
@@ -8,18 +8,19 @@ import { formatDateTime } from '@/lib/format';
 
 import type { AuditLogItem } from './api';
 import { describeDetails } from './audit-details';
+import { RecordName } from './RecordName';
 
 /** One audit entry: who did what to which record, the before/after values and where the request came from. */
-export function AuditEntrySheet({ entry, onClose }: { entry: AuditLogItem | null; onClose: () => void }) {
+export function AuditEntrySheet({ entry, onClose, canSeeFinance }: { entry: AuditLogItem | null; onClose: () => void; canSeeFinance: boolean }) {
   return (
     <Dialog open={entry !== null} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="sm:max-w-xl">{entry && <EntryBody entry={entry} />}</SheetContent>
+      <SheetContent className="sm:max-w-xl">{entry && <EntryBody entry={entry} canSeeFinance={canSeeFinance} />}</SheetContent>
     </Dialog>
   );
 }
 
-function EntryBody({ entry }: { entry: AuditLogItem }) {
-  const details = describeDetails(entry.details);
+function EntryBody({ entry, canSeeFinance }: { entry: AuditLogItem; canSeeFinance: boolean }) {
+  const details = describeDetails(entry.details, { canSeeFinance });
   const nothing = details.changes.length + details.added.length + details.removed.length + details.facts.length === 0;
 
   return (
@@ -37,15 +38,8 @@ function EntryBody({ entry }: { entry: AuditLogItem }) {
           <dt className="text-muted-foreground">By</dt>
           <dd>{entry.actor ? <UserCell name={entry.actor.fullName} detail={entry.actor.email} /> : <span className="text-muted-foreground">System</span>}</dd>
           <dt className="text-muted-foreground">Record</dt>
-          <dd>
-            {entry.entityType ? (
-              <span>
-                {entry.entityType}
-                {entry.entityId !== null && <span className="text-muted-foreground"> #{entry.entityId}</span>}
-              </span>
-            ) : (
-              '—'
-            )}
+          <dd className="min-w-0">
+            <RecordName entry={entry} />
           </dd>
         </dl>
 
@@ -68,11 +62,22 @@ function EntryBody({ entry }: { entry: AuditLogItem }) {
                   {details.changes.map((change) => (
                     <TableRow key={change.field}>
                       <TableCell className="align-top font-medium">{change.field}</TableCell>
-                      <TableCell className="align-top break-words text-muted-foreground line-through decoration-muted-foreground/40">{change.before}</TableCell>
-                      <TableCell className="align-top">
-                        <ArrowRight className="size-3.5 text-muted-foreground" aria-label="changed to" />
-                      </TableCell>
-                      <TableCell className="align-top break-words">{change.after}</TableCell>
+                      {change.masked ? (
+                        <TableCell colSpan={3} className="align-top text-muted-foreground">
+                          <span className="inline-flex items-center gap-1.5">
+                            {change.masked === 'finance' ? <Lock className="size-3.5" aria-hidden /> : <KeyRound className="size-3.5" aria-hidden />}
+                            {change.masked === 'finance' ? 'Hidden (finance amount — needs Finance access)' : 'Changed (value not recorded)'}
+                          </span>
+                        </TableCell>
+                      ) : (
+                        <>
+                          <TableCell className="align-top break-words text-muted-foreground line-through decoration-muted-foreground/40">{change.before}</TableCell>
+                          <TableCell className="align-top">
+                            <ArrowRight className="size-3.5 text-muted-foreground" aria-label="changed to" />
+                          </TableCell>
+                          <TableCell className="align-top break-words">{change.after}</TableCell>
+                        </>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>

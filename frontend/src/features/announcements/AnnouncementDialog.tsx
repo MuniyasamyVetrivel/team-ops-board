@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { isSuperAdmin } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
 import { useDepartments } from '@/features/departments/api';
+import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
 import { applyServerErrors } from '@/lib/api/form-errors';
 
 import { useSaveAnnouncement, type Announcement } from './api';
@@ -98,57 +99,59 @@ function AnnouncementForm({ announcement, onDone }: { announcement: Announcement
         <DialogTitle>{announcement ? 'Edit announcement' : 'New announcement'}</DialogTitle>
         <DialogDescription>People in the audience are notified when it is published.</DialogDescription>
       </DialogHeader>
-      <DialogBody className="space-y-4">
-        <FormBanner message={banner} />
-        <FormField id="title" label="Title" required error={errors.title?.message}>
-          <Input id="title" autoFocus aria-invalid={errors.title ? true : undefined} {...register('title')} />
-        </FormField>
-        <FormField id="body" label="Message" required error={errors.body?.message}>
-          <Textarea id="body" rows={5} aria-invalid={errors.body ? true : undefined} {...register('body')} />
-        </FormField>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField id="targetDepartmentId" label="Audience">
-            <Select id="targetDepartmentId" {...register('targetDepartmentId')}>
-              {everyone && <option value="">Everyone</option>}
-              {departments.data
-                ?.filter((d) => d.status === 'ACTIVE')
-                .map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-            </Select>
+      <DetailsWithHistory type="ANNOUNCEMENT" id={announcement?.id ?? null}>
+        <DialogBody className="space-y-4">
+          <FormBanner message={banner} />
+          <FormField id="title" label="Title" required error={errors.title?.message}>
+            <Input id="title" autoFocus aria-invalid={errors.title ? true : undefined} {...register('title')} />
           </FormField>
-          <FormField id="priority" label="Priority">
-            <Select id="priority" {...register('priority')}>
-              <option value="NORMAL">Normal</option>
-              <option value="IMPORTANT">Important</option>
-              <option value="URGENT">Urgent</option>
-            </Select>
+          <FormField id="body" label="Message" required error={errors.body?.message}>
+            <Textarea id="body" rows={5} aria-invalid={errors.body ? true : undefined} {...register('body')} />
           </FormField>
-          <FormField id="publishAt" label="Publish at" hint="Leave empty to publish now">
-            <Input id="publishAt" type="datetime-local" {...register('publishAt')} />
-          </FormField>
-          <FormField id="expiresAt" label="Expires at" error={errors.expiresAt?.message}>
-            <Input id="expiresAt" type="datetime-local" aria-invalid={errors.expiresAt ? true : undefined} {...register('expiresAt')} />
-          </FormField>
-        </div>
-        <div className="flex items-center gap-2">
-          <Checkbox id="ackRequired" {...register('ackRequired')} />
-          <Label htmlFor="ackRequired" className="font-normal">
-            Ask everyone to acknowledge it
-          </Label>
-        </div>
-      </DialogBody>
-      <DialogFooter>
-        <Button type="button" variant="outline" onClick={onDone}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden />}
-          {announcement ? 'Save changes' : 'Publish'}
-        </Button>
-      </DialogFooter>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField id="targetDepartmentId" label="Audience">
+              <Select id="targetDepartmentId" {...register('targetDepartmentId')}>
+                {everyone && <option value="">Everyone</option>}
+                {departments.data
+                  ?.filter((d) => d.status === 'ACTIVE')
+                  .map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+              </Select>
+            </FormField>
+            <FormField id="priority" label="Priority">
+              <Select id="priority" {...register('priority')}>
+                <option value="NORMAL">Normal</option>
+                <option value="IMPORTANT">Important</option>
+                <option value="URGENT">Urgent</option>
+              </Select>
+            </FormField>
+            <FormField id="publishAt" label="Publish at" hint="Leave empty to publish now">
+              <Input id="publishAt" type="datetime-local" {...register('publishAt')} />
+            </FormField>
+            <FormField id="expiresAt" label="Expires at" error={errors.expiresAt?.message}>
+              <Input id="expiresAt" type="datetime-local" aria-invalid={errors.expiresAt ? true : undefined} {...register('expiresAt')} />
+            </FormField>
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox id="ackRequired" {...register('ackRequired')} />
+            <Label htmlFor="ackRequired" className="font-normal">
+              Ask everyone to acknowledge it
+            </Label>
+          </div>
+        </DialogBody>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onDone}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden />}
+            {announcement ? 'Save changes' : 'Publish'}
+          </Button>
+        </DialogFooter>
+      </DetailsWithHistory>
     </form>
   );
 }

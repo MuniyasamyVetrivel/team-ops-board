@@ -1,7 +1,11 @@
 /**
  * Turns an audit entry's details document into what the viewer shows: before/after rows, added/removed lists and
  * any other facts. Shapes written by the backend:
- * - field edits: {changes: {field: {from, to}}} (AuditChanges), optionally with extra keys such as closedMonth;
+ * - field edits: {changes: {field: {from, to}}} (AuditChanges and the automatic record changes), optionally with extra
+ *   keys such as closedMonth. A change may carry flags: ref (the values are ids of that record type) with
+ *   fromLabel/toLabel (names of users and departments), finance (a money amount), hidden (a money amount the viewer
+ *   may not see) and redacted (a secret: no values are stored);
+ * - money inside business events that the viewer may not see is blanked and listed in hiddenFields;
  * - access changes: {before: {roles, permissions}, after: {roles, permissions}};
  * - role permission changes: {role, added: [...], removed: [...]};
  * - everything else: a flat object of facts (e.g. {code, name, steps}).
@@ -10,7 +14,16 @@ export interface ChangeRow {
   field: string;
   before: string;
   after: string;
+  /** Values are not shown: a finance amount the viewer may not see, or a secret that is never stored. */
+  masked?: 'finance' | 'secret';
 }
+
+export interface DescribeOptions {
+  /** False hides money amounts even if the server sent them (the server already hides them; this is a second guard). */
+  canSeeFinance?: boolean;
+}
+
+export const HIDDEN_VALUE = 'Hidden';
 
 export interface AuditDetails {
   changes: ChangeRow[];
@@ -48,7 +61,39 @@ export function displayValue(value: unknown): string {
 
 const strings = (value: unknown): string[] => (Array.isArray(value) ? value.map((v) => String(v)) : []);
 
-export function describeDetails(details: unknown): AuditDetails {
+/** "TAG" → "Tag", "MARKETING_LEAD" → "Marketing lead". */
+export function typeLabel(type: string): string {
+  const words = type.replace(/_/g, ' ').toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/** A changed value: a referenced record's name when known, "Tag #5" when only its id is, otherwise the value. */
+function changeValue(value: unknown, label: unknown, ref: unknown): string {
+  if (label !== undefined && label !== null) return displayValue(label);
+  if (typeof ref === 'string' && (typeof value === 'number' || Array.isArray(value))) {
+    const ids = Array.isArray(value) ? value : [value];
+    return ids.length === 0 ? '—' : ids.map((id) => `${typeLabel(ref)} #${String(id)}`).join(', ');
+  }
+  return displayValue(value);
+}
+
+function changeRow(field: string, change: JsonObject, options: DescribeOptions): ChangeRow {
+  const label = fieldLabel(field);
+  if (change.redacted === true) return { field: label, before: '—', after: 'Changed (not shown)', masked: 'secret' };
+  if (change.hidden === true || (change.finance === true && options.canSeeFinance === false)) {
+    return { field: label, before: HIDDEN_VALUE, after: HIDDEN_VALUE, masked: 'finance' };
+  }
+  return {
+    field: label,
+    before: changeValue(change.from, change.fromLabel, change.ref),
+    after: changeValue(change.to, change.toLabel, change.ref),
+  };
+}
+
+const isChange = (value: unknown): value is JsonObject =>
+  isObject(value) && ('from' in value || 'to' in value || value.hidden === true || value.redacted === true);
+
+export function describeDetails(details: unknown, options: DescribeOptions = {}): AuditDetails {
   const result: AuditDetails = { changes: [], added: [], removed: [], facts: [] };
   if (details === null || details === undefined) return result;
   if (!isObject(details)) {
@@ -60,8 +105,8 @@ export function describeDetails(details: unknown): AuditDetails {
   if (isObject(details.changes)) {
     consumed.add('changes');
     for (const [field, change] of Object.entries(details.changes)) {
-      if (isObject(change) && ('from' in change || 'to' in change)) {
-        result.changes.push({ field: fieldLabel(field), before: displayValue(change.from), after: displayValue(change.to) });
+      if (isChange(change)) {
+        result.changes.push(changeRow(field, change, options));
       } else {
         result.facts.push([fieldLabel(field), displayValue(change)]);
       }
@@ -88,15 +133,18 @@ export function describeDetails(details: unknown): AuditDetails {
     result.removed = strings(details.removed);
   }
 
+  const hidden = Array.isArray(details.hiddenFields) ? details.hiddenFields.map(String) : [];
+  consumed.add('hiddenFields');
   for (const [key, value] of Object.entries(details)) {
-    if (!consumed.has(key)) result.facts.push([fieldLabel(key), displayValue(value)]);
+    if (!consumed.has(key)) result.facts.push([fieldLabel(key), hidden.includes(key) ? HIDDEN_VALUE : displayValue(value)]);
   }
+  if (hidden.length > 0) result.facts.push(['Finance amounts', 'Hidden: you need Finance access to see them']);
   return result;
 }
 
 /** One line for the table: what changed, in brief. */
-export function summarizeDetails(details: unknown): string {
-  const described = describeDetails(details);
+export function summarizeDetails(details: unknown, options: DescribeOptions = {}): string {
+  const described = describeDetails(details, options);
   const parts: string[] = [];
   if (described.changes.length > 0) {
     const first = described.changes[0]!;

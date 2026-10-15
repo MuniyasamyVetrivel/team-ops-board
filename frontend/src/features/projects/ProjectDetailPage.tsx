@@ -27,9 +27,10 @@ import { Card } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useProjectOptions, useTasks } from '@/features/tasks/api';
+import { RecordHistory } from '@/features/history/RecordHistory';
 import { TaskDrawer } from '@/features/tasks/TaskDrawer';
 import { TaskTable } from '@/features/tasks/TaskTable';
+import { useProjectOptions, useTasks } from '@/features/tasks/api';
 import { parseLocalDate } from '@/features/tasks/task-meta';
 import { useTaskParam } from '@/features/tasks/use-task-param';
 import { useTeamDirectory } from '@/features/team/api';
@@ -138,6 +139,7 @@ export default function ProjectDetailPage() {
             <TabsTrigger value="tasks">Tasks ({p.tasks.total})</TabsTrigger>
             <TabsTrigger value="team">Team ({p.members.length})</TabsTrigger>
             <TabsTrigger value="dependencies">Depends on ({p.dependencies.length})</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
           <div className="px-4 pt-4 sm:px-6">
             <TabsContent value="milestones">
@@ -154,6 +156,9 @@ export default function ProjectDetailPage() {
             </TabsContent>
             <TabsContent value="dependencies">
               <DependenciesSection project={p} />
+            </TabsContent>
+            <TabsContent value="history" className="pb-2">
+              <RecordHistory type="PROJECT" id={p.id} />
             </TabsContent>
           </div>
         </Tabs>

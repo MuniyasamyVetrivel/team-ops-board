@@ -9,6 +9,7 @@ import { FormBanner, FormField } from '@/components/common/FormField';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
 import { PRIORITY_LABELS } from '@/features/tasks/task-meta';
 import { formatMinutes } from '@/features/tickets/ticket-meta';
 import { applyServerErrors } from '@/lib/api/form-errors';
@@ -65,26 +66,28 @@ function PolicyForm({ policy, onDone }: { policy: SlaPolicy; onDone: () => void 
         <DialogTitle>{PRIORITY_LABELS[policy.priority]} SLA</DialogTitle>
         <DialogDescription>New targets apply to tickets raised from now on. Existing tickets keep their due times.</DialogDescription>
       </DialogHeader>
-      <DialogBody className="space-y-4">
-        <FormBanner message={banner} />
-        <FormField id="firstResponseMinutes" label="First response (minutes)" required error={errors.firstResponseMinutes?.message}
-          hint={Number.isFinite(first) && first > 0 ? `= ${formatMinutes(first)}` : undefined}>
-          <Input id="firstResponseMinutes" type="number" min={1} max={MAX_MINUTES} aria-invalid={errors.firstResponseMinutes ? true : undefined} {...register('firstResponseMinutes')} />
-        </FormField>
-        <FormField id="resolutionMinutes" label="Resolution (minutes)" required error={errors.resolutionMinutes?.message}
-          hint={Number.isFinite(resolution) && resolution > 0 ? `= ${formatMinutes(resolution)}` : undefined}>
-          <Input id="resolutionMinutes" type="number" min={1} max={MAX_MINUTES} aria-invalid={errors.resolutionMinutes ? true : undefined} {...register('resolutionMinutes')} />
-        </FormField>
-      </DialogBody>
-      <DialogFooter>
-        <Button type="button" variant="outline" onClick={onDone}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden />}
-          Save targets
-        </Button>
-      </DialogFooter>
+      <DetailsWithHistory type="SLA_POLICY" id={policy.id}>
+        <DialogBody className="space-y-4">
+          <FormBanner message={banner} />
+          <FormField id="firstResponseMinutes" label="First response (minutes)" required error={errors.firstResponseMinutes?.message}
+            hint={Number.isFinite(first) && first > 0 ? `= ${formatMinutes(first)}` : undefined}>
+            <Input id="firstResponseMinutes" type="number" min={1} max={MAX_MINUTES} aria-invalid={errors.firstResponseMinutes ? true : undefined} {...register('firstResponseMinutes')} />
+          </FormField>
+          <FormField id="resolutionMinutes" label="Resolution (minutes)" required error={errors.resolutionMinutes?.message}
+            hint={Number.isFinite(resolution) && resolution > 0 ? `= ${formatMinutes(resolution)}` : undefined}>
+            <Input id="resolutionMinutes" type="number" min={1} max={MAX_MINUTES} aria-invalid={errors.resolutionMinutes ? true : undefined} {...register('resolutionMinutes')} />
+          </FormField>
+        </DialogBody>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onDone}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden />}
+            Save targets
+          </Button>
+        </DialogFooter>
+      </DetailsWithHistory>
     </form>
   );
 }

@@ -113,6 +113,48 @@ describe('ApprovalsPage', () => {
     });
   });
 
+  it('shows the request history with amounts hidden from people without Finance access', async () => {
+    mockApi({
+      'GET /approvals': () => page([item]),
+      'GET /approvals/types': () => types,
+      'GET /approvals/9': () => detail,
+      'GET /history/APPROVAL/9': () => ({
+        content: [
+          {
+            id: 70,
+            action: 'RECORD_CREATED',
+            actionLabel: 'Approval created',
+            module: 'APPROVALS',
+            moduleLabel: 'Approvals',
+            actor: karthik,
+            entityType: 'APPROVAL',
+            entityTypeLabel: 'Approval',
+            entityId: 9,
+            entityLabel: 'APR-000009',
+            parentType: null,
+            parentId: null,
+            details: { changes: { title: { from: null, to: 'New laptop' }, amount: { hidden: true, finance: true } } },
+            ipAddress: null,
+            userAgent: null,
+            createdAt: '2026-10-08T09:00:00Z',
+          },
+        ],
+        page: 0,
+        size: 50,
+        totalElements: 1,
+        totalPages: 1,
+      }),
+    });
+
+    renderPage(<ApprovalsPage />, manager, '/approvals?approval=9');
+
+    const drawer = await screen.findByRole('dialog');
+    await userEvent.click(await within(drawer).findByRole('tab', { name: 'History' }));
+    const created = await within(drawer).findByRole('article', { name: 'Approval created by Karthik Raj' });
+    expect(created).toHaveTextContent('TitleNew laptop');
+    expect(created).toHaveTextContent('AmountHidden (finance amount — needs Finance access)');
+  });
+
   it('asks for an amount on purchase requests and shows the approval path', async () => {
     const adapter = mockApi({ 'GET /approvals': () => page([]), 'GET /approvals/types': () => types, 'POST /approvals': () => ({ ...detail, id: 10 }), 'GET /approvals/10': () => detail });
 

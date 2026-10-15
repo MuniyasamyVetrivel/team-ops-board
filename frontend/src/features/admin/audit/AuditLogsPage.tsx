@@ -22,8 +22,12 @@ import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { useInitialSearch } from '@/lib/use-initial-search';
 import { cn } from '@/lib/utils';
 
+import { canSeeFinance } from '@/features/auth/permissions';
+import { useAuth } from '@/features/auth/use-auth';
+
 import { exportAuditLogs, useAuditCatalog, useAuditLogs, type AuditLogItem, type AuditQuery } from './api';
-import { summarizeDetails } from './audit-details';
+import { summarizeDetails, typeLabel } from './audit-details';
+import { RecordName } from './RecordName';
 import { AuditEntrySheet } from './AuditEntrySheet';
 
 const PAGE_SIZE = 50;
@@ -34,18 +38,24 @@ interface Filters {
   action: string;
   actorId: string;
   entityType: string;
+  entityId: string;
   from: string;
   to: string;
 }
 
-const NO_FILTERS: Filters = { event: '', module: '', action: '', actorId: '', entityType: '', from: '', to: '' };
+const NO_FILTERS: Filters = { event: '', module: '', action: '', actorId: '', entityType: '', entityId: '', from: '', to: '' };
 
 /**
  * Audit log viewer (AUDIT_VIEW): every audited action, newest first, filtered by the brief's audit events, module,
- * action, person, record type, dates and free text, with before/after values per entry and CSV export.
+ * action, person, record (type and id), dates and free text, with before/after values per entry and CSV export.
+ * Besides the modules' named events it lists the automatic record changes (created, edited, deleted) of every record;
+ * a record id filter also shows its children (comments, steps, attachments). Finance amounts are hidden from people
+ * without Finance access (by the server, and again here).
  */
 export default function AuditLogsPage() {
   const catalog = useAuditCatalog();
+  const { user } = useAuth();
+  const finance = canSeeFinance(user);
   const initialSearch = useInitialSearch();
   const [search, setSearch] = useState(initialSearch);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
@@ -63,6 +73,7 @@ export default function AuditLogsPage() {
     action: filters.action ? [filters.action] : undefined,
     actorId: filters.actorId ? Number(filters.actorId) : undefined,
     entityType: filters.entityType || undefined,
+    entityId: filters.entityType && /^\d+$/.test(filters.entityId) ? Number(filters.entityId) : undefined,
     from: filters.from || undefined,
     // An end before the start is shown as an error instead of being sent.
     to: (!rangeError && filters.to) || undefined,
@@ -72,10 +83,20 @@ export default function AuditLogsPage() {
   };
   const logs = useAuditLogs(query);
 
+  // A module also matches the automatic record changes of its record types.
   const actions = useMemo(
-    () => (catalog.data?.actions ?? []).filter((a) => !filters.module || a.module === filters.module),
+    () => (catalog.data?.actions ?? []).filter((a) => !filters.module || a.module === filters.module || a.module === 'RECORDS'),
     [catalog.data, filters.module],
   );
+  const recordTypes = useMemo(() => {
+    const known = catalog.data?.recordTypes ?? [];
+    const extra = (catalog.data?.entityTypes ?? [])
+      .filter((type) => !known.some((t) => t.type === type))
+      .map((type) => ({ type, label: typeLabel(type), module: null }));
+    return [...known, ...extra]
+      .filter((t) => !filters.module || filters.module === 'RECORDS' || t.module === filters.module || t.module === null)
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [catalog.data, filters.module]);
   const filtered = debounced !== '' || Object.values(filters).some((v) => v !== '');
 
   const set = (patch: Partial<Filters>) => {
@@ -98,7 +119,7 @@ export default function AuditLogsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Audit Logs"
-        description="Who changed what, and when: sign-ins, tasks, tickets, targets, rankings, campaigns, leads, backlinks, permissions and settings."
+        description="Who changed what, and when: every record created, edited or deleted, field by field, plus sign-ins, permissions and settings."
         actions={
           <Button variant="outline" onClick={() => void download()} disabled={exporting || logs.data?.totalElements === 0 || rangeError !== null}>
             {exporting ? <LoaderCircle className="animate-spin" aria-hidden /> : <Download aria-hidden />}
@@ -111,7 +132,7 @@ export default function AuditLogsPage() {
         <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <SearchInput
             className="sm:col-span-2"
-            placeholder="Search details, people or IP address…"
+            placeholder="Search details, records, people or IP address…"
             aria-label="Search audit log"
             value={search}
             onChange={(e) => {
@@ -151,11 +172,11 @@ export default function AuditLogsPage() {
               </option>
             ))}
           </Select>
-          <Select aria-label="Record type" value={filters.entityType} onChange={(e) => set({ entityType: e.target.value })}>
+          <Select aria-label="Record type" value={filters.entityType} onChange={(e) => set({ entityType: e.target.value, entityId: e.target.value ? filters.entityId : '' })}>
             <option value="">All record types</option>
-            {catalog.data?.entityTypes.map((t) => (
-              <option key={t} value={t}>
-                {t}
+            {recordTypes.map((t) => (
+              <option key={t.type} value={t.type}>
+                {t.label}
               </option>
             ))}
           </Select>
@@ -166,6 +187,20 @@ export default function AuditLogsPage() {
           </Select>
         </div>
         <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <Label htmlFor="audit-record-id" className="text-xs text-muted-foreground">
+              Record ID
+            </Label>
+            <Input
+              id="audit-record-id"
+              inputMode="numeric"
+              className="w-32"
+              placeholder={filters.entityType ? 'Any' : 'Pick a type'}
+              disabled={!filters.entityType}
+              value={filters.entityId}
+              onChange={(e) => set({ entityId: e.target.value.replace(/\D/g, '') })}
+            />
+          </div>
           <div className="space-y-1">
             <Label htmlFor="audit-from" className="text-xs text-muted-foreground">
               From
@@ -261,18 +296,11 @@ export default function AuditLogsPage() {
                       <span className="block text-sm font-medium">{entry.actionLabel}</span>
                       {entry.moduleLabel && <Badge tone="neutral" className="mt-1">{entry.moduleLabel}</Badge>}
                     </TableCell>
-                    <TableCell className="text-sm whitespace-nowrap">
-                      {entry.entityType ? (
-                        <>
-                          {entry.entityType}
-                          {entry.entityId !== null && <span className="text-muted-foreground"> #{entry.entityId}</span>}
-                        </>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
+                    <TableCell className="max-w-56 text-sm">
+                      <RecordName entry={entry} />
                     </TableCell>
                     <TableCell className="max-w-md text-sm text-muted-foreground">
-                      <span className="line-clamp-2">{summarizeDetails(entry.details) || '—'}</span>
+                      <span className="line-clamp-2">{summarizeDetails(entry.details, { canSeeFinance: finance }) || '—'}</span>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -283,7 +311,7 @@ export default function AuditLogsPage() {
         )}
       </Card>
 
-      <AuditEntrySheet entry={open} onClose={() => setOpen(null)} />
+      <AuditEntrySheet entry={open} onClose={() => setOpen(null)} canSeeFinance={finance} />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Pagination } from '@/components/common/Pagination';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { HistoryPanel } from '@/features/history/HistoryPanel';
 import { DueBadge } from '@/features/tasks/TaskBadges';
 import { parseLocalDate, PRIORITY_LABELS } from '@/features/tasks/task-meta';
 
@@ -155,6 +156,8 @@ export default function ActivityDetailPage() {
           </Card>
         </div>
       </div>
+
+      <HistoryPanel type="MARKETING_ACTIVITY" id={a.id} />
 
       <ActivityFormDialog open={editing} onOpenChange={setEditing} activity={a} onDeleted={() => void navigate('/digital-marketing/activities', { replace: true })} />
     </div>

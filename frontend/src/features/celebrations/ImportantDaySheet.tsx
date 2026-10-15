@@ -5,6 +5,7 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogDescription, DialogHeader, DialogTitle, SheetContent } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
 
 import { useImportantDay } from './api';
 import { OccasionBadge } from './CelebrationBadges';
@@ -56,33 +57,35 @@ function DayBody({ dayId, onClose }: { dayId: number; onClose: () => void }) {
           </div>
         )}
       </DialogHeader>
-      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
-        <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-          <Detail label={d.recurrence === 'YEARLY' ? 'Next on' : 'On'}>{formatOccasionDate(d.nextOccurrence)}</Detail>
-          {d.recurrence === 'YEARLY' && <Detail label="Since">{formatShortDate(d.date)}</Detail>}
-          <Detail label="Description">{d.description ?? <Muted>None</Muted>}</Detail>
-        </dl>
-        {d.marketingNotes && (
-          <section aria-labelledby="day-notes" className="space-y-1">
-            <h3 id="day-notes" className="text-sm font-semibold">
-              Marketing notes
+      <DetailsWithHistory type="IMPORTANT_DAY" id={d.id}>
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
+          <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+            <Detail label={d.recurrence === 'YEARLY' ? 'Next on' : 'On'}>{formatOccasionDate(d.nextOccurrence)}</Detail>
+            {d.recurrence === 'YEARLY' && <Detail label="Since">{formatShortDate(d.date)}</Detail>}
+            <Detail label="Description">{d.description ?? <Muted>None</Muted>}</Detail>
+          </dl>
+          {d.marketingNotes && (
+            <section aria-labelledby="day-notes" className="space-y-1">
+              <h3 id="day-notes" className="text-sm font-semibold">
+                Marketing notes
+              </h3>
+              <p className="rounded-lg border bg-muted/30 px-3 py-2 text-sm whitespace-pre-line">{d.marketingNotes}</p>
+            </section>
+          )}
+          <PostSection
+            post={d.linkedIn}
+            date={d.nextOccurrence}
+            canEdit={d.canEdit}
+            onEdit={() => setPosting({ subjectType: 'IMPORTANT_DAY', subjectId: d.id, occurrenceDate: d.nextOccurrence, title: d.name, post: d.linkedIn })}
+          />
+          <section aria-labelledby="day-files" className="space-y-2">
+            <h3 id="day-files" className="text-sm font-semibold">
+              Creatives
             </h3>
-            <p className="rounded-lg border bg-muted/30 px-3 py-2 text-sm whitespace-pre-line">{d.marketingNotes}</p>
+            <Files kind="important-days" id={d.id} canEdit={d.canEdit} />
           </section>
-        )}
-        <PostSection
-          post={d.linkedIn}
-          date={d.nextOccurrence}
-          canEdit={d.canEdit}
-          onEdit={() => setPosting({ subjectType: 'IMPORTANT_DAY', subjectId: d.id, occurrenceDate: d.nextOccurrence, title: d.name, post: d.linkedIn })}
-        />
-        <section aria-labelledby="day-files" className="space-y-2">
-          <h3 id="day-files" className="text-sm font-semibold">
-            Creatives
-          </h3>
-          <Files kind="important-days" id={d.id} canEdit={d.canEdit} />
-        </section>
-      </div>
+        </div>
+      </DetailsWithHistory>
       <ImportantDayFormDialog open={editing} onOpenChange={setEditing} day={d} onDeleted={onClose} />
       <LinkedInPostDialog target={posting} onClose={() => setPosting(null)} />
     </div>

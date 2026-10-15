@@ -16,7 +16,6 @@ import { cn } from '@/lib/utils';
 import { ACCEPTED_UPLOADS } from '@/lib/uploads';
 
 import { downloadTicketAttachment, useTicketAttachments, useTicketComments } from './api';
-import { ticketHistoryLabel, ticketHistoryValue } from './ticket-meta';
 import type { TicketDetail } from './types';
 
 async function attempt(action: Promise<unknown>, success?: string): Promise<boolean> {
@@ -191,28 +190,5 @@ export function TicketFilesSection({ ticket }: { ticket: TicketDetail }) {
       </Button>
       <p className="text-xs text-muted-foreground">Screenshots, logs or documents. PDF, Office, images, text, CSV or ZIP, up to 20 MB.</p>
     </div>
-  );
-}
-
-export function TicketHistorySection({ ticket }: { ticket: TicketDetail }) {
-  if (ticket.history.length === 0) return <Empty>No changes yet.</Empty>;
-  return (
-    <ol className="relative space-y-4 border-l pl-5">
-      {ticket.history.map((entry) => (
-        <li key={entry.id} className="text-sm">
-          <span className="absolute -left-1 mt-1.5 size-2 rounded-full bg-border" aria-hidden />
-          <p>
-            <span className="font-medium">{entry.changedBy?.fullName ?? 'System'}</span> {ticketHistoryLabel(entry.field)}
-            {(entry.oldValue !== null || entry.newValue !== null) && entry.field !== 'created' && (
-              <span className="text-muted-foreground">
-                {' '}
-                {ticketHistoryValue(entry.oldValue)} → {ticketHistoryValue(entry.newValue)}
-              </span>
-            )}
-          </p>
-          <p className="text-xs text-muted-foreground">{formatRelative(entry.changedAt)}</p>
-        </li>
-      ))}
-    </ol>
   );
 }

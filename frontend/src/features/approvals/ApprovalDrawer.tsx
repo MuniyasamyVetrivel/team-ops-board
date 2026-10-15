@@ -8,6 +8,7 @@ import { Dialog, DialogDescription, DialogTitle, SheetContent } from '@/componen
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
 import { parseLocalDate } from '@/features/tasks/task-meta';
 import { errorMessage } from '@/lib/api/errors';
 import { formatDateTime } from '@/lib/format';
@@ -64,45 +65,47 @@ function DrawerBody({ approval }: { approval: ApprovalDetail }) {
         <DialogTitle className="text-xl leading-snug">{approval.title}</DialogTitle>
         <DialogDescription className="sr-only">Approval request details</DialogDescription>
       </div>
-      <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
-        <div className="space-y-2.5">
-          <Row label="Requester">{approval.requester?.fullName ?? 'Former user'} · {approval.department.name}</Row>
-          <Row label="Amount">{formatAmount(approval.amount, approval.currency)}</Row>
-          <Row label="Needed by">{approval.dueDate ? dayFormat.format(parseLocalDate(approval.dueDate)) : '—'}</Row>
-          <Row label="Raised">{formatDateTime(approval.createdAt)}</Row>
-          {approval.decidedAt && <Row label="Finished">{formatDateTime(approval.decidedAt)}</Row>}
-        </div>
-        {approval.description && (
+      <DetailsWithHistory type="APPROVAL" id={approval.id}>
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
+          <div className="space-y-2.5">
+            <Row label="Requester">{approval.requester?.fullName ?? 'Former user'} · {approval.department.name}</Row>
+            <Row label="Amount">{formatAmount(approval.amount, approval.currency)}</Row>
+            <Row label="Needed by">{approval.dueDate ? dayFormat.format(parseLocalDate(approval.dueDate)) : '—'}</Row>
+            <Row label="Raised">{formatDateTime(approval.createdAt)}</Row>
+            {approval.decidedAt && <Row label="Finished">{formatDateTime(approval.decidedAt)}</Row>}
+          </div>
+          {approval.description && (
+            <section>
+              <h3 className="mb-1.5 text-sm font-semibold">Details</h3>
+              <p className="text-sm whitespace-pre-wrap">{approval.description}</p>
+            </section>
+          )}
           <section>
-            <h3 className="mb-1.5 text-sm font-semibold">Details</h3>
-            <p className="text-sm whitespace-pre-wrap">{approval.description}</p>
+            <h3 className="mb-3 text-sm font-semibold">Approval steps</h3>
+            <ol className="space-y-3" aria-label="Approval steps">
+              {approval.steps.map((step) => (
+                <li key={step.stepOrder} className={cn('rounded-lg border p-3', step.status === 'PENDING' && 'border-status-warning/50 bg-status-warning/5')}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-medium">
+                      <span className="text-muted-foreground">Step {step.stepOrder} · </span>
+                      {stepApprover(step)}
+                    </p>
+                    <StepStatusBadge status={step.status} />
+                  </div>
+                  {step.decidedAt && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {step.decidedBy?.fullName ?? 'Someone'} · {formatDateTime(step.decidedAt)}
+                    </p>
+                  )}
+                  {step.comment && <p className="mt-1.5 text-sm whitespace-pre-wrap">“{step.comment}”</p>}
+                </li>
+              ))}
+            </ol>
           </section>
-        )}
-        <section>
-          <h3 className="mb-3 text-sm font-semibold">Approval steps</h3>
-          <ol className="space-y-3" aria-label="Approval steps">
-            {approval.steps.map((step) => (
-              <li key={step.stepOrder} className={cn('rounded-lg border p-3', step.status === 'PENDING' && 'border-status-warning/50 bg-status-warning/5')}>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-medium">
-                    <span className="text-muted-foreground">Step {step.stepOrder} · </span>
-                    {stepApprover(step)}
-                  </p>
-                  <StepStatusBadge status={step.status} />
-                </div>
-                {step.decidedAt && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {step.decidedBy?.fullName ?? 'Someone'} · {formatDateTime(step.decidedAt)}
-                  </p>
-                )}
-                {step.comment && <p className="mt-1.5 text-sm whitespace-pre-wrap">“{step.comment}”</p>}
-              </li>
-            ))}
-          </ol>
-        </section>
-        {approval.permissions.canDecide && <DecisionPanel approval={approval} />}
-        {approval.permissions.canCancel && <CancelButton approval={approval} />}
-      </div>
+          {approval.permissions.canDecide && <DecisionPanel approval={approval} />}
+          {approval.permissions.canCancel && <CancelButton approval={approval} />}
+        </div>
+      </DetailsWithHistory>
     </>
   );
 }

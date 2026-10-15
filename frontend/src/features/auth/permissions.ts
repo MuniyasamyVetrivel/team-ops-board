@@ -50,6 +50,7 @@ export const PERMISSION_CODES = [
   'CONTENT_VIEW',
   'CONTENT_EDIT',
   'CELEBRATIONS_EDIT',
+  'FINANCE_VIEW',
 ] as const;
 
 export type PermissionCode = (typeof PERMISSION_CODES)[number];
@@ -73,6 +74,11 @@ export function hasPermission(user: Authorities | null | undefined, permission: 
 
 export function isSuperAdmin(user: Authorities | null | undefined): boolean {
   return user?.roles.includes('SUPER_ADMIN') ?? false;
+}
+
+/** Money amounts (budgets, spend, approval amounts), including in audit history. */
+export function canSeeFinance(user: Authorities | null | undefined): boolean {
+  return isSuperAdmin(user) || hasPermission(user, 'FINANCE_VIEW');
 }
 
 /** Highest-privilege role, for display. */

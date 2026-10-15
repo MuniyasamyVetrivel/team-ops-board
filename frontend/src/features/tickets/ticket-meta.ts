@@ -1,5 +1,3 @@
-import { PRIORITY_LABELS } from '@/features/tasks/task-meta';
-
 import type { SlaState, SlaStatus, TicketStatus } from './types';
 
 export const TICKET_STATUS_LABELS: Record<TicketStatus, string> = {
@@ -35,27 +33,4 @@ export function slaText(status: SlaStatus): string {
   if (status.remainingMinutes < 0) return `Overdue by ${formatMinutes(status.remainingMinutes)}`;
   const left = `${formatMinutes(status.remainingMinutes)} left`;
   return status.paused ? `Paused · ${left}` : left;
-}
-
-/** Human-readable label for a ticket_history field name. */
-export function ticketHistoryLabel(field: string): string {
-  const labels: Record<string, string> = {
-    created: 'raised the ticket',
-    status: 'changed status',
-    reopened: 'reopened the ticket',
-    assignee: 'changed assignee',
-    priority: 'changed priority',
-    category: 'changed category',
-    department: 'moved the ticket',
-    subject: 'renamed the ticket',
-    description: 'edited the description',
-    'first response': 'sent the first response',
-  };
-  return labels[field] ?? field;
-}
-
-/** Formats a history value: status and priority codes become labels. */
-export function ticketHistoryValue(value: string | null): string {
-  if (value === null || value === '') return '—';
-  return (TICKET_STATUS_LABELS as Record<string, string>)[value] ?? (PRIORITY_LABELS as Record<string, string>)[value] ?? value;
 }

@@ -21,6 +21,7 @@ import {
 } from '@/features/departments/api';
 import { hasPermission } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
+import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
 import { useTeamDirectory } from '@/features/team/api';
 import { errorMessage } from '@/lib/api/errors';
 
@@ -83,16 +84,18 @@ function DepartmentBody({ department }: { department: DepartmentDetail }) {
         </div>
       </div>
 
-      <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
-        <MemberList title={`People (${primary.length})`} members={primary} department={department} empty="Nobody has this as their primary department yet." />
-        <MemberList
-          title={`Cross-department members (${secondary.length})`}
-          members={secondary}
-          department={department}
-          empty="People from other departments who also work here."
-        />
-        {department.canManageMembers && department.status === 'ACTIVE' && <AddMember department={department} />}
-      </div>
+      <DetailsWithHistory type="DEPARTMENT" id={department.id}>
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
+          <MemberList title={`People (${primary.length})`} members={primary} department={department} empty="Nobody has this as their primary department yet." />
+          <MemberList
+            title={`Cross-department members (${secondary.length})`}
+            members={secondary}
+            department={department}
+            empty="People from other departments who also work here."
+          />
+          {department.canManageMembers && department.status === 'ACTIVE' && <AddMember department={department} />}
+        </div>
+      </DetailsWithHistory>
 
       <DepartmentFormDialog open={editing} onOpenChange={setEditing} department={department} />
     </>

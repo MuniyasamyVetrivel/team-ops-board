@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogDescription, DialogHeader, DialogTitle, SheetContent } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { errorMessage } from '@/lib/api/errors';
+import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
 
 import { useEmployee, useEmployeePhotoMutations, type Employee } from './api';
 import { EmployeeAvatar } from './CelebrationBadges';
@@ -65,41 +66,43 @@ function EmployeeBody({ employeeId, onClose }: { employeeId: number; onClose: ()
           </div>
         )}
       </DialogHeader>
-      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
-        <section aria-label="Celebrations" className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border p-4">
-            <p className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Cake className="size-4 text-occasion-birthday" aria-hidden />
-              Birthday
-            </p>
-            <p className="mt-1 font-semibold">{dayMonth(e.birthMonth, e.birthDay)}</p>
-            <p className="text-xs text-muted-foreground">{e.dateOfBirth ? `Born ${formatShortDate(e.dateOfBirth)}` : `Next on ${formatShortDate(e.nextBirthday)}`}</p>
-          </div>
-          <div className="rounded-xl border p-4">
-            <p className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Award className="size-4 text-occasion-anniversary" aria-hidden />
-              Work anniversary
-            </p>
-            {e.nextAnniversary && e.nextAnniversaryYears !== null ? (
-              <>
-                <p className="mt-1 font-semibold">{yearsLabel(e.nextAnniversaryYears)}</p>
-                <p className="text-xs text-muted-foreground">On {formatShortDate(e.nextAnniversary)}</p>
-              </>
-            ) : (
-              <p className="mt-1 text-sm text-muted-foreground">No date of joining</p>
-            )}
-          </div>
-        </section>
-        <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-          <Detail label="Employee ID">{e.employeeCode}</Detail>
-          <Detail label="Reports to">{e.reportingManager}</Detail>
-          <Detail label="Department">{e.department?.name ?? <Muted>None</Muted>}</Detail>
-          <Detail label="Joined">{formatShortDate(e.dateOfJoining) ?? <Muted>Not recorded</Muted>}</Detail>
-          <Detail label="Work email">{e.workEmail ?? <Muted>None</Muted>}</Detail>
-          <Detail label="Office">{e.officeLocation ?? <Muted>None</Muted>}</Detail>
-          <Detail label="App user">{e.user ? <UserCell name={e.user.fullName} detail={e.user.email} /> : <Muted>Does not sign in</Muted>}</Detail>
-        </dl>
-      </div>
+      <DetailsWithHistory type="EMPLOYEE" id={e.id}>
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
+          <section aria-label="Celebrations" className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border p-4">
+              <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Cake className="size-4 text-occasion-birthday" aria-hidden />
+                Birthday
+              </p>
+              <p className="mt-1 font-semibold">{dayMonth(e.birthMonth, e.birthDay)}</p>
+              <p className="text-xs text-muted-foreground">{e.dateOfBirth ? `Born ${formatShortDate(e.dateOfBirth)}` : `Next on ${formatShortDate(e.nextBirthday)}`}</p>
+            </div>
+            <div className="rounded-xl border p-4">
+              <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Award className="size-4 text-occasion-anniversary" aria-hidden />
+                Work anniversary
+              </p>
+              {e.nextAnniversary && e.nextAnniversaryYears !== null ? (
+                <>
+                  <p className="mt-1 font-semibold">{yearsLabel(e.nextAnniversaryYears)}</p>
+                  <p className="text-xs text-muted-foreground">On {formatShortDate(e.nextAnniversary)}</p>
+                </>
+              ) : (
+                <p className="mt-1 text-sm text-muted-foreground">No date of joining</p>
+              )}
+            </div>
+          </section>
+          <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+            <Detail label="Employee ID">{e.employeeCode}</Detail>
+            <Detail label="Reports to">{e.reportingManager}</Detail>
+            <Detail label="Department">{e.department?.name ?? <Muted>None</Muted>}</Detail>
+            <Detail label="Joined">{formatShortDate(e.dateOfJoining) ?? <Muted>Not recorded</Muted>}</Detail>
+            <Detail label="Work email">{e.workEmail ?? <Muted>None</Muted>}</Detail>
+            <Detail label="Office">{e.officeLocation ?? <Muted>None</Muted>}</Detail>
+            <Detail label="App user">{e.user ? <UserCell name={e.user.fullName} detail={e.user.email} /> : <Muted>Does not sign in</Muted>}</Detail>
+          </dl>
+        </div>
+      </DetailsWithHistory>
       <EmployeeFormDialog open={editing} onOpenChange={setEditing} employee={e} onDeleted={onClose} />
     </div>
   );

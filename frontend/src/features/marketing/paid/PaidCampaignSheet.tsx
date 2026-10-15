@@ -16,6 +16,7 @@ import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
+import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
 import { parseLocalDate } from '@/features/tasks/task-meta';
 import { applyServerErrors } from '@/lib/api/form-errors';
 
@@ -110,100 +111,102 @@ function CampaignBody({ campaignId, month, year, onClose }: { campaignId: number
           </div>
         )}
       </DialogHeader>
-      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
-        <section aria-label="Campaign totals" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <MarketingKpiCard label="Budget" icon={Wallet} value={progress.budget} format="currency" />
-          <MarketingKpiCard
-            label="Spent"
-            icon={ReceiptIndianRupee}
-            value={progress.spent}
-            format="currency"
-            hint={budgetUsedText(progress)}
-            progress={<BudgetBar label={`${campaign.name} budget used`} progress={progress} bare />}
-          />
-          <MarketingKpiCard label="Remaining" icon={PiggyBank} value={progress.remaining} format="currency" critical={progress.overBudget} hint={progress.overBudget ? 'Over budget' : 'Budget − spent'} />
-          <MarketingKpiCard label="Leads" icon={UserPlus} value={results.leads} hint={`${formatCount(results.clicks)} clicks · CTR ${formatPercent(campaign.lifetime.rates.ctr)}`} />
-          <MarketingKpiCard label="Cost per lead" icon={IndianRupee} value={campaign.lifetime.rates.costPerLead} format="currency" hint={PAID_RATE_HINTS.costPerLead} />
-        </section>
-        {campaign.notes && <p className="rounded-lg border bg-muted/30 px-3 py-2 text-sm whitespace-pre-line">{campaign.notes}</p>}
+      <DetailsWithHistory type="PAID_CAMPAIGN" id={campaign.id}>
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
+          <section aria-label="Campaign totals" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <MarketingKpiCard label="Budget" icon={Wallet} value={progress.budget} format="currency" />
+            <MarketingKpiCard
+              label="Spent"
+              icon={ReceiptIndianRupee}
+              value={progress.spent}
+              format="currency"
+              hint={budgetUsedText(progress)}
+              progress={<BudgetBar label={`${campaign.name} budget used`} progress={progress} bare />}
+            />
+            <MarketingKpiCard label="Remaining" icon={PiggyBank} value={progress.remaining} format="currency" critical={progress.overBudget} hint={progress.overBudget ? 'Over budget' : 'Budget − spent'} />
+            <MarketingKpiCard label="Leads" icon={UserPlus} value={results.leads} hint={`${formatCount(results.clicks)} clicks · CTR ${formatPercent(campaign.lifetime.rates.ctr)}`} />
+            <MarketingKpiCard label="Cost per lead" icon={IndianRupee} value={campaign.lifetime.rates.costPerLead} format="currency" hint={PAID_RATE_HINTS.costPerLead} />
+          </section>
+          {campaign.notes && <p className="rounded-lg border bg-muted/30 px-3 py-2 text-sm whitespace-pre-line">{campaign.notes}</p>}
 
-        {canEdit && mode.kind === 'record' && <MonthForm detail={detail.data} periods={open} defaultMonth={month} defaultYear={year} onDone={() => setMode({ kind: 'view' })} />}
-        {canEdit && mode.kind === 'correct' && <MonthForm detail={detail.data} row={mode.row} onDone={() => setMode({ kind: 'view' })} />}
+          {canEdit && mode.kind === 'record' && <MonthForm detail={detail.data} periods={open} defaultMonth={month} defaultYear={year} onDone={() => setMode({ kind: 'view' })} />}
+          {canEdit && mode.kind === 'correct' && <MonthForm detail={detail.data} row={mode.row} onDone={() => setMode({ kind: 'view' })} />}
 
-        <section aria-labelledby="paid-months" className="space-y-2">
-          <div className="flex items-center justify-between gap-3">
-            <h3 id="paid-months" className="text-sm font-semibold">
-              Monthly results
-            </h3>
-            {canEdit && mode.kind === 'view' && campaign.status !== 'DRAFT' && open.length > 0 && (
-              <Button size="sm" onClick={() => setMode({ kind: 'record' })}>
-                <Plus aria-hidden />
-                Record a month
-              </Button>
-            )}
-          </div>
-          {canEdit && campaign.status === 'DRAFT' && <p className="text-sm text-muted-foreground">A draft has no results yet. Set the campaign to active to record its months.</p>}
-          {months.length === 0 ? (
-            <EmptyState icon={History} title="No results recorded yet" description="Record each month's spend, impressions, clicks, leads and conversions." />
-          ) : (
-            <Table aria-label="Monthly results">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Month</TableHead>
-                  <TableHead numeric>Spend</TableHead>
-                  <TableHead numeric>Impressions</TableHead>
-                  <TableHead numeric>Clicks</TableHead>
-                  <TableHead numeric>CTR</TableHead>
-                  <TableHead numeric>Leads</TableHead>
-                  <TableHead numeric>Cost per lead</TableHead>
-                  <TableHead>Recorded</TableHead>
-                  {canEdit && (
-                    <TableHead>
-                      <span className="sr-only">Actions</span>
-                    </TableHead>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {newestFirst.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="text-sm font-medium whitespace-nowrap">
-                      {row.period.label}
-                      {row.notes && <p className="max-w-44 truncate text-xs font-normal text-muted-foreground" title={row.notes}>{row.notes}</p>}
-                    </TableCell>
-                    <TableCell numeric>{formatInr(row.figures.results.spend)}</TableCell>
-                    <TableCell numeric>{formatCount(row.figures.results.impressions)}</TableCell>
-                    <TableCell numeric>{formatCount(row.figures.results.clicks)}</TableCell>
-                    <TableCell numeric>{formatPercent(row.figures.rates.ctr)}</TableCell>
-                    <TableCell numeric>{formatCount(row.figures.results.leads)}</TableCell>
-                    <TableCell numeric>{formatInr(row.figures.rates.costPerLead)}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      <Badge tone="neutral">{SOURCE_LABELS[row.source]}</Badge>
-                      <p className="mt-0.5">
-                        {row.recordedBy?.fullName ?? 'Unknown'} · {dayFormat.format(new Date(row.updatedAt))}
-                      </p>
-                    </TableCell>
+          <section aria-labelledby="paid-months" className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <h3 id="paid-months" className="text-sm font-semibold">
+                Monthly results
+              </h3>
+              {canEdit && mode.kind === 'view' && campaign.status !== 'DRAFT' && open.length > 0 && (
+                <Button size="sm" onClick={() => setMode({ kind: 'record' })}>
+                  <Plus aria-hidden />
+                  Record a month
+                </Button>
+              )}
+            </div>
+            {canEdit && campaign.status === 'DRAFT' && <p className="text-sm text-muted-foreground">A draft has no results yet. Set the campaign to active to record its months.</p>}
+            {months.length === 0 ? (
+              <EmptyState icon={History} title="No results recorded yet" description="Record each month's spend, impressions, clicks, leads and conversions." />
+            ) : (
+              <Table aria-label="Monthly results">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Month</TableHead>
+                    <TableHead numeric>Spend</TableHead>
+                    <TableHead numeric>Impressions</TableHead>
+                    <TableHead numeric>Clicks</TableHead>
+                    <TableHead numeric>CTR</TableHead>
+                    <TableHead numeric>Leads</TableHead>
+                    <TableHead numeric>Cost per lead</TableHead>
+                    <TableHead>Recorded</TableHead>
                     {canEdit && (
-                      <TableCell>
-                        {row.correctable ? (
-                          <Button variant="ghost" size="icon" aria-label={`Correct ${row.period.label}`} disabled={mode.kind !== 'view'} onClick={() => setMode({ kind: 'correct', row })}>
-                            <Pencil aria-hidden />
-                          </Button>
-                        ) : (
-                          <span className="inline-flex text-muted-foreground" title="Closed month: only the current and previous month can be corrected">
-                            <Lock className="size-4" aria-hidden />
-                            <span className="sr-only">{row.period.label} is closed</span>
-                          </span>
-                        )}
-                      </TableCell>
+                      <TableHead>
+                        <span className="sr-only">Actions</span>
+                      </TableHead>
                     )}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </section>
-      </div>
+                </TableHeader>
+                <TableBody>
+                  {newestFirst.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell className="text-sm font-medium whitespace-nowrap">
+                        {row.period.label}
+                        {row.notes && <p className="max-w-44 truncate text-xs font-normal text-muted-foreground" title={row.notes}>{row.notes}</p>}
+                      </TableCell>
+                      <TableCell numeric>{formatInr(row.figures.results.spend)}</TableCell>
+                      <TableCell numeric>{formatCount(row.figures.results.impressions)}</TableCell>
+                      <TableCell numeric>{formatCount(row.figures.results.clicks)}</TableCell>
+                      <TableCell numeric>{formatPercent(row.figures.rates.ctr)}</TableCell>
+                      <TableCell numeric>{formatCount(row.figures.results.leads)}</TableCell>
+                      <TableCell numeric>{formatInr(row.figures.rates.costPerLead)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        <Badge tone="neutral">{SOURCE_LABELS[row.source]}</Badge>
+                        <p className="mt-0.5">
+                          {row.recordedBy?.fullName ?? 'Unknown'} · {dayFormat.format(new Date(row.updatedAt))}
+                        </p>
+                      </TableCell>
+                      {canEdit && (
+                        <TableCell>
+                          {row.correctable ? (
+                            <Button variant="ghost" size="icon" aria-label={`Correct ${row.period.label}`} disabled={mode.kind !== 'view'} onClick={() => setMode({ kind: 'correct', row })}>
+                              <Pencil aria-hidden />
+                            </Button>
+                          ) : (
+                            <span className="inline-flex text-muted-foreground" title="Closed month: only the current and previous month can be corrected">
+                              <Lock className="size-4" aria-hidden />
+                              <span className="sr-only">{row.period.label} is closed</span>
+                            </span>
+                          )}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </section>
+        </div>
+      </DetailsWithHistory>
       <PaidCampaignFormDialog open={editing} onOpenChange={setEditing} campaign={campaign} hasResults={months.length > 0} onDeleted={onClose} />
     </div>
   );

@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/features/auth/use-auth';
 import { useDepartments } from '@/features/departments/api';
+import { RecordHistory } from '@/features/history/RecordHistory';
 import { PRIORITY_LABELS } from '@/features/tasks/task-meta';
 import { PRIORITIES } from '@/features/tasks/types';
 import { useTeamDirectory } from '@/features/team/api';
@@ -20,7 +21,7 @@ import { cn } from '@/lib/utils';
 
 import { ticketKeys, toUpdateTicketInput, useAssignTicket, useChangeTicketStatus, useTicket, useTicketCategories, useUpdateTicket } from './api';
 import { SlaCountdown, SlaStateBadge, TicketStatusBadge } from './TicketBadges';
-import { ConversationSection, TicketFilesSection, TicketHistorySection } from './TicketDrawerSections';
+import { ConversationSection, TicketFilesSection } from './TicketDrawerSections';
 import { TICKET_STATUS_LABELS } from './ticket-meta';
 import type { SlaStatus, TicketDetail, TicketPriority, TicketStatus, UpdateTicketInput } from './types';
 
@@ -123,7 +124,7 @@ function TicketDrawerBody({ ticket }: { ticket: TicketDetail }) {
               <TicketFilesSection ticket={ticket} />
             </TabsContent>
             <TabsContent value="history">
-              <TicketHistorySection ticket={ticket} />
+              <RecordHistory type="TICKET" id={ticket.id} />
             </TabsContent>
           </div>
         </Tabs>

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { HistoryPanel } from '@/features/history/HistoryPanel';
 import { formatBytes } from '@/features/tasks/task-meta';
 import { errorMessage } from '@/lib/api/errors';
 import { formatDate, formatRelative } from '@/lib/format';
@@ -82,6 +83,7 @@ export default function ArticlePage() {
         <Markdown>{a.body}</Markdown>
       </Card>
       <Attachments article={a} />
+      {a.canEdit && <HistoryPanel type="ARTICLE" id={a.id} />}
       <ArticleEditorDialog open={editing} article={a} onOpenChange={setEditing} onSaved={(saved) => saved.slug !== slug && void navigate(`/knowledge-base/${saved.slug}`)} />
     </div>
   );

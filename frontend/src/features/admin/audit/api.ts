@@ -4,7 +4,11 @@ import { api } from '@/lib/api/client';
 import { downloadFile } from '@/lib/api/download';
 import { cleanParams, serializeParams, type PageResponse, type UserSummary } from '@/lib/api/types';
 
-/** Mirrors AuditLogDtos.AuditLogItem. {@code details} is the stored JSON document, parsed; its shape depends on the action. */
+/**
+ * Mirrors AuditLogDtos.AuditLogItem. {@code details} is the stored JSON document, parsed; its shape depends on the
+ * action (see audit-details.ts). {@code actor} is null for the system. {@code parentType}/{@code parentId} name the
+ * record this one belongs to (a comment's task). IP address and browser are only sent to audit viewers.
+ */
 export interface AuditLogItem {
   id: number;
   action: string;
@@ -13,7 +17,11 @@ export interface AuditLogItem {
   moduleLabel: string | null;
   actor: UserSummary | null;
   entityType: string | null;
+  entityTypeLabel: string | null;
   entityId: number | null;
+  entityLabel: string | null;
+  parentType: string | null;
+  parentId: number | null;
   details: unknown;
   ipAddress: string | null;
   userAgent: string | null;
@@ -39,13 +47,28 @@ export interface EventInfo {
   actions: string[];
 }
 
+/** A record type with automatic history (for the record type filter). */
+export interface RecordTypeInfo {
+  type: string;
+  label: string;
+  module: string | null;
+}
+
 /** Mirrors AuditLogDtos.Catalog: everything the filters offer. */
 export interface AuditCatalog {
   modules: ModuleInfo[];
   actions: ActionInfo[];
   events: EventInfo[];
   entityTypes: string[];
+  recordTypes: RecordTypeInfo[];
   actors: UserSummary[];
+}
+
+/** Created, edited, deleted, restored and permanently deleted: written automatically for every record. */
+export const RECORD_ACTIONS = ['RECORD_CREATED', 'RECORD_UPDATED', 'RECORD_DELETED', 'RECORD_RESTORED', 'RECORD_PURGED'] as const;
+
+export function isRecordAction(action: string): boolean {
+  return (RECORD_ACTIONS as readonly string[]).includes(action);
 }
 
 /** Filters; {@code from}/{@code to} are business days (inclusive). */

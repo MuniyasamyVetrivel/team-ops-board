@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/features/auth/use-auth';
+import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
 import { applyServerErrors } from '@/lib/api/form-errors';
 import { errorMessage } from '@/lib/api/errors';
 
@@ -125,56 +126,58 @@ function TargetForm({ target, type: newType, month, year, planned, onDone }: Omi
         </DialogTitle>
         <DialogDescription>{editing ? 'Changes are audited with the old and new values.' : 'One target per type and month; earlier months are kept as they were.'}</DialogDescription>
       </DialogHeader>
-      <DialogBody className="space-y-4">
-        <FormBanner message={banner} />
-        <FormField id="targetValue" label="Target" required error={errors.targetValue?.message}>
-          <Input id="targetValue" inputMode="decimal" autoFocus aria-invalid={errors.targetValue ? true : undefined} aria-describedby="targetValue-message" {...register('targetValue')} />
-        </FormField>
-        {actualEditable ? (
-          <FormField id="actualValue" label="Actual" hint="Leave empty if nothing has been achieved yet" error={errors.actualValue?.message}>
-            <Input id="actualValue" inputMode="decimal" aria-invalid={errors.actualValue ? true : undefined} aria-describedby="actualValue-message" {...register('actualValue')} />
+      <DetailsWithHistory type="MARKETING_TARGET" id={target?.id ?? null}>
+        <DialogBody className="space-y-4">
+          <FormBanner message={banner} />
+          <FormField id="targetValue" label="Target" required error={errors.targetValue?.message}>
+            <Input id="targetValue" inputMode="decimal" autoFocus aria-invalid={errors.targetValue ? true : undefined} aria-describedby="targetValue-message" {...register('targetValue')} />
           </FormField>
-        ) : (
-          <div className="rounded-lg border bg-muted/40 px-3 py-2.5 text-sm">
-            <p className="font-medium">Actual</p>
-            <p className="text-muted-foreground">
-              {planned
-                ? 'Entered once the month has started.'
-                : target?.actualOrigin === 'MANUAL'
-                  ? `${formatMetric(target.actual, format)}, recorded by hand before this became automatic (kept as it was).`
-                  : `Calculated automatically: ${ACTUAL_SOURCE_LABELS[type.actualSource].toLowerCase()}${target ? ` (${formatMetric(target.actual, format)} so far)` : ''}.`}
-            </p>
-          </div>
-        )}
-        <FormField id="ownerId" label="Owner">
-          <Select id="ownerId" {...register('ownerId')}>
-            <option value="">No owner</option>
-            {ownerOptions.map((owner) => (
-              <option key={owner.id} value={owner.id}>
-                {owner.fullName}
-              </option>
-            ))}
-          </Select>
-        </FormField>
-        <FormField id="notes" label="Notes" error={errors.notes?.message}>
-          <Textarea id="notes" rows={2} aria-invalid={errors.notes ? true : undefined} aria-describedby="notes-message" {...register('notes')} />
-        </FormField>
-      </DialogBody>
-      <DialogFooter>
-        {editing && (
-          <Button type="button" variant="ghost" className="mr-auto text-destructive" disabled={remove.isPending} onClick={() => (confirmingDelete ? void onDelete() : setConfirmingDelete(true))}>
-            <Trash2 aria-hidden />
-            {confirmingDelete ? 'Confirm remove' : 'Remove target'}
+          {actualEditable ? (
+            <FormField id="actualValue" label="Actual" hint="Leave empty if nothing has been achieved yet" error={errors.actualValue?.message}>
+              <Input id="actualValue" inputMode="decimal" aria-invalid={errors.actualValue ? true : undefined} aria-describedby="actualValue-message" {...register('actualValue')} />
+            </FormField>
+          ) : (
+            <div className="rounded-lg border bg-muted/40 px-3 py-2.5 text-sm">
+              <p className="font-medium">Actual</p>
+              <p className="text-muted-foreground">
+                {planned
+                  ? 'Entered once the month has started.'
+                  : target?.actualOrigin === 'MANUAL'
+                    ? `${formatMetric(target.actual, format)}, recorded by hand before this became automatic (kept as it was).`
+                    : `Calculated automatically: ${ACTUAL_SOURCE_LABELS[type.actualSource].toLowerCase()}${target ? ` (${formatMetric(target.actual, format)} so far)` : ''}.`}
+              </p>
+            </div>
+          )}
+          <FormField id="ownerId" label="Owner">
+            <Select id="ownerId" {...register('ownerId')}>
+              <option value="">No owner</option>
+              {ownerOptions.map((owner) => (
+                <option key={owner.id} value={owner.id}>
+                  {owner.fullName}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+          <FormField id="notes" label="Notes" error={errors.notes?.message}>
+            <Textarea id="notes" rows={2} aria-invalid={errors.notes ? true : undefined} aria-describedby="notes-message" {...register('notes')} />
+          </FormField>
+        </DialogBody>
+        <DialogFooter>
+          {editing && (
+            <Button type="button" variant="ghost" className="mr-auto text-destructive" disabled={remove.isPending} onClick={() => (confirmingDelete ? void onDelete() : setConfirmingDelete(true))}>
+              <Trash2 aria-hidden />
+              {confirmingDelete ? 'Confirm remove' : 'Remove target'}
+            </Button>
+          )}
+          <Button type="button" variant="outline" onClick={onDone}>
+            Cancel
           </Button>
-        )}
-        <Button type="button" variant="outline" onClick={onDone}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden />}
-          {editing ? 'Save changes' : 'Set target'}
-        </Button>
-      </DialogFooter>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden />}
+            {editing ? 'Save changes' : 'Set target'}
+          </Button>
+        </DialogFooter>
+      </DetailsWithHistory>
     </form>
   );
 }

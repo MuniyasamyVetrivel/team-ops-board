@@ -14,13 +14,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { isSuperAdmin } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
 import { useDepartments } from '@/features/departments/api';
+import { RecordHistory } from '@/features/history/RecordHistory';
 import { useTeamDirectory } from '@/features/team/api';
 import { errorMessage, toApiError } from '@/lib/api/errors';
 import { formatDate } from '@/lib/format';
 
 import { taskKeys, toUpdateInput, useAssignTask, useChangeStatus, useProjectOptions, useTask, useUpdateTask } from './api';
 import { DueBadge, TaskStatusBadge } from './TaskBadges';
-import { AttachmentsSection, ChecklistSection, CommentsSection, DependenciesSection, HistorySection, WatchersSection } from './TaskDrawerSections';
+import { AttachmentsSection, ChecklistSection, CommentsSection, DependenciesSection, WatchersSection } from './TaskDrawerSections';
 import { PRIORITY_LABELS, STATUS_LABELS } from './task-meta';
 import { ALL_STATUSES, PRIORITIES, type TaskDetail, type TaskPriority, type TaskStatus, type UpdateTaskInput } from './types';
 
@@ -124,7 +125,7 @@ function TaskDrawerBody({ task, onClose }: { task: TaskDetail; onClose: () => vo
               <WatchersSection task={task} onLostAccess={onClose} />
             </TabsContent>
             <TabsContent value="history">
-              <HistorySection task={task} />
+              <RecordHistory type="TASK" id={task.id} />
             </TabsContent>
           </div>
         </Tabs>

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { HistoryPanel } from '@/features/history/HistoryPanel';
 
 import { MarketingFilterBar } from '../components/MarketingFilterBar';
 import { MarketingKpiCard } from '../components/MarketingKpiCard';
@@ -110,6 +111,8 @@ export default function SeoPageDetailPage() {
       <PageHistoryPanel pageId={p.id} month={filters.month} year={filters.year} />
 
       <PageKeywords pageId={p.id} ownerId={p.owner?.id ?? null} month={filters.month} year={filters.year} canEdit={p.permissions.canEdit} canAdd={p.permissions.canEdit && p.status !== 'ARCHIVED'} />
+
+      <HistoryPanel type="SEO_PAGE" id={p.id} />
 
       <PageFormDialog open={editing} onOpenChange={setEditing} page={p} onDeleted={() => void navigate('/digital-marketing/seo', { replace: true })} />
     </div>

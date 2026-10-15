@@ -4,7 +4,7 @@ import type { InternalAxiosRequestConfig } from 'axios';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '@/lib/api/client';
-import { superAdmin } from '@/test/fixtures';
+import { makeUser, superAdmin } from '@/test/fixtures';
 import { mockApi, renderPage } from '@/test/render';
 
 import type { AuditCatalog, AuditLogItem } from './api';
@@ -30,7 +30,13 @@ const catalog: AuditCatalog = {
     { key: 'TASK_STATUS_CHANGE', label: 'Task status change', actions: ['TASK_STATUS_CHANGED'] },
     { key: 'USER_PERMISSION_CHANGE', label: 'User permission change', actions: ['ROLE_PERMISSIONS_CHANGED', 'USER_ACCESS_CHANGED'] },
   ],
-  entityTypes: ['ROLE', 'TASK', 'USER'],
+  entityTypes: ['IMPORT', 'ROLE', 'TASK', 'USER'],
+  recordTypes: [
+    { type: 'ROLE', label: 'Role', module: 'USERS' },
+    { type: 'TASK', label: 'Task', module: 'TASKS' },
+    { type: 'TASK_COMMENT', label: 'Task comment', module: 'TASKS' },
+    { type: 'USER', label: 'User', module: 'USERS' },
+  ],
   actors: [priya],
 };
 
@@ -42,7 +48,11 @@ const statusChange: AuditLogItem = {
   moduleLabel: 'Tasks',
   actor: priya,
   entityType: 'TASK',
+  entityTypeLabel: null,
   entityId: 128,
+  entityLabel: null,
+  parentType: null,
+  parentId: null,
   details: { changes: { status: { from: 'IN_PROGRESS', to: 'COMPLETED' } } },
   ipAddress: '10.0.0.5',
   userAgent: 'Mozilla/5.0',
@@ -127,6 +137,78 @@ describe('AuditLogsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Clear filters' }));
     expect(requests.at(-1)?.params).toEqual({ sort: 'created,desc', page: 0, size: 50 });
   }, 15_000);
+
+  it('filters one record and shows automatic changes with record names, parents and labels', async () => {
+    const user = userEvent.setup();
+    const requests: InternalAxiosRequestConfig[] = [];
+    const commentAdded: AuditLogItem = {
+      ...statusChange,
+      id: 50,
+      action: 'RECORD_CREATED',
+      actionLabel: 'Task comment created',
+      entityType: 'TASK_COMMENT',
+      entityTypeLabel: 'Task comment',
+      entityId: 9,
+      parentType: 'TASK',
+      parentId: 128,
+      details: { changes: { body: { from: null, to: 'On it' } } },
+    };
+    const reassigned: AuditLogItem = {
+      ...statusChange,
+      id: 51,
+      action: 'RECORD_UPDATED',
+      actionLabel: 'Task edited',
+      entityTypeLabel: 'Task',
+      entityLabel: 'TSK-000128',
+      details: { changes: { assignee: { from: 4, to: 7, ref: 'USER', fromLabel: 'Karthik Raj', toLabel: 'Priya Menon' } } },
+    };
+    mockApi(routes({ 'GET /admin/audit-logs': (config) => (requests.push(config), page([reassigned, commentAdded])) }));
+    renderPage(<AuditLogsPage />, superAdmin);
+
+    const table = await screen.findByRole('table', { name: 'Audit log entries' });
+    const edit = within(table).getByRole('row', { name: 'Task edited by Priya Menon' });
+    expect(edit).toHaveTextContent('Task #128TSK-000128');
+    expect(edit).toHaveTextContent('Assignee: Karthik Raj → Priya Menon');
+    expect(within(table).getByRole('row', { name: 'Task comment created by Priya Menon' })).toHaveTextContent('in Task #128');
+
+    // The record type list uses readable names and keeps types only seen in the log.
+    expect(within(screen.getByLabelText('Record type')).getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'All record types',
+      'Import',
+      'Role',
+      'Task',
+      'Task comment',
+      'User',
+    ]);
+    expect(screen.getByLabelText('Record ID')).toBeDisabled();
+    await user.selectOptions(screen.getByLabelText('Record type'), 'TASK');
+    await user.type(screen.getByLabelText('Record ID'), '128');
+    expect(requests.at(-1)?.params).toEqual({ entityType: 'TASK', entityId: 128, sort: 'created,desc', page: 0, size: 50 });
+  });
+
+  it('hides finance amounts from people without Finance access', async () => {
+    const user = userEvent.setup();
+    const budget: AuditLogItem = {
+      ...statusChange,
+      id: 60,
+      action: 'RECORD_UPDATED',
+      actionLabel: 'Paid campaign edited',
+      entityType: 'PAID_CAMPAIGN',
+      details: { changes: { budget: { from: 1000, to: 1500, finance: true }, name: { from: 'Q3', to: 'Q4' } } },
+    };
+    mockApi(routes({ 'GET /admin/audit-logs': () => page([budget]) }));
+    const auditor = makeUser(['EMPLOYEE'], ['AUDIT_VIEW']);
+    renderPage(<AuditLogsPage />, auditor);
+
+    const row = await screen.findByRole('row', { name: 'Paid campaign edited by Priya Menon' });
+    expect(row).toHaveTextContent('Budget: Hidden → Hidden');
+    expect(row).not.toHaveTextContent('1500');
+    await user.click(row);
+    const sheet = await screen.findByRole('dialog');
+    expect(sheet).toHaveTextContent('Hidden (finance amount — needs Finance access)');
+    expect(sheet).toHaveTextContent('Q3');
+    expect(sheet).not.toHaveTextContent('1500');
+  });
 
   it('exports the filtered entries as CSV', async () => {
     const user = userEvent.setup();

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogDescription, DialogHeader, DialogTitle, SheetContent } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDateTime } from '@/lib/format';
+import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
 
 import { useMarketingEvent } from './api';
 import { EventStatusBadge, OccasionBadge } from './CelebrationBadges';
@@ -62,35 +63,37 @@ function EventBody({ eventId, onClose }: { eventId: number; onClose: () => void 
           </div>
         )}
       </DialogHeader>
-      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
-        <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-          <Detail label="Owner">
-            <UserCell name={e.owner.fullName} />
-          </Detail>
-          <Detail label="Location">{e.location ?? <Muted>None</Muted>}</Detail>
-          <Detail label="Online link">{e.onlineLink ? <ExternalAnchor href={e.onlineLink}>Join online</ExternalAnchor> : <Muted>None</Muted>}</Detail>
-          <Detail label="Registration">{e.registrationLink ? <ExternalAnchor href={e.registrationLink}>Register</ExternalAnchor> : <Muted>None</Muted>}</Detail>
-          {e.endAt && <Detail label="Ends">{formatDateTime(e.endAt)}</Detail>}
-          {e.emailCampaignId !== null && (
-            <Detail label="Email campaign">{e.emailCampaign ? `${e.emailCampaign.name} · ${formatShortDate(e.emailCampaign.campaignDate)}` : <Muted>Linked</Muted>}</Detail>
+      <DetailsWithHistory type="MARKETING_EVENT" id={e.id}>
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
+          <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+            <Detail label="Owner">
+              <UserCell name={e.owner.fullName} />
+            </Detail>
+            <Detail label="Location">{e.location ?? <Muted>None</Muted>}</Detail>
+            <Detail label="Online link">{e.onlineLink ? <ExternalAnchor href={e.onlineLink}>Join online</ExternalAnchor> : <Muted>None</Muted>}</Detail>
+            <Detail label="Registration">{e.registrationLink ? <ExternalAnchor href={e.registrationLink}>Register</ExternalAnchor> : <Muted>None</Muted>}</Detail>
+            {e.endAt && <Detail label="Ends">{formatDateTime(e.endAt)}</Detail>}
+            {e.emailCampaignId !== null && (
+              <Detail label="Email campaign">{e.emailCampaign ? `${e.emailCampaign.name} · ${formatShortDate(e.emailCampaign.campaignDate)}` : <Muted>Linked</Muted>}</Detail>
+            )}
+          </dl>
+          {e.description && <p className="rounded-lg border bg-muted/30 px-3 py-2 text-sm whitespace-pre-line">{e.description}</p>}
+          {!cancelled && (
+            <PostSection
+              post={e.linkedIn}
+              date={e.startDate}
+              canEdit={e.canEdit}
+              onEdit={() => setPosting({ subjectType: 'EVENT', subjectId: e.id, occurrenceDate: e.startDate, title: e.title, post: e.linkedIn })}
+            />
           )}
-        </dl>
-        {e.description && <p className="rounded-lg border bg-muted/30 px-3 py-2 text-sm whitespace-pre-line">{e.description}</p>}
-        {!cancelled && (
-          <PostSection
-            post={e.linkedIn}
-            date={e.startDate}
-            canEdit={e.canEdit}
-            onEdit={() => setPosting({ subjectType: 'EVENT', subjectId: e.id, occurrenceDate: e.startDate, title: e.title, post: e.linkedIn })}
-          />
-        )}
-        <section aria-labelledby="event-files" className="space-y-2">
-          <h3 id="event-files" className="text-sm font-semibold">
-            Attachments
-          </h3>
-          <Files kind="events" id={e.id} canEdit={e.canEdit} />
-        </section>
-      </div>
+          <section aria-labelledby="event-files" className="space-y-2">
+            <h3 id="event-files" className="text-sm font-semibold">
+              Attachments
+            </h3>
+            <Files kind="events" id={e.id} canEdit={e.canEdit} />
+          </section>
+        </div>
+      </DetailsWithHistory>
       <EventFormDialog open={editing} onOpenChange={setEditing} event={e} onDeleted={onClose} />
       <LinkedInPostDialog target={posting} onClose={() => setPosting(null)} />
     </div>

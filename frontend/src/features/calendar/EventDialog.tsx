@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { isSuperAdmin } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
 import { useDepartments } from '@/features/departments/api';
+import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
 import { errorMessage } from '@/lib/api/errors';
 import { applyServerErrors } from '@/lib/api/form-errors';
 
@@ -156,82 +157,84 @@ function EventForm({ event, day, onDone }: { event: CalendarEventDetail | null; 
           {readOnly ? `${EVENT_TYPE_LABELS[event.eventType]}${event.createdBy ? ` · added by ${event.createdBy.fullName}` : ''}` : 'Company-wide events are for Super Admins.'}
         </DialogDescription>
       </DialogHeader>
-      <DialogBody className="space-y-4">
-        <FormBanner message={banner} />
-        <fieldset disabled={readOnly} className="space-y-4">
-          <FormField id="event-title" label="Title" required error={errors.title?.message}>
-            <Input id="event-title" autoFocus aria-invalid={errors.title ? true : undefined} {...register('title')} />
-          </FormField>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FormField id="event-type" label="Type">
-              <Select id="event-type" {...register('eventType')}>
-                {(Object.keys(EVENT_TYPE_LABELS) as (keyof typeof EVENT_TYPE_LABELS)[]).map((t) => (
-                  <option key={t} value={t}>
-                    {EVENT_TYPE_LABELS[t]}
-                  </option>
-                ))}
-              </Select>
+      <DetailsWithHistory type="CALENDAR_EVENT" id={event?.id ?? null}>
+        <DialogBody className="space-y-4">
+          <FormBanner message={banner} />
+          <fieldset disabled={readOnly} className="space-y-4">
+            <FormField id="event-title" label="Title" required error={errors.title?.message}>
+              <Input id="event-title" autoFocus aria-invalid={errors.title ? true : undefined} {...register('title')} />
             </FormField>
-            <FormField id="event-department" label="Audience">
-              <Select id="event-department" {...register('departmentId')}>
-                {(companyWide || (event && !event.department)) && <option value="">Company-wide</option>}
-                {departments.data
-                  ?.filter((d) => d.status === 'ACTIVE')
-                  .map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField id="event-type" label="Type">
+                <Select id="event-type" {...register('eventType')}>
+                  {(Object.keys(EVENT_TYPE_LABELS) as (keyof typeof EVENT_TYPE_LABELS)[]).map((t) => (
+                    <option key={t} value={t}>
+                      {EVENT_TYPE_LABELS[t]}
                     </option>
                   ))}
-              </Select>
+                </Select>
+              </FormField>
+              <FormField id="event-department" label="Audience">
+                <Select id="event-department" {...register('departmentId')}>
+                  {(companyWide || (event && !event.department)) && <option value="">Company-wide</option>}
+                  {departments.data
+                    ?.filter((d) => d.status === 'ACTIVE')
+                    .map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                </Select>
+              </FormField>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox id="event-all-day" {...register('allDay')} />
+              <Label htmlFor="event-all-day" className="font-normal">
+                All day
+              </Label>
+            </div>
+            {allDay ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField id="event-start-date" label="From" error={errors.startDate?.message}>
+                  <Input id="event-start-date" type="date" {...register('startDate')} />
+                </FormField>
+                <FormField id="event-end-date" label="To" error={errors.endDate?.message}>
+                  <Input id="event-end-date" type="date" {...register('endDate')} />
+                </FormField>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField id="event-start-at" label="Starts" error={errors.startAt?.message}>
+                  <Input id="event-start-at" type="datetime-local" {...register('startAt')} />
+                </FormField>
+                <FormField id="event-end-at" label="Ends" error={errors.endAt?.message}>
+                  <Input id="event-end-at" type="datetime-local" {...register('endAt')} />
+                </FormField>
+              </div>
+            )}
+            <FormField id="event-description" label="Details">
+              <Textarea id="event-description" rows={3} {...register('description')} />
             </FormField>
-          </div>
-          <div className="flex items-center gap-2">
-            <Checkbox id="event-all-day" {...register('allDay')} />
-            <Label htmlFor="event-all-day" className="font-normal">
-              All day
-            </Label>
-          </div>
-          {allDay ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField id="event-start-date" label="From" error={errors.startDate?.message}>
-                <Input id="event-start-date" type="date" {...register('startDate')} />
-              </FormField>
-              <FormField id="event-end-date" label="To" error={errors.endDate?.message}>
-                <Input id="event-end-date" type="date" {...register('endDate')} />
-              </FormField>
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField id="event-start-at" label="Starts" error={errors.startAt?.message}>
-                <Input id="event-start-at" type="datetime-local" {...register('startAt')} />
-              </FormField>
-              <FormField id="event-end-at" label="Ends" error={errors.endAt?.message}>
-                <Input id="event-end-at" type="datetime-local" {...register('endAt')} />
-              </FormField>
-            </div>
+          </fieldset>
+        </DialogBody>
+        <DialogFooter>
+          {event?.canEdit && (
+            <Button type="button" variant="ghost" className="mr-auto text-destructive" disabled={remove.isPending} onClick={() => void onDelete()}>
+              <Trash2 aria-hidden />
+              Delete
+            </Button>
           )}
-          <FormField id="event-description" label="Details">
-            <Textarea id="event-description" rows={3} {...register('description')} />
-          </FormField>
-        </fieldset>
-      </DialogBody>
-      <DialogFooter>
-        {event?.canEdit && (
-          <Button type="button" variant="ghost" className="mr-auto text-destructive" disabled={remove.isPending} onClick={() => void onDelete()}>
-            <Trash2 aria-hidden />
-            Delete
+          <Button type="button" variant="outline" onClick={onDone}>
+            {readOnly ? 'Done' : 'Cancel'}
           </Button>
-        )}
-        <Button type="button" variant="outline" onClick={onDone}>
-          {readOnly ? 'Done' : 'Cancel'}
-        </Button>
-        {!readOnly && (
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden />}
-            {event ? 'Save changes' : 'Add event'}
-          </Button>
-        )}
-      </DialogFooter>
+          {!readOnly && (
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden />}
+              {event ? 'Save changes' : 'Add event'}
+            </Button>
+          )}
+        </DialogFooter>
+      </DetailsWithHistory>
     </form>
   );
 }

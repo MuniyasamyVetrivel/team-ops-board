@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { applyServerErrors } from '@/lib/api/form-errors';
+import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
 
 import { useMarketingContext } from '../api';
 import { RankingBadge, RankingChangeIndicator } from '../components/RankingBadges';
@@ -89,90 +90,92 @@ function HistoryBody({ keywordId, month, year, canEdit }: { keywordId: number; m
           )}
         </DialogDescription>
       </DialogHeader>
-      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
-        {chronological.length > 0 && (
-          <RankingHistoryChart
-            label={`Monthly positions for ${h.keyword}`}
-            periods={chronological.map((e) => ({ month: e.month, year: e.year, label: e.label }))}
-            series={[{ key: `k${h.keywordId}`, name: h.keyword, points: chronological.map((e) => ({ recorded: true, position: e.position })) }]}
-            target={h.targetPosition}
-          />
-        )}
+      <DetailsWithHistory type="SEO_KEYWORD" id={h.keywordId}>
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
+          {chronological.length > 0 && (
+            <RankingHistoryChart
+              label={`Monthly positions for ${h.keyword}`}
+              periods={chronological.map((e) => ({ month: e.month, year: e.year, label: e.label }))}
+              series={[{ key: `k${h.keywordId}`, name: h.keyword, points: chronological.map((e) => ({ recorded: true, position: e.position })) }]}
+              target={h.targetPosition}
+            />
+          )}
 
-        {canEdit && mode.kind === 'record' && <RankingForm history={h} defaultMonth={month} defaultYear={year} onDone={() => setMode({ kind: 'view' })} />}
-        {canEdit && mode.kind === 'correct' && <RankingForm history={h} entry={mode.entry} onDone={() => setMode({ kind: 'view' })} />}
+          {canEdit && mode.kind === 'record' && <RankingForm history={h} defaultMonth={month} defaultYear={year} onDone={() => setMode({ kind: 'view' })} />}
+          {canEdit && mode.kind === 'correct' && <RankingForm history={h} entry={mode.entry} onDone={() => setMode({ kind: 'view' })} />}
 
-        <section aria-labelledby="ranking-months" className="space-y-2">
-          <div className="flex items-center justify-between gap-3">
-            <h3 id="ranking-months" className="text-sm font-semibold">
-              Monthly rankings
-            </h3>
-            {canEdit && h.status !== 'ARCHIVED' && mode.kind === 'view' && (
-              <Button size="sm" onClick={() => setMode({ kind: 'record' })}>
-                <Plus aria-hidden />
-                {recordedHere ? 'Record another month' : `Record ${MONTH_NAMES[month - 1]}`}
-              </Button>
-            )}
-          </div>
-          {h.entries.length === 0 ? (
-            <EmptyState icon={History} title="No rankings recorded yet" description="Each month adds a new record; earlier months are never overwritten." />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Month</TableHead>
-                  <TableHead>Position</TableHead>
-                  <TableHead numeric>Change</TableHead>
-                  <TableHead numeric>Volume</TableHead>
-                  <TableHead>Recorded</TableHead>
-                  {canEdit && (
-                    <TableHead>
-                      <span className="sr-only">Actions</span>
-                    </TableHead>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {h.entries.map((entry) => (
-                  <TableRow key={entry.id}>
-                    <TableCell className="text-sm font-medium whitespace-nowrap">
-                      {entry.label}
-                      {entry.notes && <p className="max-w-56 truncate text-xs font-normal text-muted-foreground" title={entry.notes}>{entry.notes}</p>}
-                    </TableCell>
-                    <TableCell>
-                      <RankingBadge position={entry.position} status={entry.status} />
-                    </TableCell>
-                    <TableCell numeric>
-                      <RankingChangeIndicator change={entry.change} />
-                    </TableCell>
-                    <TableCell numeric className="text-sm">{formatCount(entry.searchVolume)}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      <Badge tone="neutral">{RANKING_SOURCE_LABELS[entry.source]}</Badge>
-                      <p className="mt-0.5">
-                        {entry.recordedBy?.fullName ?? 'Unknown'} · {dayFormat.format(new Date(entry.updatedAt))}
-                      </p>
-                    </TableCell>
+          <section aria-labelledby="ranking-months" className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <h3 id="ranking-months" className="text-sm font-semibold">
+                Monthly rankings
+              </h3>
+              {canEdit && h.status !== 'ARCHIVED' && mode.kind === 'view' && (
+                <Button size="sm" onClick={() => setMode({ kind: 'record' })}>
+                  <Plus aria-hidden />
+                  {recordedHere ? 'Record another month' : `Record ${MONTH_NAMES[month - 1]}`}
+                </Button>
+              )}
+            </div>
+            {h.entries.length === 0 ? (
+              <EmptyState icon={History} title="No rankings recorded yet" description="Each month adds a new record; earlier months are never overwritten." />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Month</TableHead>
+                    <TableHead>Position</TableHead>
+                    <TableHead numeric>Change</TableHead>
+                    <TableHead numeric>Volume</TableHead>
+                    <TableHead>Recorded</TableHead>
                     {canEdit && (
-                      <TableCell>
-                        {entry.correctable ? (
-                          <Button variant="ghost" size="icon" aria-label={`Correct ${entry.label}`} disabled={mode.kind !== 'view'} onClick={() => setMode({ kind: 'correct', entry })}>
-                            <Pencil aria-hidden />
-                          </Button>
-                        ) : (
-                          <span className="inline-flex text-muted-foreground" title="Closed month: only the current and previous month can be corrected">
-                            <Lock className="size-4" aria-hidden />
-                            <span className="sr-only">{entry.label} is closed</span>
-                          </span>
-                        )}
-                      </TableCell>
+                      <TableHead>
+                        <span className="sr-only">Actions</span>
+                      </TableHead>
                     )}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </section>
-      </div>
+                </TableHeader>
+                <TableBody>
+                  {h.entries.map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell className="text-sm font-medium whitespace-nowrap">
+                        {entry.label}
+                        {entry.notes && <p className="max-w-56 truncate text-xs font-normal text-muted-foreground" title={entry.notes}>{entry.notes}</p>}
+                      </TableCell>
+                      <TableCell>
+                        <RankingBadge position={entry.position} status={entry.status} />
+                      </TableCell>
+                      <TableCell numeric>
+                        <RankingChangeIndicator change={entry.change} />
+                      </TableCell>
+                      <TableCell numeric className="text-sm">{formatCount(entry.searchVolume)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        <Badge tone="neutral">{RANKING_SOURCE_LABELS[entry.source]}</Badge>
+                        <p className="mt-0.5">
+                          {entry.recordedBy?.fullName ?? 'Unknown'} · {dayFormat.format(new Date(entry.updatedAt))}
+                        </p>
+                      </TableCell>
+                      {canEdit && (
+                        <TableCell>
+                          {entry.correctable ? (
+                            <Button variant="ghost" size="icon" aria-label={`Correct ${entry.label}`} disabled={mode.kind !== 'view'} onClick={() => setMode({ kind: 'correct', entry })}>
+                              <Pencil aria-hidden />
+                            </Button>
+                          ) : (
+                            <span className="inline-flex text-muted-foreground" title="Closed month: only the current and previous month can be corrected">
+                              <Lock className="size-4" aria-hidden />
+                              <span className="sr-only">{entry.label} is closed</span>
+                            </span>
+                          )}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </section>
+        </div>
+      </DetailsWithHistory>
     </div>
   );
 }

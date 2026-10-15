@@ -12,6 +12,7 @@ import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, Dia
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { applyServerErrors } from '@/lib/api/form-errors';
+import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
 
 import { useCreateApprovalType, useUpdateApprovalType, type ApprovalType } from './api';
 import { suggestCode } from './approval-meta';
@@ -156,29 +157,31 @@ function EditTypeForm({ type, onDone }: { type: ApprovalType; onDone: () => void
             Code <span className="font-mono">{type.code}</span>. Changes apply to new requests.
           </DialogDescription>
         </DialogHeader>
-        <DialogBody className="space-y-4">
-          <FormBanner message={banner} />
-          <FormField id="type-name" label="Name" required error={form.formState.errors.name?.message}>
-            <Input id="type-name" aria-invalid={form.formState.errors.name ? true : undefined} aria-describedby="type-name-message" {...register('name')} />
-          </FormField>
-          <DetailsFields />
-          <label className="flex items-start gap-2 text-sm">
-            <Checkbox className="mt-0.5" {...register('active')} />
-            <span>
-              Active
-              <span className="block text-xs text-muted-foreground">Inactive types can't be chosen for new requests; existing requests keep them.</span>
-            </span>
-          </label>
-        </DialogBody>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onDone}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden />}
-            Save
-          </Button>
-        </DialogFooter>
+        <DetailsWithHistory type="APPROVAL_TYPE" id={type.id}>
+          <DialogBody className="space-y-4">
+            <FormBanner message={banner} />
+            <FormField id="type-name" label="Name" required error={form.formState.errors.name?.message}>
+              <Input id="type-name" aria-invalid={form.formState.errors.name ? true : undefined} aria-describedby="type-name-message" {...register('name')} />
+            </FormField>
+            <DetailsFields />
+            <label className="flex items-start gap-2 text-sm">
+              <Checkbox className="mt-0.5" {...register('active')} />
+              <span>
+                Active
+                <span className="block text-xs text-muted-foreground">Inactive types can't be chosen for new requests; existing requests keep them.</span>
+              </span>
+            </label>
+          </DialogBody>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onDone}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden />}
+              Save
+            </Button>
+          </DialogFooter>
+        </DetailsWithHistory>
       </form>
     </FormProvider>
   );

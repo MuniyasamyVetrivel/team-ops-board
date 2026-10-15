@@ -17,7 +17,7 @@ import { ACCEPTED_UPLOADS } from '@/lib/uploads';
 
 import { downloadAttachment, useTaskAttachments, useTaskChecklist, useTaskComments, useTaskDependencies, useTaskWatchers, useTasks } from './api';
 import { TaskStatusBadge } from './TaskBadges';
-import { formatBytes, historyLabel, historyValue } from './task-meta';
+import { formatBytes } from './task-meta';
 import type { TaskDetail } from './types';
 
 async function attempt(action: Promise<unknown>, success?: string): Promise<boolean> {
@@ -328,28 +328,5 @@ export function WatchersSection({ task, onLostAccess }: { task: TaskDetail; onLo
         </div>
       )}
     </div>
-  );
-}
-
-export function HistorySection({ task }: { task: TaskDetail }) {
-  if (task.history.length === 0) return <Empty>No changes yet.</Empty>;
-  return (
-    <ol className="relative space-y-4 border-l pl-5">
-      {task.history.map((entry) => (
-        <li key={entry.id} className="text-sm">
-          <span className="absolute -left-1 mt-1.5 size-2 rounded-full bg-border" aria-hidden />
-          <p>
-            <span className="font-medium">{entry.changedBy?.fullName ?? 'System'}</span> {historyLabel(entry.field)}
-            {(entry.oldValue !== null || entry.newValue !== null) && entry.field !== 'created' && (
-              <span className="text-muted-foreground">
-                {' '}
-                {historyValue(entry.oldValue)} → {historyValue(entry.newValue)}
-              </span>
-            )}
-          </p>
-          <p className="text-xs text-muted-foreground">{formatRelative(entry.changedAt)}</p>
-        </li>
-      ))}
-    </ol>
   );
 }

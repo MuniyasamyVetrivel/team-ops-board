@@ -13,6 +13,7 @@ import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/features/auth/use-auth';
+import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
 import { applyServerErrors } from '@/lib/api/form-errors';
 import { errorMessage } from '@/lib/api/errors';
 
@@ -163,87 +164,89 @@ function CampaignForm({ campaign, today, onDone }: { campaign?: EmailCampaign; t
         <DialogTitle>{editing ? 'Edit campaign' : 'New email campaign'}</DialogTitle>
         <DialogDescription>Enter the raw counts from Zoho; open, click and conversion rates are calculated for you.</DialogDescription>
       </DialogHeader>
-      <DialogBody className="space-y-5">
-        <FormBanner message={banner} />
-        <FormField id="campaign-name" label="Campaign name" required error={errors.name?.message}>
-          <Input id="campaign-name" autoFocus aria-invalid={errors.name ? true : undefined} aria-describedby="campaign-name-message" {...register('name')} />
-        </FormField>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <FormField id="campaign-type" label="Type" required>
-            <Select id="campaign-type" {...register('campaignType')}>
-              {CAMPAIGN_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {CAMPAIGN_TYPE_LABELS[t]}
-                </option>
-              ))}
-            </Select>
+      <DetailsWithHistory type="EMAIL_CAMPAIGN" id={campaign?.id ?? null}>
+        <DialogBody className="space-y-5">
+          <FormBanner message={banner} />
+          <FormField id="campaign-name" label="Campaign name" required error={errors.name?.message}>
+            <Input id="campaign-name" autoFocus aria-invalid={errors.name ? true : undefined} aria-describedby="campaign-name-message" {...register('name')} />
           </FormField>
-          <FormField id="campaign-status" label="Status" required>
-            <Select id="campaign-status" {...register('status')}>
-              {CAMPAIGN_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {CAMPAIGN_STATUS_LABELS[s]}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-          <FormField id="campaign-date" label={sent ? 'Sent on' : 'Campaign date'} required error={errors.campaignDate?.message}>
-            <Input id="campaign-date" type="date" aria-invalid={errors.campaignDate ? true : undefined} aria-describedby="campaign-date-message" {...register('campaignDate')} />
-          </FormField>
-          <FormField id="campaign-owner" label="Owner">
-            <Select id="campaign-owner" {...register('ownerId')}>
-              <option value="">No owner</option>
-              {ownerOptions.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.fullName}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-          <FormField id="campaign-audience" label="Audience" error={errors.audience?.message} className="sm:col-span-2">
-            <Input id="campaign-audience" placeholder="e.g. SAP decision makers" {...register('audience')} />
-          </FormField>
-        </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <FormField id="campaign-type" label="Type" required>
+              <Select id="campaign-type" {...register('campaignType')}>
+                {CAMPAIGN_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {CAMPAIGN_TYPE_LABELS[t]}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+            <FormField id="campaign-status" label="Status" required>
+              <Select id="campaign-status" {...register('status')}>
+                {CAMPAIGN_STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {CAMPAIGN_STATUS_LABELS[s]}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+            <FormField id="campaign-date" label={sent ? 'Sent on' : 'Campaign date'} required error={errors.campaignDate?.message}>
+              <Input id="campaign-date" type="date" aria-invalid={errors.campaignDate ? true : undefined} aria-describedby="campaign-date-message" {...register('campaignDate')} />
+            </FormField>
+            <FormField id="campaign-owner" label="Owner">
+              <Select id="campaign-owner" {...register('ownerId')}>
+                <option value="">No owner</option>
+                {ownerOptions.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.fullName}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+            <FormField id="campaign-audience" label="Audience" error={errors.audience?.message} className="sm:col-span-2">
+              <Input id="campaign-audience" placeholder="e.g. SAP decision makers" {...register('audience')} />
+            </FormField>
+          </div>
 
-        {sent ? (
-          <fieldset className="space-y-3">
-            <legend className="text-sm font-semibold">Results</legend>
-            <div className="grid gap-4 sm:grid-cols-3">
-              {COUNT_FIELDS.map((field) => {
-                const error = errors.counts?.[field.name]?.message;
-                return (
-                  <FormField key={field.name} id={`count-${field.name}`} label={field.label} error={error}>
-                    <Input id={`count-${field.name}`} inputMode="numeric" aria-invalid={error ? true : undefined} aria-describedby={`count-${field.name}-message`} {...register(`counts.${field.name}`)} />
-                  </FormField>
-                );
-              })}
-            </div>
-          </fieldset>
-        ) : (
-          <p className="rounded-lg border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
-            {clearsCounts ? 'Results are only kept for sent campaigns: saving with this status clears them.' : 'Results are entered once the campaign is sent.'}
-          </p>
-        )}
+          {sent ? (
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-semibold">Results</legend>
+              <div className="grid gap-4 sm:grid-cols-3">
+                {COUNT_FIELDS.map((field) => {
+                  const error = errors.counts?.[field.name]?.message;
+                  return (
+                    <FormField key={field.name} id={`count-${field.name}`} label={field.label} error={error}>
+                      <Input id={`count-${field.name}`} inputMode="numeric" aria-invalid={error ? true : undefined} aria-describedby={`count-${field.name}-message`} {...register(`counts.${field.name}`)} />
+                    </FormField>
+                  );
+                })}
+              </div>
+            </fieldset>
+          ) : (
+            <p className="rounded-lg border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+              {clearsCounts ? 'Results are only kept for sent campaigns: saving with this status clears them.' : 'Results are entered once the campaign is sent.'}
+            </p>
+          )}
 
-        <FormField id="campaign-notes" label="Notes" error={errors.notes?.message}>
-          <Textarea id="campaign-notes" rows={2} {...register('notes')} />
-        </FormField>
-      </DialogBody>
-      <DialogFooter>
-        {editing && campaign.status !== 'SENT' && (
-          <Button type="button" variant="ghost" className="mr-auto text-destructive" disabled={remove.isPending} onClick={() => (confirmingDelete ? void onDelete() : setConfirmingDelete(true))}>
-            <Trash2 aria-hidden />
-            {confirmingDelete ? 'Confirm delete' : 'Delete campaign'}
+          <FormField id="campaign-notes" label="Notes" error={errors.notes?.message}>
+            <Textarea id="campaign-notes" rows={2} {...register('notes')} />
+          </FormField>
+        </DialogBody>
+        <DialogFooter>
+          {editing && campaign.status !== 'SENT' && (
+            <Button type="button" variant="ghost" className="mr-auto text-destructive" disabled={remove.isPending} onClick={() => (confirmingDelete ? void onDelete() : setConfirmingDelete(true))}>
+              <Trash2 aria-hidden />
+              {confirmingDelete ? 'Confirm delete' : 'Delete campaign'}
+            </Button>
+          )}
+          <Button type="button" variant="outline" onClick={onDone}>
+            Cancel
           </Button>
-        )}
-        <Button type="button" variant="outline" onClick={onDone}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden />}
-          {editing ? 'Save changes' : 'Add campaign'}
-        </Button>
-      </DialogFooter>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden />}
+            {editing ? 'Save changes' : 'Add campaign'}
+          </Button>
+        </DialogFooter>
+      </DetailsWithHistory>
     </form>
   );
 }

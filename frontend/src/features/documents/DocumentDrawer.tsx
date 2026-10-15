@@ -9,6 +9,7 @@ import { Dialog, DialogDescription, DialogTitle, SheetContent } from '@/componen
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
 import { formatBytes } from '@/features/tasks/task-meta';
 import { errorMessage } from '@/lib/api/errors';
 import { formatDateTime } from '@/lib/format';
@@ -67,67 +68,69 @@ function Body({ document, onDeleted }: { document: DocumentDetail; onDeleted: ()
         <DialogTitle className="text-xl">{document.name}</DialogTitle>
         <DialogDescription className={document.description ? 'text-sm' : 'sr-only'}>{document.description ?? 'Document versions'}</DialogDescription>
       </div>
-      <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
-        <section>
-          <h3 className="mb-3 text-sm font-semibold">Versions</h3>
-          <ol className="divide-y rounded-lg border">
-            {document.versions.map((v, i) => (
-              <li key={v.versionNo} className="flex items-center gap-3 px-3 py-2.5">
-                <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-2 text-sm font-medium">
-                    Version {v.versionNo}
-                    {i === 0 && <Badge tone="primary">Current</Badge>}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {v.fileName} · {formatBytes(v.sizeBytes)} · {v.uploadedBy?.fullName ?? 'Former user'} · {formatDateTime(v.uploadedAt)}
-                  </p>
-                  {v.changeNote && <p className="mt-0.5 text-sm">{v.changeNote}</p>}
-                </div>
-                <Button variant="ghost" size="icon" className="size-8" aria-label={`Download version ${v.versionNo}`} onClick={() => void run(downloadDocumentVersion(document.id, v))}>
-                  <Download />
-                </Button>
-              </li>
-            ))}
-          </ol>
-        </section>
-        {document.canEdit && (
-          <section className="space-y-3 rounded-lg border p-4">
-            <h3 className="text-sm font-semibold">Upload a new version</h3>
-            <div className="space-y-1.5">
-              <Label htmlFor="change-note">What changed</Label>
-              <Input id="change-note" maxLength={500} value={changeNote} onChange={(e) => setChangeNote(e.target.value)} placeholder="Optional" />
-            </div>
-            <input
-              ref={input}
-              type="file"
-              className="hidden"
-              accept={ACCEPTED_UPLOADS}
-              aria-label="New version file"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                event.target.value = '';
-                if (file) void run(addVersion.mutateAsync({ file, changeNote }), `Version ${document.versions.length + 1} uploaded`).then((ok) => ok && setChangeNote(''));
-              }}
-            />
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" disabled={addVersion.isPending} onClick={() => input.current?.click()}>
-                {addVersion.isPending ? <LoaderCircle className="animate-spin" aria-hidden /> : <Upload aria-hidden />}
-                Choose file
-              </Button>
-              <Button
-                variant="ghost"
-                className="ml-auto text-destructive"
-                disabled={remove.isPending}
-                onClick={() => void run(remove.mutateAsync(document.id), 'Document deleted').then((ok) => ok && onDeleted())}
-              >
-                <Trash2 aria-hidden />
-                Delete document
-              </Button>
-            </div>
+      <DetailsWithHistory type="DOCUMENT" id={document.id}>
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
+          <section>
+            <h3 className="mb-3 text-sm font-semibold">Versions</h3>
+            <ol className="divide-y rounded-lg border">
+              {document.versions.map((v, i) => (
+                <li key={v.versionNo} className="flex items-center gap-3 px-3 py-2.5">
+                  <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-2 text-sm font-medium">
+                      Version {v.versionNo}
+                      {i === 0 && <Badge tone="primary">Current</Badge>}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {v.fileName} · {formatBytes(v.sizeBytes)} · {v.uploadedBy?.fullName ?? 'Former user'} · {formatDateTime(v.uploadedAt)}
+                    </p>
+                    {v.changeNote && <p className="mt-0.5 text-sm">{v.changeNote}</p>}
+                  </div>
+                  <Button variant="ghost" size="icon" className="size-8" aria-label={`Download version ${v.versionNo}`} onClick={() => void run(downloadDocumentVersion(document.id, v))}>
+                    <Download />
+                  </Button>
+                </li>
+              ))}
+            </ol>
           </section>
-        )}
-      </div>
+          {document.canEdit && (
+            <section className="space-y-3 rounded-lg border p-4">
+              <h3 className="text-sm font-semibold">Upload a new version</h3>
+              <div className="space-y-1.5">
+                <Label htmlFor="change-note">What changed</Label>
+                <Input id="change-note" maxLength={500} value={changeNote} onChange={(e) => setChangeNote(e.target.value)} placeholder="Optional" />
+              </div>
+              <input
+                ref={input}
+                type="file"
+                className="hidden"
+                accept={ACCEPTED_UPLOADS}
+                aria-label="New version file"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = '';
+                  if (file) void run(addVersion.mutateAsync({ file, changeNote }), `Version ${document.versions.length + 1} uploaded`).then((ok) => ok && setChangeNote(''));
+                }}
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" disabled={addVersion.isPending} onClick={() => input.current?.click()}>
+                  {addVersion.isPending ? <LoaderCircle className="animate-spin" aria-hidden /> : <Upload aria-hidden />}
+                  Choose file
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="ml-auto text-destructive"
+                  disabled={remove.isPending}
+                  onClick={() => void run(remove.mutateAsync(document.id), 'Document deleted').then((ok) => ok && onDeleted())}
+                >
+                  <Trash2 aria-hidden />
+                  Delete document
+                </Button>
+              </div>
+            </section>
+          )}
+        </div>
+      </DetailsWithHistory>
     </>
   );
 }
