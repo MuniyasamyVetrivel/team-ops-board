@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
+import { BENCH_PATHS, clientHref, consultantPath, engagementHref, withSearch } from '@/features/bench/bench-paths';
 import { api } from '@/lib/api/client';
 
 export type ResultType =
@@ -98,11 +99,11 @@ export function hitHref(hit: SearchHit): string {
     case 'LEAD':
       return `/digital-marketing/leads?lead=${hit.id}`;
     case 'CONSULTANT':
-      return `/tools/bench?consultant=${hit.id}`;
+      return consultantPath(hit.id);
     case 'CLIENT':
-      return `/tools/bench?client=${hit.id}`;
+      return clientHref(hit.id);
     case 'CLIENT_ENGAGEMENT':
-      return `/tools/bench?engagement=${hit.id}`;
+      return engagementHref(hit.id);
   }
 }
 
@@ -129,9 +130,11 @@ export function groupHref(group: SearchGroupKey, query: string): string {
     case 'LEADS':
       return `/digital-marketing/leads`;
     case 'CONSULTANTS':
+      return withSearch(BENCH_PATHS.consultants, query);
     case 'CLIENTS':
+      return withSearch(BENCH_PATHS.clients, query);
     case 'ENGAGEMENTS':
-      return `/tools/bench?search=${q}`;
+      return withSearch(BENCH_PATHS.engagements, query);
   }
 }
 

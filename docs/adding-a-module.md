@@ -97,3 +97,10 @@ A new module:
    - Each page checks that the key is in `useDepartmentTools()` and hides edit controls unless `canEdit` is set.
 3. **Disabled module.** Treats a 403 `MODULE_DISABLED` as "This tool is not switched on for your department", not as a generic error.
 4. **Page rules.** Follows the usual page rules: skeleton, empty and error states; a History tab; undo toast on delete.
+
+Bench Management (`features/bench/`) is the reference implementation:
+- `bench-paths.ts` holds the module's routes. Notification and search links (`notificationHref`, `hitHref`, `groupHref`) are built from it, so they can't drift from the pages.
+- `BenchLayout` is the parent route for `/tools/bench/*`. It checks the tool in `useDepartmentTools()`, shows the module's title and tab bar, and provides the tool through `useBenchTool()`, whose `canEdit` decides which edit controls are shown.
+- `BenchErrorState` turns a 403 `MODULE_DISABLED` into "This tool is not switched on for your department".
+- The API module calls `/modules/<key>/…`. A CSV import passes its own `ImportEndpoint` (`BENCH_IMPORTS`) to the shared `CsvImportDialog`.
+- Page tests render inside the real layout with `benchRoutes(path, page)` (`src/test/bench-routes.tsx`) and mock `GET /department-tools`.

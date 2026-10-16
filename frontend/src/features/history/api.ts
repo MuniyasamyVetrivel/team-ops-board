@@ -36,6 +36,10 @@ export type HistoryRecordType =
   | 'MARKETING_LEAD'
   | 'BACKLINK'
   | 'CONTENT_ITEM'
+  | 'CONSULTANT'
+  | 'CLIENT'
+  | 'CLIENT_ENGAGEMENT'
+  | 'ALLOCATION'
   | 'SETTING'
   | 'SLA_POLICY';
 

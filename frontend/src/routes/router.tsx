@@ -2,6 +2,8 @@ import { lazy, type ComponentType } from 'react';
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 
 import { NAV_ITEMS, type RouteItem } from '@/config/navigation';
+import { BENCH_PATHS } from '@/features/bench/bench-paths';
+import { BenchLayout } from '@/features/bench/BenchLayout';
 import { MarketingLayout } from '@/features/marketing/MarketingLayout';
 import { AppShell } from '@/layouts/AppShell';
 
@@ -54,6 +56,13 @@ const ImportantDaysPage = lazy(() => import('@/features/celebrations/ImportantDa
 const EventsPage = lazy(() => import('@/features/celebrations/EventsPage'));
 const LinkedInPostsPage = lazy(() => import('@/features/celebrations/LinkedInPostsPage'));
 const DepartmentToolPage = lazy(() => import('@/features/modules/DepartmentToolPage'));
+const BenchDashboardPage = lazy(() => import('@/features/bench/BenchDashboardPage'));
+const BenchListPage = lazy(() => import('@/features/bench/BenchListPage'));
+const ConsultantsPage = lazy(() => import('@/features/bench/ConsultantsPage'));
+const ConsultantProfilePage = lazy(() => import('@/features/bench/ConsultantProfilePage'));
+const AllocationsPage = lazy(() => import('@/features/bench/AllocationsPage'));
+const EngagementsPage = lazy(() => import('@/features/bench/EngagementsPage'));
+const ClientsPage = lazy(() => import('@/features/bench/ClientsPage'));
 
 /** The page for every sidebar entry, by path. */
 const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
@@ -97,7 +106,20 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
 /** Detail routes that are not sidebar entries. */
 const detailRoutes: RouteObject[] = [
   // Department tools: the sidebar lists only tools switched on and permitted (/api/department-tools); the page and the
-  // server's /api/modules/{key}/ check enforce the same.
+  // server's /api/modules/{key}/ check enforce the same. Built tools come before the generic placeholder.
+  {
+    path: BENCH_PATHS.dashboard,
+    element: <BenchLayout />,
+    children: [
+      { index: true, element: <BenchDashboardPage /> },
+      { path: 'on-bench', element: <BenchListPage /> },
+      { path: 'consultants', element: <ConsultantsPage /> },
+      { path: 'consultants/:id', element: <ConsultantProfilePage /> },
+      { path: 'allocations', element: <AllocationsPage /> },
+      { path: 'engagements', element: <EngagementsPage /> },
+      { path: 'clients', element: <ClientsPage /> },
+    ],
+  },
   { path: '/tools/:key', element: <DepartmentToolPage /> },
   {
     path: '/team/:id',

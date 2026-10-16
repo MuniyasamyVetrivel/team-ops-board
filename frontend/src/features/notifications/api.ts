@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { allocationHref } from '@/features/bench/bench-paths';
 import { api } from '@/lib/api/client';
 import type { PageResponse } from '@/lib/api/types';
 
@@ -32,7 +33,7 @@ export function notificationHref(notification: AppNotification): string | null {
   if (notification.entityType === 'EMPLOYEE') return `/celebrations/employees?employee=${notification.entityId}`;
   if (notification.entityType === 'IMPORTANT_DAY') return `/celebrations/important-days?day=${notification.entityId}`;
   if (notification.entityType === 'MARKETING_EVENT') return `/celebrations/events?event=${notification.entityId}`;
-  if (notification.entityType === 'ALLOCATION') return `/tools/bench?allocation=${notification.entityId}`;
+  if (notification.entityType === 'ALLOCATION') return allocationHref(notification.entityId);
   return null;
 }
 
