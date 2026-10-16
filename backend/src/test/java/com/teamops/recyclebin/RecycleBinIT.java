@@ -142,28 +142,28 @@ class RecycleBinIT {
 		assertThat(jdbc.queryForObject("SELECT deleted_by FROM tasks WHERE id = ?", Long.class, taskId)).isEqualTo(managerId);
 		assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM task_comments WHERE task_id = ?", Long.class, taskId)).isEqualTo(1);
 
-		// In the bin for the Super Admin and this department's manager; not for others.
-		Long itemId = binItem(managerToken, "TASK", taskId);
+		// The bin is the Super Admin's only: not even the manager who deleted the task sees it.
+		Long itemId = binItem(adminToken, "TASK", taskId);
 		as(adminToken, get("/api/recycle-bin").param("entityType", "TASK").param("search", "TSK"))
 			.andExpect(status().isOk());
-		as(outsiderManagerToken, get("/api/recycle-bin").param("entityType", "TASK"))
-			.andExpect(jsonPath("$.content[?(@.entityId == %d)]".formatted(taskId)).isEmpty());
-		as(employeeToken, get("/api/recycle-bin")).andExpect(status().isForbidden())
-			.andExpect(jsonPath("$.code").value("RECYCLE_BIN_FORBIDDEN"));
-		as(outsiderManagerToken, post("/api/recycle-bin/%d/restore".formatted(itemId))).andExpect(status().isNotFound());
+		for (String token : List.of(employeeToken, managerToken, outsiderManagerToken)) {
+			as(token, get("/api/recycle-bin")).andExpect(status().isForbidden());
+			as(token, get("/api/recycle-bin/catalog")).andExpect(status().isForbidden());
+			as(token, post("/api/recycle-bin/%d/restore".formatted(itemId))).andExpect(status().isForbidden());
+		}
 
 		// Restore: exactly as it was, children included.
-		as(managerToken, post("/api/recycle-bin/%d/restore".formatted(itemId))).andExpect(status().isOk())
+		as(adminToken, post("/api/recycle-bin/%d/restore".formatted(itemId))).andExpect(status().isOk())
 			.andExpect(jsonPath("$.entityType").value("TASK"))
 			.andExpect(jsonPath("$.entityId").value(taskId));
 		as(managerToken, get("/api/tasks/" + taskId)).andExpect(status().isOk())
 			.andExpect(jsonPath("$.title").value("Bin me " + nonce))
 			.andExpect(jsonPath("$.comments[0].body").value("Keep this comment"))
 			.andExpect(jsonPath("$.checklist[0].content").value("Keep this item"));
-		as(managerToken, post("/api/recycle-bin/%d/restore".formatted(itemId))).andExpect(status().isNotFound());
+		as(adminToken, post("/api/recycle-bin/%d/restore".formatted(itemId))).andExpect(status().isNotFound());
 
 		// The history tells the story.
-		List<String> actions = JsonPath.read(as(managerToken, get("/api/history/TASK/" + taskId).param("size", "100"))
+		List<String> actions = JsonPath.read(as(adminToken, get("/api/history/TASK/" + taskId).param("size", "100"))
 			.andReturn()
 			.getResponse()
 			.getContentAsString(), "$.content[?(@.entityType == 'TASK')].action");
@@ -171,7 +171,7 @@ class RecycleBinIT {
 	}
 
 	@Test
-	void onlyASuperAdminDeletesPermanentlyAndMustNameTheItem() throws Exception {
+	void onlyTheSuperAdminDeletesPermanentlyAndMustNameTheItem() throws Exception {
 		Long taskId = createTask("Purge me " + nonce);
 		as(employeeToken, post("/api/tasks/%d/comments".formatted(taskId)).contentType(MediaType.APPLICATION_JSON)
 			.content("{\"body\":\"Goes too\"}")).andExpect(status().isOk());
@@ -214,13 +214,14 @@ class RecycleBinIT {
 			.andExpect(status().isConflict())
 			.andExpect(jsonPath("$.code").value("IN_RECYCLE_BIN"));
 
-		// The keyword needs its page back first; the manager of the page's department may restore both.
-		Long keywordItem = binItem(managerToken, "SEO_KEYWORD", keywordId);
-		Long pageItem = binItem(managerToken, "SEO_PAGE", pageId);
-		as(managerToken, post("/api/recycle-bin/%d/restore".formatted(keywordItem))).andExpect(status().isConflict())
+		// The keyword needs its page back first; only the Super Admin restores.
+		Long keywordItem = binItem(adminToken, "SEO_KEYWORD", keywordId);
+		Long pageItem = binItem(adminToken, "SEO_PAGE", pageId);
+		as(marketerToken, post("/api/recycle-bin/%d/restore".formatted(pageItem))).andExpect(status().isForbidden());
+		as(adminToken, post("/api/recycle-bin/%d/restore".formatted(keywordItem))).andExpect(status().isConflict())
 			.andExpect(jsonPath("$.code").value("PARENT_IN_RECYCLE_BIN"));
-		as(managerToken, post("/api/recycle-bin/%d/restore".formatted(pageItem))).andExpect(status().isOk());
-		as(managerToken, post("/api/recycle-bin/%d/restore".formatted(keywordItem))).andExpect(status().isOk());
+		as(adminToken, post("/api/recycle-bin/%d/restore".formatted(pageItem))).andExpect(status().isOk());
+		as(adminToken, post("/api/recycle-bin/%d/restore".formatted(keywordItem))).andExpect(status().isOk());
 		as(marketerToken, get("/api/marketing/keywords/" + keywordId)).andExpect(status().isOk());
 
 		// Released only by the permanent delete.

@@ -51,6 +51,8 @@ export const PERMISSION_CODES = [
   'CONTENT_EDIT',
   'CELEBRATIONS_EDIT',
   'FINANCE_VIEW',
+  'HISTORY_VIEW',
+  'RECYCLE_BIN_MANAGE',
 ] as const;
 
 export type PermissionCode = (typeof PERMISSION_CODES)[number];
@@ -79,6 +81,11 @@ export function isSuperAdmin(user: Authorities | null | undefined): boolean {
 /** Money amounts (budgets, spend, approval amounts), including in audit history. */
 export function canSeeFinance(user: Authorities | null | undefined): boolean {
   return isSuperAdmin(user) || hasPermission(user, 'FINANCE_VIEW');
+}
+
+/** The History tab on records: Super Admin only unless the permission was granted (the server answers 403 otherwise). */
+export function canViewHistory(user: Authorities | null | undefined): boolean {
+  return isSuperAdmin(user) || hasPermission(user, 'HISTORY_VIEW');
 }
 
 /** Highest-privilege role, for display. */

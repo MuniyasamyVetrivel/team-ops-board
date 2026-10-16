@@ -40,7 +40,7 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
   - API modules (`features/*/api.ts`) export DTO types that mirror the Java records, query-key factories, and TanStack Query hooks. Mutations update the detail cache and invalidate the related lists.
   - Forms use React Hook Form + Zod, with schemas that mirror the backend validation. Map server field errors with `applyServerErrors`. Share field groups across forms through `FormProvider`/`useFormContext`, not by casting `register`.
   - Use the existing UI pieces: `Dialog`/`SheetContent` (right-hand drawer), `Tabs`, `Table`, `Badge` (semantic tones), native `Select`/`Checkbox`, and the common `StatusBadge`, `UserCell`, `Pagination`, `SearchInput`, `ErrorState`, `EmptyState`, `FormField`.
-  - Every record drawer or page has a History tab: `RecordHistory` (`features/history`) inside an existing `Tabs`, `DetailsWithHistory` for sheets and edit dialogs without tabs, or `HistoryPanel` for full pages. Add new record types to `HistoryRecordType`. It groups a named event with the automatic change of the same action, shows "System" for system changes, and hides finance amounts unless `canSeeFinance(user)`.
+  - Every record drawer or page has a History tab: `RecordHistory` (`features/history`) inside an existing `Tabs`, `DetailsWithHistory` for sheets and edit dialogs without tabs, or `HistoryPanel` for full pages. Add new record types to `HistoryRecordType`. It groups a named event with the automatic change of the same action, shows "System" for system changes, and hides finance amounts unless `canSeeFinance(user)`. These components hide themselves without `HISTORY_VIEW` (`useCanViewHistory()`); a page with its own `Tabs` hides its History trigger and content the same way.
   - The access token is kept in memory only (`src/lib/api/client.ts`); never put tokens in localStorage.
 - Package root: `com.teamops`. Organised by feature: `controller/ dto/ entity/ repository/ service/ mapper/`.
 
@@ -113,6 +113,7 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
   - **Never use colour alone** for status. Always pair it with a label or icon.
 
 ## Roles
+- Expansion features (docs/EXPANSION_BRIEF.md, "Access") are SUPER_ADMIN only by default, except X4 (employee ID and photo). Each has its own permission (`HISTORY_VIEW`, `AUDIT_VIEW`, `RECYCLE_BIN_MANAGE`, later `BENCH_*`, `VENDOR_*`, `FINANCE_*`, ...) seeded on SUPER_ADMIN only, enforced with `@PreAuthorize` (403) and hidden in the UI.
 - `SUPER_ADMIN` (Rakesh) has all permissions and sees everything.
 - `DEPARTMENT_MANAGER` manages their own department.
 - `EMPLOYEE` works on their own assigned work.

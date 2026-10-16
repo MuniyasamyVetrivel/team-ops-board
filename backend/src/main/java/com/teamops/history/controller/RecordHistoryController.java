@@ -3,6 +3,7 @@ package com.teamops.history.controller;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,10 +21,11 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * A record's History tab, e.g. {@code GET /api/history/TASK/42}: its audit entries and those of its comments,
- * checklist, attachments and other child records, newest first. Visible to whoever may open the record (404
- * otherwise). Read-only.
+ * checklist, attachments and other child records, newest first. Needs HISTORY_VIEW (Super Admin only by default;
+ * 403 otherwise), and then the record must be one the viewer may open (404 otherwise). Read-only.
  */
 @RestController
+@PreAuthorize("hasAuthority('HISTORY_VIEW')")
 @RequestMapping("/api/history")
 @RequiredArgsConstructor
 public class RecordHistoryController {

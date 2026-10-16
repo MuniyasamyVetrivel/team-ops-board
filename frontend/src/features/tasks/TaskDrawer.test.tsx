@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { api } from '@/lib/api/client';
-import { webEmployee } from '@/test/fixtures';
+import { superAdmin, webEmployee } from '@/test/fixtures';
 import { mockApi, renderPage } from '@/test/render';
 import { taskDetail } from '@/test/task-fixtures';
 
@@ -99,7 +99,7 @@ describe('TaskDrawer', () => {
       },
     });
 
-    renderPage(<TaskDrawer taskId={42} onClose={() => undefined} />, webEmployee);
+    renderPage(<TaskDrawer taskId={42} onClose={() => undefined} />, superAdmin);
     await screen.findByRole('heading', { name: 'Fix contact form validation' });
     expect(historyRequests).toBe(0);
 
@@ -107,5 +107,23 @@ describe('TaskDrawer', () => {
     const item = await screen.findByRole('article', { name: 'Task status changed by System' });
     expect(item).toHaveTextContent('Priorityfrom MEDIUMto HIGH');
     expect(screen.getAllByRole('article')).toHaveLength(1);
+  });
+
+  it('has no History tab for a normal employee (Super Admin only by default)', async () => {
+    let historyRequests = 0;
+    mockApi({
+      ...common,
+      'GET /tasks/42': () => taskDetail(),
+      'GET /history/TASK/42': () => {
+        historyRequests += 1;
+        return { content: [], page: 0, size: 50, totalElements: 0, totalPages: 0 };
+      },
+    });
+    renderPage(<TaskDrawer taskId={42} onClose={() => undefined} />, webEmployee);
+
+    await screen.findByRole('heading', { name: 'Fix contact form validation' });
+    expect(screen.getByRole('tab', { name: /Comments/ })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'History' })).not.toBeInTheDocument();
+    expect(historyRequests).toBe(0);
   });
 });

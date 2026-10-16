@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/features/auth/use-auth';
 import { useDepartments } from '@/features/departments/api';
+import { useCanViewHistory } from '@/features/history/api';
 import { RecordHistory } from '@/features/history/RecordHistory';
 import { PRIORITY_LABELS } from '@/features/tasks/task-meta';
 import { PRIORITIES } from '@/features/tasks/types';
@@ -65,6 +66,7 @@ async function run(action: Promise<unknown>, success?: string) {
 }
 
 function TicketDrawerBody({ ticket }: { ticket: TicketDetail }) {
+  const canViewHistory = useCanViewHistory();
   const { user } = useAuth();
   const changeStatus = useChangeTicketStatus(ticket.id);
   const isRequester = ticket.requester?.id === user?.id;
@@ -114,7 +116,7 @@ function TicketDrawerBody({ ticket }: { ticket: TicketDetail }) {
           <TabsList>
             <TabsTrigger value="conversation">Conversation ({ticket.comments.length})</TabsTrigger>
             <TabsTrigger value="files">Files ({ticket.attachments.length})</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
+            {canViewHistory && <TabsTrigger value="history">History</TabsTrigger>}
           </TabsList>
           <div className="px-6 pt-4">
             <TabsContent value="conversation">
@@ -123,9 +125,11 @@ function TicketDrawerBody({ ticket }: { ticket: TicketDetail }) {
             <TabsContent value="files">
               <TicketFilesSection ticket={ticket} />
             </TabsContent>
-            <TabsContent value="history">
-              <RecordHistory type="TICKET" id={ticket.id} />
-            </TabsContent>
+            {canViewHistory && (
+              <TabsContent value="history">
+                <RecordHistory type="TICKET" id={ticket.id} />
+              </TabsContent>
+            )}
           </div>
         </Tabs>
       </div>

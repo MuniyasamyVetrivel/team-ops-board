@@ -14,6 +14,7 @@ import { Dialog, DialogDescription, DialogTitle, SheetContent } from '@/componen
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { applyServerErrors } from '@/lib/api/form-errors';
+import { useCanViewHistory } from '@/features/history/api';
 import { RecordHistory } from '@/features/history/RecordHistory';
 
 import { AccessEditor } from './AccessEditor';
@@ -57,6 +58,7 @@ export function UserDrawer({ userId, onClose }: UserDrawerProps) {
 }
 
 function UserDrawerBody({ user }: { user: UserDetail }) {
+  const canViewHistory = useCanViewHistory();
   return (
     <>
       <div className="flex items-start gap-4 border-b px-6 py-5 pr-12">
@@ -77,7 +79,7 @@ function UserDrawerBody({ user }: { user: UserDetail }) {
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="access">Access</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
+          {canViewHistory && <TabsTrigger value="history">History</TabsTrigger>}
         </TabsList>
         <div className="flex-1 overflow-y-auto px-6 pt-5">
           <TabsContent value="profile" className="pb-5">
@@ -89,9 +91,11 @@ function UserDrawerBody({ user }: { user: UserDetail }) {
           <TabsContent value="security" className="pb-5">
             <SecurityPanel user={user} />
           </TabsContent>
-          <TabsContent value="history" className="pb-5">
-            <RecordHistory type="USER" id={user.id} />
-          </TabsContent>
+          {canViewHistory && (
+            <TabsContent value="history" className="pb-5">
+              <RecordHistory type="USER" id={user.id} />
+            </TabsContent>
+          )}
         </div>
       </Tabs>
     </>

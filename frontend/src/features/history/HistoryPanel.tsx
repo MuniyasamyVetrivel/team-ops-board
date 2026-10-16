@@ -5,13 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-import type { HistoryRecordType } from './api';
+import { useCanViewHistory, type HistoryRecordType } from './api';
 import { RecordHistory } from './RecordHistory';
 
-/** A record page's History section; the timeline loads when it is opened. */
+/** A record page's History section; the timeline loads when it is opened. Hidden for people without HISTORY_VIEW. */
 export function HistoryPanel({ type, id, className }: { type: HistoryRecordType; id: number; className?: string }) {
   const [open, setOpen] = useState(false);
   const contentId = useId();
+  const canViewHistory = useCanViewHistory();
+  if (!canViewHistory) return null;
   return (
     <Card className={cn('overflow-hidden', className)}>
       <div className="flex items-center justify-between gap-3 px-6 py-4">

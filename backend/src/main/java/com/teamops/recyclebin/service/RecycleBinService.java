@@ -37,8 +37,6 @@ import com.teamops.common.audit.RecordTypes;
 import com.teamops.common.config.BusinessCalendar;
 import com.teamops.common.exception.ApiException;
 import com.teamops.common.persistence.SoftDeletableEntity;
-import com.teamops.common.security.AccessScope;
-import com.teamops.common.security.AccessScopeService;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.settings.AppSettingsService;
 import com.teamops.common.web.PageResponse;
@@ -54,6 +52,7 @@ import com.teamops.recyclebin.dto.RecycleBinDtos.TypeInfo;
 import com.teamops.recyclebin.entity.RecycleBinItem;
 import com.teamops.recyclebin.repository.RecycleBinItemRepository;
 import com.teamops.user.dto.UserSummary;
+import com.teamops.user.entity.PermissionCodes;
 import com.teamops.user.entity.User;
 import com.teamops.user.repository.UserRepository;
 
@@ -68,9 +67,8 @@ import lombok.extern.slf4j.Slf4j;
  * (Hibernate hides it everywhere), so restoring brings it back exactly as it was, with its comments, checklist,
  * attachments and other children, which are never touched. Rules:
  * <ul>
- * <li>Super Admins see and restore everything; Department Managers see and restore their departments' items; nobody
- * else sees the bin.</li>
- * <li>Only a Super Admin deletes permanently, confirming with the item's name.</li>
+ * <li>Only holders of RECYCLE_BIN_MANAGE (Super Admin only by default) see the bin, restore and delete permanently;
+ * a permanent delete is confirmed with the item's name. Anyone else gets 403.</li>
  * <li>Items older than the {@code recycleBin.retentionDays} setting (default 90) are deleted permanently by a daily
  * job.</li>
  * <li>Unique values (an employee ID, a page URL) stay taken until the permanent delete ({@link #requireNotInBin}).</li>
@@ -95,8 +93,6 @@ public class RecycleBinService {
 
 	private final EntityManager entityManager;
 
-	private final AccessScopeService accessScopeService;
-
 	private final AppSettingsService settings;
 
 	private final BusinessCalendar calendar;
@@ -117,12 +113,11 @@ public class RecycleBinService {
 	private volatile Map<Class<?>, RecycleBinHandler<?>> handlers;
 
 	public RecycleBinService(RecycleBinItemRepository items, EntityManager entityManager,
-			AccessScopeService accessScopeService, AppSettingsService settings, BusinessCalendar calendar,
+			AppSettingsService settings, BusinessCalendar calendar,
 			UserRepository userRepository, DepartmentRepository departmentRepository, Clock clock,
 			EntityChangeAuditor auditor, ObjectProvider<RecycleBinHandler<?>> handlers) {
 		this.items = items;
 		this.entityManager = entityManager;
-		this.accessScopeService = accessScopeService;
 		this.settings = settings;
 		this.calendar = calendar;
 		this.userRepository = userRepository;
@@ -205,12 +200,12 @@ public class RecycleBinService {
 
 	@Transactional(readOnly = true)
 	public PageResponse<Item> list(Filter filter, Pageable pageable, AuthenticatedUser viewer) {
-		AccessScope scope = requireBinAccess(viewer);
+		requireBinAccess(viewer);
 		if (filter.from() != null && filter.to() != null && filter.from().isAfter(filter.to())) {
 			throw ApiException.badRequest("INVALID_RANGE", "The start date must be on or before the end date");
 		}
-		Page<RecycleBinItem> page = items.findAll(spec(filter, scope), pageable);
-		return new PageResponse<>(toItems(page.getContent(), viewer), page.getNumber(), page.getSize(),
+		Page<RecycleBinItem> page = items.findAll(spec(filter), pageable);
+		return new PageResponse<>(toItems(page.getContent()), page.getNumber(), page.getSize(),
 				page.getTotalElements(), page.getTotalPages());
 	}
 
@@ -243,13 +238,10 @@ public class RecycleBinService {
 
 	// --- restore and permanent delete ---------------------------------------------------------------------------
 
-	/** Puts a record back exactly as it was. Super Admins, and managers of the item's department. */
+	/** Puts a record back exactly as it was. */
 	@Transactional
 	public Restored restore(Long itemId, AuthenticatedUser actor) {
 		RecycleBinItem item = load(itemId, actor);
-		if (!canRestore(item, actor)) {
-			throw notFound();
-		}
 		SoftDeletableEntity entity = undelete(item, actor.id());
 		if (entity == null) {
 			// The row is gone (removed outside the app): nothing to restore.
@@ -264,12 +256,9 @@ public class RecycleBinService {
 		return new Restored(item.getEntityType(), item.getEntityId(), item.getLabel());
 	}
 
-	/** Deletes a record for good. Super Admin only, confirmed with the item's name. */
+	/** Deletes a record for good, confirmed with the item's name. */
 	@Transactional
 	public void purge(Long itemId, String confirm, AuthenticatedUser actor) {
-		if (!actor.isSuperAdmin()) {
-			throw ApiException.forbidden("PURGE_FORBIDDEN", "Only a Super Admin can delete items permanently");
-		}
 		RecycleBinItem item = load(itemId, actor);
 		String expected = confirmationText(item);
 		if (confirm == null || !expected.equalsIgnoreCase(confirm.trim())) {
@@ -330,38 +319,21 @@ public class RecycleBinService {
 
 	// --- access -----------------------------------------------------------------------------------------------
 
-	private AccessScope requireBinAccess(AuthenticatedUser viewer) {
-		AccessScope scope = accessScopeService.scopeFor(viewer);
-		if (scope.kind() == AccessScope.Kind.OWN) {
-			throw ApiException.forbidden("RECYCLE_BIN_FORBIDDEN",
-					"Only Super Admins and Department Managers can open the recycle bin");
+	/** The controller already requires the permission; checked again so no other caller skips it. */
+	private static void requireBinAccess(AuthenticatedUser viewer) {
+		if (!viewer.hasPermission(PermissionCodes.RECYCLE_BIN_MANAGE)) {
+			throw ApiException.forbidden("RECYCLE_BIN_FORBIDDEN", "Only a Super Admin can open the recycle bin");
 		}
-		return scope;
-	}
-
-	private boolean canRestore(RecycleBinItem item, AuthenticatedUser viewer) {
-		AccessScope scope = accessScopeService.scopeFor(viewer);
-		return scope.isAll() || (item.getDepartmentId() != null && scope.coversDepartment(item.getDepartmentId()));
 	}
 
 	private RecycleBinItem load(Long itemId, AuthenticatedUser viewer) {
 		requireBinAccess(viewer);
-		RecycleBinItem item = items.findById(itemId).orElseThrow(RecycleBinService::notFound);
-		if (!canRestore(item, viewer)) {
-			throw notFound();
-		}
-		return item;
+		return items.findById(itemId).orElseThrow(RecycleBinService::notFound);
 	}
 
-	private Specification<RecycleBinItem> spec(Filter filter, AccessScope scope) {
+	private Specification<RecycleBinItem> spec(Filter filter) {
 		return (root, query, cb) -> {
 			List<Predicate> where = new ArrayList<>();
-			if (!scope.isAll()) {
-				if (scope.departmentIds().isEmpty()) {
-					return cb.disjunction();
-				}
-				where.add(root.get("departmentId").in(scope.departmentIds()));
-			}
 			if (StringUtils.hasText(filter.module())) {
 				where.add(cb.equal(root.get("module"), filter.module().trim()));
 			}
@@ -389,7 +361,7 @@ public class RecycleBinService {
 
 	// --- mapping ----------------------------------------------------------------------------------------------
 
-	private List<Item> toItems(List<RecycleBinItem> page, AuthenticatedUser viewer) {
+	private List<Item> toItems(List<RecycleBinItem> page) {
 		Set<Long> userIds = page.stream().map(RecycleBinItem::getDeletedById).filter(Objects::nonNull).collect(Collectors.toSet());
 		Map<Long, User> users = userIds.isEmpty() ? Map.of()
 				: userRepository.findAllById(userIds).stream().collect(Collectors.toMap(User::getId, Function.identity()));
@@ -405,8 +377,7 @@ public class RecycleBinService {
 					item.getEntityId(), item.getLabel(), item.getModule(), module == null ? item.getModule() : module.label(),
 					department == null ? null : new DepartmentRef(department.getId(), department.getName()),
 					item.getDeletedAt(), UserSummary.of(users.get(item.getDeletedById())),
-					item.getDeletedAt().atZone(calendar.zone()).toLocalDate().plusDays(retention), confirmationText(item),
-					canRestore(item, viewer), viewer.isSuperAdmin()));
+					item.getDeletedAt().atZone(calendar.zone()).toLocalDate().plusDays(retention), confirmationText(item)));
 		}
 		return result;
 	}

@@ -92,6 +92,10 @@ class RecordHistoryIT {
 
 	private String auditorToken;
 
+	private String plainEmployeeToken;
+
+	private Long plainEmployeeId;
+
 	@BeforeEach
 	void setUp() throws Exception {
 		users = new IntegrationUsers(userService, userRepository, departmentRepository);
@@ -106,9 +110,12 @@ class RecordHistoryIT {
 			.getContentAsString();
 		departmentId = ((Number) JsonPath.read(body, "$.id")).longValue();
 		managerId = users.create(departmentId, RoleCodes.DEPARTMENT_MANAGER);
-		employeeId = users.create(departmentId, RoleCodes.EMPLOYEE);
-		Long outsiderId = users.create("IT", RoleCodes.EMPLOYEE);
-		Long auditorId = users.create("IT", RoleCodes.EMPLOYEE, "AUDIT_VIEW");
+		// History is Super Admin only by default; these employees were granted HISTORY_VIEW.
+		employeeId = users.create(departmentId, RoleCodes.EMPLOYEE, "HISTORY_VIEW");
+		Long outsiderId = users.create("IT", RoleCodes.EMPLOYEE, "HISTORY_VIEW");
+		Long auditorId = users.create("IT", RoleCodes.EMPLOYEE, "AUDIT_VIEW", "HISTORY_VIEW");
+		plainEmployeeId = users.create(departmentId, RoleCodes.EMPLOYEE);
+		plainEmployeeToken = login(users.email(plainEmployeeId));
 		managerToken = login(users.email(managerId));
 		employeeToken = login(users.email(employeeId));
 		outsiderToken = login(users.email(outsiderId));
@@ -212,6 +219,42 @@ class RecordHistoryIT {
 		Map<String, Object> deletion = only(history(auditorToken, "TASK", taskId), "RECORD_PURGED", "TASK");
 		assertThat(changes(deletion).get("title")).containsEntry("from", "Audit the supplier list");
 		assertThat(deletion.get("actor")).as("no signed-in user: the system").isNull();
+	}
+
+	@Test
+	void historyAndAuditLogsAreForTheSuperAdminOnlyByDefault() throws Exception {
+		Long taskId = ((Number) JsonPath.read(as(managerToken, post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
+			.content("""
+					{"title":"Plain employee's task","departmentId":%d,"assigneeId":%d,"priority":"LOW"}
+					""".formatted(departmentId, plainEmployeeId)))
+			.andExpect(status().isCreated())
+			.andReturn()
+			.getResponse()
+			.getContentAsString(), "$.id")).longValue();
+		tasks.add(taskId);
+
+		// A normal employee opens their own task but not its history, their own user history, or the audit logs.
+		as(plainEmployeeToken, get("/api/tasks/" + taskId)).andExpect(status().isOk());
+		as(plainEmployeeToken, get("/api/history/TASK/" + taskId)).andExpect(status().isForbidden());
+		as(plainEmployeeToken, get("/api/history/USER/" + plainEmployeeId)).andExpect(status().isForbidden());
+		as(plainEmployeeToken, get("/api/admin/audit-logs")).andExpect(status().isForbidden());
+		as(plainEmployeeToken, get("/api/admin/audit-logs/export")).andExpect(status().isForbidden());
+		// So does a Department Manager: these permissions are on no role but SUPER_ADMIN.
+		as(managerToken, get("/api/history/TASK/" + taskId)).andExpect(status().isForbidden());
+		as(managerToken, get("/api/admin/audit-logs")).andExpect(status().isForbidden());
+		assertThat(jdbc.queryForList("""
+				SELECT r.code FROM role_permissions rp JOIN roles r ON r.id = rp.role_id
+				JOIN permissions p ON p.id = rp.permission_id
+				WHERE p.code IN ('HISTORY_VIEW', 'RECYCLE_BIN_MANAGE', 'AUDIT_VIEW', 'FINANCE_VIEW')""", String.class))
+			.isNotEmpty()
+			.containsOnly(RoleCodes.SUPER_ADMIN);
+
+		// The Super Admin sees both.
+		assertThat(history(adminToken, "TASK", taskId)).anyMatch(e -> "RECORD_CREATED".equals(e.get("action")));
+		as(adminToken, get("/api/history/USER/" + plainEmployeeId)).andExpect(status().isOk());
+		String logs = as(adminToken, get("/api/admin/audit-logs").param("entityType", "TASK")
+			.param("entityId", taskId.toString())).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+		assertThat((Integer) JsonPath.read(logs, "$.totalElements")).isPositive();
 	}
 
 	@Test

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { NAV_ITEMS, NAVIGATION, visibleNavigation } from '@/config/navigation';
-import { seoExecutive, superAdmin, webEmployee } from '@/test/fixtures';
+import { makeUser, seoExecutive, superAdmin, webEmployee } from '@/test/fixtures';
 
 function labels(viewer: Parameters<typeof visibleNavigation>[0]) {
   return visibleNavigation(viewer).flatMap((section) => section.items.map((item) => item.label));
@@ -34,6 +34,14 @@ describe('visibleNavigation', () => {
     );
     expect(visible).not.toContain('Leads');
     expect(visible).not.toContain('Email Campaigns');
+  });
+
+  it('shows Audit Logs to the Super Admin only, not to employees or managers by default', () => {
+    expect(labels(superAdmin)).toContain('Audit Logs');
+    expect(labels(webEmployee)).not.toContain('Audit Logs');
+    const manager = makeUser(['DEPARTMENT_MANAGER'], [...webEmployee.permissions, 'WORKLOAD_VIEW', 'TASK_ASSIGN', 'TASK_DELETE']);
+    expect(labels(manager)).not.toContain('Audit Logs');
+    expect(labels(makeUser(['EMPLOYEE'], [...webEmployee.permissions, 'AUDIT_VIEW']))).toContain('Audit Logs');
   });
 
   it('never returns empty sections', () => {

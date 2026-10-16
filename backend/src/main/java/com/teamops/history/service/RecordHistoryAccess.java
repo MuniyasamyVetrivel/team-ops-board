@@ -58,10 +58,11 @@ import com.teamops.user.entity.User;
 import com.teamops.user.service.UserService;
 
 /**
- * Who may read a record's history: exactly who may open the record. Each record type reuses its module's own read
- * check (the permission its endpoint requires plus the service's scoping, which answers 404 for records the user
- * cannot see), so history never shows more than the record page does. Audit viewers (AUDIT_VIEW) may read any
- * record's history, including types listed nowhere here and records that no longer exist.
+ * Which records' history a HISTORY_VIEW holder may read (the controller requires that permission, Super Admin only by
+ * default): exactly the records they may open. Each record type reuses its module's own read check (the permission
+ * its endpoint requires plus the service's scoping, which answers 404 for records the user cannot see), so history
+ * never shows more than the record page does. Audit viewers (AUDIT_VIEW) may read any record's history, including
+ * types listed nowhere here and records that no longer exist.
  */
 @Component
 public class RecordHistoryAccess {

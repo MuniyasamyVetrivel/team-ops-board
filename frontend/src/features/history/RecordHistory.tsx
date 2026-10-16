@@ -13,7 +13,7 @@ import { useAuth } from '@/features/auth/use-auth';
 import { formatRelative, formatTimestamp } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
-import { useRecordHistory, type HistoryRecordType } from './api';
+import { useCanViewHistory, useRecordHistory, type HistoryRecordType } from './api';
 import { groupHistory, type HistoryItem, type HistoryKind } from './history-groups';
 
 const KIND: Record<HistoryKind, { icon: LucideIcon; label: string; tone: 'success' | 'primary' | 'danger' | 'warning' | 'neutral' }> = {
@@ -29,17 +29,19 @@ const KIND: Record<HistoryKind, { icon: LucideIcon; label: string; tone: 'succes
  * A record's History tab: who changed what and when, newest first, with field-by-field before → after values. The
  * record's own changes and its children's (comments, checklist, attachments, steps) are shown; a module's named
  * event and the automatic change for the same action appear as one item. Money amounts are hidden from people
- * without Finance access.
+ * without Finance access. Renders nothing for people without HISTORY_VIEW.
  */
 export function RecordHistory({ type, id, className }: { type: HistoryRecordType; id: number; className?: string }) {
   const { user } = useAuth();
-  const history = useRecordHistory(type, id);
+  const allowed = useCanViewHistory();
+  const history = useRecordHistory(type, id, allowed);
   const finance = canSeeFinance(user);
   const items = useMemo(
     () => groupHistory(history.data?.pages.flatMap((page) => page.content) ?? [], { type, id }, { canSeeFinance: finance }),
     [history.data, type, id, finance],
   );
 
+  if (!allowed) return null;
   if (history.isPending) {
     return (
       <div className={cn('space-y-4', className)} role="status" aria-label="Loading history">

@@ -8,9 +8,14 @@ import { api } from '@/lib/api/client';
 import { makeUser, superAdmin, webEmployee } from '@/test/fixtures';
 import { mockApi, renderPage } from '@/test/render';
 
+import { DetailsWithHistory } from './DetailsWithHistory';
+import { HistoryPanel } from './HistoryPanel';
 import { RecordHistory } from './RecordHistory';
 
 const originalAdapter = api.defaults.adapter;
+
+/** An employee the Super Admin granted HISTORY_VIEW, without Finance access. */
+const historian = makeUser(['EMPLOYEE'], [...webEmployee.permissions, 'HISTORY_VIEW']);
 
 const priya = { id: 7, fullName: 'Priya Menon', email: 'priya@teamops.local', jobTitle: null, status: 'ACTIVE' as const };
 
@@ -74,11 +79,55 @@ describe('RecordHistory', () => {
 
   it('hides finance amounts without Finance access', async () => {
     mockApi({ 'GET /history/APPROVAL/5': () => page(timeline) });
-    renderPage(<RecordHistory type="APPROVAL" id={5} />, webEmployee);
+    renderPage(<RecordHistory type="APPROVAL" id={5} />, historian);
 
     const edit = await screen.findByRole('article', { name: 'Approval edited by Priya Menon' });
     expect(within(edit).getByLabelText('Changes')).toHaveTextContent('AmountHidden (finance amount — needs Finance access)');
     expect(edit).not.toHaveTextContent('42000');
+  });
+
+  it('is Super Admin only by default: a normal employee sees no History tab and nothing is loaded', async () => {
+    let requests = 0;
+    mockApi({
+      'GET /history/TASK/1': () => {
+        requests += 1;
+        return page(timeline);
+      },
+    });
+    renderPage(
+      <>
+        <DetailsWithHistory type="TASK" id={1}>
+          <p>Task details</p>
+        </DetailsWithHistory>
+        <HistoryPanel type="TASK" id={1} />
+        <RecordHistory type="TASK" id={1} />
+      </>,
+      webEmployee,
+    );
+
+    expect(await screen.findByText('Task details')).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'History' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Show history' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'History' })).not.toBeInTheDocument();
+    expect(requests).toBe(0);
+  });
+
+  it('shows the History tab and panel to the Super Admin', async () => {
+    const user = userEvent.setup();
+    mockApi({ 'GET /history/TASK/1': () => page(timeline) });
+    renderPage(
+      <>
+        <DetailsWithHistory type="TASK" id={1}>
+          <p>Task details</p>
+        </DetailsWithHistory>
+        <HistoryPanel type="TASK" id={1} />
+      </>,
+      superAdmin,
+    );
+
+    expect(screen.getByRole('button', { name: 'Show history' })).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'History' }));
+    expect(await screen.findByRole('list', { name: 'History' })).toBeInTheDocument();
   });
 
   it('loads older changes on request', async () => {

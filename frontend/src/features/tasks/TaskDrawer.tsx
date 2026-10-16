@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { isSuperAdmin } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
 import { useDepartments } from '@/features/departments/api';
+import { useCanViewHistory } from '@/features/history/api';
 import { RecordHistory } from '@/features/history/RecordHistory';
 import { useTeamDirectory } from '@/features/team/api';
 import { errorMessage, toApiError } from '@/lib/api/errors';
@@ -74,6 +75,7 @@ function useFieldSaver(task: TaskDetail) {
 }
 
 function TaskDrawerBody({ task, onClose }: { task: TaskDetail; onClose: () => void }) {
+  const canViewHistory = useCanViewHistory();
   const { permissions } = task;
   const doneItems = task.checklist.filter((item) => item.done).length;
 
@@ -106,7 +108,7 @@ function TaskDrawerBody({ task, onClose }: { task: TaskDetail; onClose: () => vo
             <TabsTrigger value="files">Files ({task.attachments.length})</TabsTrigger>
             <TabsTrigger value="dependencies">Depends on ({task.dependencies.length})</TabsTrigger>
             <TabsTrigger value="watchers">Watchers ({task.watchers.length})</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
+            {canViewHistory && <TabsTrigger value="history">History</TabsTrigger>}
           </TabsList>
           <div className="px-6 pt-4">
             <TabsContent value="comments">
@@ -124,9 +126,11 @@ function TaskDrawerBody({ task, onClose }: { task: TaskDetail; onClose: () => vo
             <TabsContent value="watchers">
               <WatchersSection task={task} onLostAccess={onClose} />
             </TabsContent>
-            <TabsContent value="history">
-              <RecordHistory type="TASK" id={task.id} />
-            </TabsContent>
+            {canViewHistory && (
+              <TabsContent value="history">
+                <RecordHistory type="TASK" id={task.id} />
+              </TabsContent>
+            )}
           </div>
         </Tabs>
       </div>

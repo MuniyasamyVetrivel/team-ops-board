@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +22,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.security.JwtTokenService;
 import com.teamops.common.security.UserPrincipalService;
@@ -31,7 +31,10 @@ import com.teamops.recyclebin.service.RecycleBinService;
 import com.teamops.support.SecuritySliceTest;
 import com.teamops.support.SliceAuth;
 
-/** Recycle bin API: signed-in users only, scope checked by the service, permanent delete by Super Admins with a name. */
+/**
+ * Recycle bin API: RECYCLE_BIN_MANAGE only (Super Admin by default; 403 for everyone else) for viewing, restoring and
+ * permanent delete, which must name the item.
+ */
 @WebMvcTest(controllers = RecycleBinController.class)
 @SecuritySliceTest
 class RecycleBinApiSecurityTest {
@@ -72,29 +75,40 @@ class RecycleBinApiSecurityTest {
 	}
 
 	@Test
-	void aViewerOutsideTheBinIsRefusedByTheService() throws Exception {
-		when(recycleBin.list(any(), any(), argThat(u -> u.id().equals(SliceAuth.EMPLOYEE.id()))))
-			.thenThrow(ApiException.forbidden("RECYCLE_BIN_FORBIDDEN", "No"));
-		mvc.perform(get("/api/recycle-bin").header(HttpHeaders.AUTHORIZATION, bearer(SliceAuth.EMPLOYEE)))
-			.andExpect(status().isForbidden())
-			.andExpect(jsonPath("$.code").value("RECYCLE_BIN_FORBIDDEN"));
+	void aNormalEmployeeIsForbiddenEverywhere() throws Exception {
+		for (AuthenticatedUser user : List.of(SliceAuth.EMPLOYEE, SliceAuth.USER_ADMIN)) {
+			mvc.perform(get("/api/recycle-bin").header(HttpHeaders.AUTHORIZATION, bearer(user)))
+				.andExpect(status().isForbidden());
+			mvc.perform(get("/api/recycle-bin/catalog").header(HttpHeaders.AUTHORIZATION, bearer(user)))
+				.andExpect(status().isForbidden());
+			mvc.perform(post("/api/recycle-bin/9/restore").header(HttpHeaders.AUTHORIZATION, bearer(user)))
+				.andExpect(status().isForbidden());
+			mvc.perform(post("/api/recycle-bin/9/purge").header(HttpHeaders.AUTHORIZATION, bearer(user))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"confirm\":\"TSK-000042\"}")).andExpect(status().isForbidden());
+		}
+		verifyNoInteractions(recycleBin);
 	}
 
 	@Test
-	void restoreIsForAnyoneTheServiceAllows() throws Exception {
+	void theSuperAdminRestores() throws Exception {
 		when(recycleBin.restore(eq(9L), any())).thenReturn(new Restored("TASK", 42L, "TSK-000042"));
-		mvc.perform(post("/api/recycle-bin/9/restore").header(HttpHeaders.AUTHORIZATION, bearer(SliceAuth.EMPLOYEE)))
+		mvc.perform(post("/api/recycle-bin/9/restore").header(HttpHeaders.AUTHORIZATION, bearer(SliceAuth.SUPER_ADMIN)))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.entityId").value(42));
 	}
 
 	@Test
-	void permanentDeleteIsForSuperAdminsAndNeedsTheName() throws Exception {
-		mvc.perform(post("/api/recycle-bin/9/purge").header(HttpHeaders.AUTHORIZATION, bearer(SliceAuth.USER_ADMIN))
-			.contentType(MediaType.APPLICATION_JSON)
-			.content("{\"confirm\":\"TSK-000042\"}")).andExpect(status().isForbidden());
-		verifyNoInteractions(recycleBin);
+	void anEmployeeGrantedThePermissionGetsIn() throws Exception {
+		AuthenticatedUser granted = new AuthenticatedUser(13L, "bin@teamops.local", "Bin Keeper", 5L,
+				Set.of("EMPLOYEE"), SliceAuth.with(SliceAuth.EMPLOYEE_PERMISSIONS, "RECYCLE_BIN_MANAGE"));
+		when(recycleBin.restore(eq(9L), any())).thenReturn(new Restored("TASK", 42L, "TSK-000042"));
+		mvc.perform(post("/api/recycle-bin/9/restore").header(HttpHeaders.AUTHORIZATION, bearer(granted)))
+			.andExpect(status().isOk());
+	}
 
+	@Test
+	void permanentDeleteNeedsTheName() throws Exception {
 		mvc.perform(post("/api/recycle-bin/9/purge").header(HttpHeaders.AUTHORIZATION, bearer(SliceAuth.SUPER_ADMIN))
 			.contentType(MediaType.APPLICATION_JSON)
 			.content("{\"confirm\":\" \"}")).andExpect(status().isBadRequest());

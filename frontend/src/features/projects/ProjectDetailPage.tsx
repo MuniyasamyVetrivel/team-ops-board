@@ -27,6 +27,7 @@ import { Card } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useCanViewHistory } from '@/features/history/api';
 import { RecordHistory } from '@/features/history/RecordHistory';
 import { TaskDrawer } from '@/features/tasks/TaskDrawer';
 import { TaskTable } from '@/features/tasks/TaskTable';
@@ -56,6 +57,7 @@ async function attempt(action: Promise<unknown>, success?: string) {
 
 /** One project: progress, milestones, risks, tasks, team and dependencies. */
 export default function ProjectDetailPage() {
+  const canViewHistory = useCanViewHistory();
   const id = Number(useParams().id);
   const project = useProject(id);
   const [editing, setEditing] = useState(false);
@@ -139,7 +141,7 @@ export default function ProjectDetailPage() {
             <TabsTrigger value="tasks">Tasks ({p.tasks.total})</TabsTrigger>
             <TabsTrigger value="team">Team ({p.members.length})</TabsTrigger>
             <TabsTrigger value="dependencies">Depends on ({p.dependencies.length})</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
+            {canViewHistory && <TabsTrigger value="history">History</TabsTrigger>}
           </TabsList>
           <div className="px-4 pt-4 sm:px-6">
             <TabsContent value="milestones">
@@ -157,9 +159,11 @@ export default function ProjectDetailPage() {
             <TabsContent value="dependencies">
               <DependenciesSection project={p} />
             </TabsContent>
-            <TabsContent value="history" className="pb-2">
-              <RecordHistory type="PROJECT" id={p.id} />
-            </TabsContent>
+            {canViewHistory && (
+              <TabsContent value="history" className="pb-2">
+                <RecordHistory type="PROJECT" id={p.id} />
+              </TabsContent>
+            )}
           </div>
         </Tabs>
       </Card>

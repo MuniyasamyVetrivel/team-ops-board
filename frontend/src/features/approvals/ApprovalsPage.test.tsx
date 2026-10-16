@@ -68,6 +68,7 @@ const detail: ApprovalDetail = {
 const page = (content: ApprovalListItem[]) => ({ content, page: 0, size: 25, totalElements: content.length, totalPages: 1 });
 
 const manager = makeUser(['DEPARTMENT_MANAGER'], ['APPROVAL_VIEW', 'APPROVAL_DECIDE'], { id: 3, fullName: 'Sanjay Varma' });
+const historianManager = makeUser(['DEPARTMENT_MANAGER'], [...manager.permissions, 'HISTORY_VIEW'], { id: 3, fullName: 'Sanjay Varma' });
 
 describe('ApprovalsPage', () => {
   afterEach(() => {
@@ -146,7 +147,8 @@ describe('ApprovalsPage', () => {
       }),
     });
 
-    renderPage(<ApprovalsPage />, manager, '/approvals?approval=9');
+    // History is Super Admin only by default; this manager was granted HISTORY_VIEW but not Finance access.
+    renderPage(<ApprovalsPage />, historianManager, '/approvals?approval=9');
 
     const drawer = await screen.findByRole('dialog');
     await userEvent.click(await within(drawer).findByRole('tab', { name: 'History' }));

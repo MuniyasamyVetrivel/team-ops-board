@@ -13,6 +13,12 @@ public final class PermissionCodes {
 
 	public static final String AUDIT_VIEW = "AUDIT_VIEW";
 
+	/** The History tab on records (Super Admin only by default). */
+	public static final String HISTORY_VIEW = "HISTORY_VIEW";
+
+	/** The Recycle Bin: view, restore and permanent delete (Super Admin only by default). */
+	public static final String RECYCLE_BIN_MANAGE = "RECYCLE_BIN_MANAGE";
+
 	/** See money amounts (budgets, spend, approval amounts), including in audit history. */
 	public static final String FINANCE_VIEW = "FINANCE_VIEW";
 

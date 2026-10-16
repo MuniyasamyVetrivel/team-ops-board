@@ -30,7 +30,7 @@ public final class RecycleBinDtos {
 	 */
 	public record Item(Long id, String entityType, String entityTypeLabel, Long entityId, String label, String module,
 			String moduleLabel, DepartmentRef department, Instant deletedAt, UserSummary deletedBy, LocalDate purgeOn,
-			String confirmationText, boolean canRestore, boolean canPurge) {
+			String confirmationText) {
 
 	}
 

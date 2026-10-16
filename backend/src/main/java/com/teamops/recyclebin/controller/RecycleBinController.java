@@ -31,10 +31,11 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * The recycle bin: deleted records, newest first, filtered by module, record type, who deleted them, dates and name.
- * Super Admins see everything, Department Managers their departments' items (403 for anyone else). Restore by either;
- * permanent delete by a Super Admin, confirmed with the item's name.
+ * Needs RECYCLE_BIN_MANAGE (Super Admin only by default; 403 for anyone else), which covers viewing, restoring and
+ * permanently deleting (confirmed with the item's name).
  */
 @RestController
+@PreAuthorize("hasAuthority('RECYCLE_BIN_MANAGE')")
 @RequestMapping("/api/recycle-bin")
 @RequiredArgsConstructor
 public class RecycleBinController {
@@ -68,7 +69,6 @@ public class RecycleBinController {
 	}
 
 	@PostMapping("/{id}/purge")
-	@PreAuthorize("hasRole('SUPER_ADMIN')")
 	public ResponseEntity<Void> purge(@PathVariable Long id, @Valid @RequestBody PurgeRequest request,
 			@AuthenticationPrincipal AuthenticatedUser actor) {
 		recycleBin.purge(id, request.confirm(), actor);
