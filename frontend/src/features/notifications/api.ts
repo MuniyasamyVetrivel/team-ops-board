@@ -3,7 +3,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { api } from '@/lib/api/client';
 import type { PageResponse } from '@/lib/api/types';
 
-export type NotificationType = 'TASK_ASSIGNED' | 'TASK_DUE_SOON' | 'TASK_OVERDUE' | 'TICKET_ASSIGNED' | 'TICKET_UPDATED' | 'TICKET_REPLY' | 'APPROVAL_REQUIRED' | 'APPROVAL_DECIDED' | 'ANNOUNCEMENT_PUBLISHED' | 'OCCASION_REMINDER';
+export type NotificationType = 'TASK_ASSIGNED' | 'TASK_DUE_SOON' | 'TASK_OVERDUE' | 'TICKET_ASSIGNED' | 'TICKET_UPDATED' | 'TICKET_REPLY' | 'APPROVAL_REQUIRED' | 'APPROVAL_DECIDED' | 'ANNOUNCEMENT_PUBLISHED' | 'OCCASION_REMINDER' | 'BENCH_ROLL_OFF';
 
 /** Mirrors com.teamops.notification.dto.NotificationResponse. */
 export interface AppNotification {
@@ -32,6 +32,7 @@ export function notificationHref(notification: AppNotification): string | null {
   if (notification.entityType === 'EMPLOYEE') return `/celebrations/employees?employee=${notification.entityId}`;
   if (notification.entityType === 'IMPORTANT_DAY') return `/celebrations/important-days?day=${notification.entityId}`;
   if (notification.entityType === 'MARKETING_EVENT') return `/celebrations/events?event=${notification.entityId}`;
+  if (notification.entityType === 'ALLOCATION') return `/tools/bench?allocation=${notification.entityId}`;
   return null;
 }
 

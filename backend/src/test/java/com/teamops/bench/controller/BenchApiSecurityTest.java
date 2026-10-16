@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
@@ -29,6 +30,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import com.teamops.bench.dto.BenchDtos.ConsultantDto;
 import com.teamops.bench.entity.EmploymentStatus;
+import com.teamops.bench.service.AllocationService;
+import com.teamops.bench.service.BenchService;
 import com.teamops.bench.service.ClientService;
 import com.teamops.bench.service.ConsultantService;
 import com.teamops.bench.service.ConsultantStatus;
@@ -48,7 +51,7 @@ import com.teamops.support.SliceAuth;
  * switch that guards every request under /api/modules/bench/.
  */
 @WebMvcTest(controllers = { ConsultantController.class, ClientController.class, EngagementController.class,
-		BenchImportController.class })
+		BenchImportController.class, AllocationController.class, BenchController.class })
 @SecuritySliceTest
 class BenchApiSecurityTest {
 
@@ -57,6 +60,9 @@ class BenchApiSecurityTest {
 			5L, Set.of("EMPLOYEE"), SliceAuth.with(SliceAuth.EMPLOYEE_PERMISSIONS, "BENCH_VIEW"));
 
 	private static final String CONSULTANT_BODY = "{\"employeeId\":7,\"skills\":[\"Tosca\"]}";
+
+	private static final String ALLOCATION_BODY = "{\"consultantId\":1,\"engagementId\":2,\"role\":\"QA\","
+			+ "\"startDate\":\"2026-11-01\",\"allocationPercent\":50,\"billable\":true}";
 
 	@Autowired
 	private MockMvc mvc;
@@ -82,6 +88,12 @@ class BenchApiSecurityTest {
 	@MockitoBean
 	private CsvImportService imports;
 
+	@MockitoBean
+	private AllocationService allocations;
+
+	@MockitoBean
+	private BenchService bench;
+
 	private String bearer(AuthenticatedUser user) {
 		return SliceAuth.bearer(jwtTokenService, userPrincipalService, user);
 	}
@@ -94,13 +106,14 @@ class BenchApiSecurityTest {
 			for (MockHttpServletRequestBuilder request : List.of(get("/api/modules/bench/consultants"),
 					get("/api/modules/bench/consultants/3"), get("/api/modules/bench/consultants/export"),
 					get("/api/modules/bench/clients"), get("/api/modules/bench/engagements"),
-					get("/api/modules/bench/imports/consultants/template"),
+					get("/api/modules/bench/imports/consultants/template"), get("/api/modules/bench/allocations"),
+					get("/api/modules/bench/bench"), get("/api/modules/bench/dashboard"),
 					post("/api/modules/bench/consultants").contentType(MediaType.APPLICATION_JSON).content(CONSULTANT_BODY),
 					delete("/api/modules/bench/clients/3"))) {
 				mvc.perform(request.header(HttpHeaders.AUTHORIZATION, token)).andExpect(status().isForbidden());
 			}
 		}
-		verifyNoInteractions(consultants, clients, engagements, imports);
+		verifyNoInteractions(consultants, clients, engagements, imports, allocations, bench);
 	}
 
 	@Test
@@ -125,10 +138,51 @@ class BenchApiSecurityTest {
 				put("/api/modules/bench/consultants/3").contentType(MediaType.APPLICATION_JSON).content(CONSULTANT_BODY),
 				delete("/api/modules/bench/consultants/3"), get("/api/modules/bench/consultants/candidates"),
 				post("/api/modules/bench/clients").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Acme\"}"),
-				delete("/api/modules/bench/engagements/3"), get("/api/modules/bench/imports/consultants"))) {
+				delete("/api/modules/bench/engagements/3"), get("/api/modules/bench/imports/consultants"),
+				post("/api/modules/bench/allocations").contentType(MediaType.APPLICATION_JSON).content(ALLOCATION_BODY),
+				delete("/api/modules/bench/allocations/3"))) {
 			mvc.perform(request.header(HttpHeaders.AUTHORIZATION, token)).andExpect(status().isForbidden());
 		}
-		verifyNoInteractions(clients, engagements, imports);
+		verifyNoInteractions(clients, engagements, imports, allocations);
+	}
+
+	@Test
+	void benchViewSeesTheBenchTheDashboardAndAllocations() throws Exception {
+		when(bench.bench(any(), any())).thenReturn(new PageResponse<>(List.of(), 0, 25, 0, 0));
+		when(allocations.search(any(), any())).thenReturn(new PageResponse<>(List.of(), 0, 25, 0, 0));
+		String token = bearer(VIEWER);
+
+		mvc.perform(get("/api/modules/bench/bench").param("sort", "days,desc").header(HttpHeaders.AUTHORIZATION, token))
+			.andExpect(status().isOk());
+		mvc.perform(get("/api/modules/bench/bench").param("sort", "salary,desc").header(HttpHeaders.AUTHORIZATION, token))
+			.andExpect(status().isBadRequest());
+		mvc.perform(get("/api/modules/bench/dashboard").header(HttpHeaders.AUTHORIZATION, token))
+			.andExpect(status().isOk());
+		mvc.perform(get("/api/modules/bench/allocations").param("status", "ACTIVE")
+			.header(HttpHeaders.AUTHORIZATION, token)).andExpect(status().isOk());
+		mvc.perform(get("/api/modules/bench/allocations/check").param("consultantId", "3")
+			.param("startDate", "2026-11-01")
+			.param("allocationPercent", "50")
+			.header(HttpHeaders.AUTHORIZATION, token)).andExpect(status().isOk());
+		verify(allocations).check(3L, LocalDate.of(2026, 11, 1), null, 50, null);
+		verify(bench).dashboard();
+	}
+
+	@Test
+	void allocationsAreValidatedBeforeTheService() throws Exception {
+		String token = bearer(SliceAuth.SUPER_ADMIN);
+		for (String body : List.of("{\"consultantId\":1,\"engagementId\":2,\"role\":\"QA\",\"startDate\":\"2026-11-01\","
+				+ "\"allocationPercent\":0}", "{\"consultantId\":1,\"engagementId\":2,\"role\":\"QA\","
+						+ "\"startDate\":\"2026-11-01\",\"allocationPercent\":101}",
+				"{\"consultantId\":1,\"engagementId\":2,\"startDate\":\"2026-11-01\",\"allocationPercent\":50}")) {
+			mvc.perform(post("/api/modules/bench/allocations").header(HttpHeaders.AUTHORIZATION, token)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(body)).andExpect(status().isBadRequest());
+		}
+		mvc.perform(post("/api/modules/bench/allocations").header(HttpHeaders.AUTHORIZATION, token)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(ALLOCATION_BODY)).andExpect(status().isCreated());
+		verify(allocations).create(any(), eq(SliceAuth.SUPER_ADMIN), any());
 	}
 
 	@Test
@@ -168,7 +222,7 @@ class BenchApiSecurityTest {
 
 	private static ConsultantDto consultant() {
 		return new ConsultantDto(30L, 7L, null, null, null, null, EmploymentStatus.ACTIVE, ConsultantStatus.ON_BENCH,
-				List.of("Tosca"), List.of(), null, 0, null, null);
+				0, List.of("Tosca"), List.of(), null, 0, null, null);
 	}
 
 }

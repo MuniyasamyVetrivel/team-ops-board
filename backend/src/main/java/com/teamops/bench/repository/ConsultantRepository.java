@@ -27,6 +27,10 @@ public interface ConsultantRepository extends JpaRepository<Consultant, Long>, J
 	@EntityGraph(attributePaths = { "employee", "employee.department", "employee.user" })
 	Optional<Consultant> findDetailedById(Long id);
 
+	/** Every live consultant, for the bench and the dashboard (skills are batch-loaded when read). */
+	@EntityGraph(attributePaths = { "employee", "employee.department", "employee.user" })
+	List<Consultant> findAllByOrderByIdAsc();
+
 	boolean existsByEmployeeId(Long employeeId);
 
 	boolean existsByEmployeeIdAndIdNot(Long employeeId, Long id);

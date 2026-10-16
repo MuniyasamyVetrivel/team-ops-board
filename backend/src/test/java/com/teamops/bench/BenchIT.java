@@ -12,7 +12,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -31,6 +33,8 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.AbstractMockHttpServletRequestBuilder;
 
 import com.jayway.jsonpath.JsonPath;
+import com.teamops.bench.service.BenchReminderService;
+import com.teamops.common.config.BusinessCalendar;
 import com.teamops.department.repository.DepartmentRepository;
 import com.teamops.support.IntegrationUsers;
 import com.teamops.user.entity.RoleCodes;
@@ -64,6 +68,12 @@ class BenchIT {
 	@Autowired
 	private JdbcTemplate jdbc;
 
+	@Autowired
+	private BusinessCalendar calendar;
+
+	@Autowired
+	private BenchReminderService reminders;
+
 	private IntegrationUsers users;
 
 	private String nonce;
@@ -71,6 +81,10 @@ class BenchIT {
 	private Long departmentId;
 
 	private Long viewerId;
+
+	private Long plainId;
+
+	private Long outsiderId;
 
 	private String adminToken;
 
@@ -94,9 +108,11 @@ class BenchIT {
 
 		viewerId = users.create(departmentId, RoleCodes.EMPLOYEE, "BENCH_VIEW");
 		viewerToken = login(viewerId);
-		plainToken = login(users.create(departmentId, RoleCodes.EMPLOYEE));
+		plainId = users.create(departmentId, RoleCodes.EMPLOYEE);
+		plainToken = login(plainId);
 		// Holds both permissions, but the module is not switched on for the IT department.
-		outsiderToken = login(users.create("IT", RoleCodes.EMPLOYEE, "BENCH_VIEW", "BENCH_EDIT"));
+		outsiderId = users.create("IT", RoleCodes.EMPLOYEE, "BENCH_VIEW", "BENCH_EDIT");
+		outsiderToken = login(outsiderId);
 	}
 
 	@AfterEach
@@ -106,6 +122,10 @@ class BenchIT {
 		String consultants = "SELECT id FROM bench_consultants WHERE employee_id IN (" + employees + ")";
 		String clients = "SELECT id FROM bench_clients WHERE name LIKE '%" + nonce + "%'";
 		String engagements = "SELECT id FROM bench_client_engagements WHERE client_id IN (" + clients + ")";
+		String allocations = "SELECT id FROM bench_allocations WHERE consultant_id IN (" + consultants + ")";
+		jdbc.update("DELETE FROM notifications WHERE entity_type = 'ALLOCATION' AND entity_id IN (" + allocations + ")");
+		jdbc.update("DELETE FROM recycle_bin_items WHERE entity_type = 'ALLOCATION' AND entity_id IN (" + allocations + ")");
+		jdbc.update("DELETE FROM bench_allocations WHERE consultant_id IN (SELECT id FROM (" + consultants + ") c)");
 		jdbc.update("DELETE FROM recycle_bin_items WHERE entity_type = 'CONSULTANT' AND entity_id IN (" + consultants + ")");
 		jdbc.update("DELETE FROM recycle_bin_items WHERE entity_type = 'CLIENT_ENGAGEMENT' AND entity_id IN (" + engagements
 				+ ")");
@@ -325,7 +345,154 @@ class BenchIT {
 			.andExpect(content().string(containsString(code("1") + ",,,,ACTIVE,,,")));
 	}
 
+	@Test
+	void allocationsDriveStatusTheBenchTheDashboardRollOffsAndSearch() throws Exception {
+		LocalDate today = calendar.today();
+		String before = body(as(adminToken, get(API + "/dashboard")).andExpect(status().isOk()));
+		Long asha = id(as(adminToken, post(API + "/consultants").contentType(MediaType.APPLICATION_JSON)
+			.content("{\"employeeId\":%d,\"skills\":[\"Tosca\"]}".formatted(createEmployee("A"))))
+			.andExpect(status().isCreated()));
+		Long bala = id(as(adminToken, post(API + "/consultants").contentType(MediaType.APPLICATION_JSON)
+			.content("{\"employeeId\":%d}".formatted(createEmployee("B")))).andExpect(status().isCreated()));
+		Long clientId = id(as(adminToken, post(API + "/clients").contentType(MediaType.APPLICATION_JSON)
+			.content("{\"name\":\"Acme %s\"}".formatted(nonce))).andExpect(status().isCreated()));
+		Long support = createEngagement(clientId, "Support", "\"2000-01-01\"", "null", null);
+		Long rollout = createEngagement(clientId, "Rollout", "\"2000-01-01\"", "\"2099-12-31\"", null);
+
+		// Asha at 50% until 20 days from now: partially allocated, on the bench with half her time.
+		Long first = allocationId(allocate(asha, support, "2000-01-01", today.plusDays(20).toString(), 50, true)
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.overAllocations").isEmpty())
+			.andExpect(jsonPath("$.allocation.status").value("ACTIVE"))
+			.andExpect(jsonPath("$.allocation.daysUntilEnd").value(20)));
+		as(viewerToken, get(API + "/consultants/" + asha)).andExpect(jsonPath("$.status").value("PARTIALLY_ALLOCATED"))
+			.andExpect(jsonPath("$.allocatedPercent").value(50));
+
+		// Another 60% for six days takes her to 110%: saved, with a warning for exactly that stretch.
+		as(viewerToken, get(API + "/allocations/check").param("consultantId", asha.toString())
+			.param("startDate", today.toString())
+			.param("endDate", today.plusDays(5).toString())
+			.param("allocationPercent", "60")).andExpect(status().isOk())
+			.andExpect(jsonPath("$.overAllocations[0].totalPercent").value(110));
+		Long second = allocationId(allocate(asha, rollout, today.toString(), today.plusDays(5).toString(), 60, false)
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.overAllocations[0].from").value(today.toString()))
+			.andExpect(jsonPath("$.overAllocations[0].to").value(today.plusDays(5).toString()))
+			.andExpect(jsonPath("$.overAllocations[0].totalPercent").value(110)));
+		as(viewerToken, get(API + "/consultants").param("search", code("A")).param("status", "ALLOCATED"))
+			.andExpect(jsonPath("$.totalElements").value(1))
+			.andExpect(jsonPath("$.content[0].allocatedPercent").value(110));
+
+		// Allocations stay inside their engagement; viewers cannot allocate.
+		allocate(asha, support, "1999-12-31", null, 10, true).andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("OUTSIDE_ENGAGEMENT"));
+		allocate(asha, rollout, "2001-01-01", null, 10, true).andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("OUTSIDE_ENGAGEMENT"));
+		allocate(asha, rollout, "2001-01-02", "2001-01-01", 10, true).andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("INVALID_DATES"));
+		as(viewerToken, post(API + "/allocations").contentType(MediaType.APPLICATION_JSON)
+			.content(allocation(asha, support, "2001-01-01", null, 10, true))).andExpect(status().isForbidden());
+
+		// Bala rolled off a full allocation ten days ago: on the bench since the day after.
+		allocate(bala, support, "2000-01-01", today.minusDays(10).toString(), 100, true).andExpect(status().isCreated());
+		as(viewerToken, get(API + "/bench").param("search", nonce)).andExpect(status().isOk())
+			.andExpect(jsonPath("$.totalElements").value(1))
+			.andExpect(jsonPath("$.content[0].consultantId").value(bala))
+			.andExpect(jsonPath("$.content[0].status").value("ON_BENCH"))
+			.andExpect(jsonPath("$.content[0].benchSince").value(today.minusDays(9).toString()))
+			.andExpect(jsonPath("$.content[0].daysOnBench").value(9));
+
+		// Consultants and engagements with allocations stay; an allocation goes to the bin and comes back only with
+		// its engagement.
+		as(adminToken, delete(API + "/consultants/" + asha)).andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value("CONSULTANT_HAS_ALLOCATIONS"));
+		as(adminToken, delete(API + "/engagements/" + support)).andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value("ENGAGEMENT_HAS_ALLOCATIONS"));
+		as(adminToken, delete(API + "/allocations/" + second)).andExpect(status().isNoContent());
+		as(viewerToken, get(API + "/bench").param("search", nonce).param("sort", "name,asc"))
+			.andExpect(jsonPath("$.totalElements").value(2))
+			.andExpect(jsonPath("$.content[?(@.consultantId == %d)].benchPercent".formatted(asha)).value(50));
+		as(adminToken, delete(API + "/engagements/" + rollout)).andExpect(status().isNoContent());
+		Long item = binItem("ALLOCATION", second);
+		as(adminToken, post("/api/recycle-bin/%d/restore".formatted(item))).andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value("RESTORE_CONFLICT"));
+		as(adminToken, post("/api/recycle-bin/%d/restore".formatted(binItem("CLIENT_ENGAGEMENT", rollout))))
+			.andExpect(status().isOk());
+		as(adminToken, post("/api/recycle-bin/%d/restore".formatted(item))).andExpect(status().isOk());
+		as(viewerToken, get(API + "/consultants/" + asha)).andExpect(jsonPath("$.allocatedPercent").value(110));
+		List<String> actions = JsonPath.read(body(as(adminToken, get("/api/history/ALLOCATION/" + second)
+			.param("size", "100")).andExpect(status().isOk())), "$.content[*].action");
+		assertThat(actions).contains("RECORD_CREATED", "ALLOCATION_CREATED", "RECORD_DELETED", "RECORD_RESTORED");
+		as(adminToken, delete(API + "/allocations/" + second)).andExpect(status().isNoContent());
+
+		// The dashboard counts both on the bench, half a day of billable work and one roll-off in 20 days.
+		String after = body(as(viewerToken, get(API + "/dashboard")).andExpect(status().isOk()));
+		assertThat(delta(before, after, "$.capacityConsultants")).isEqualByComparingTo("2");
+		assertThat(delta(before, after, "$.onBenchNow")).isEqualByComparingTo("2");
+		assertThat(delta(before, after, "$.allocatedFte")).isEqualByComparingTo("0.5");
+		assertThat(delta(before, after, "$.billableFte")).isEqualByComparingTo("0.5");
+		assertThat(delta(before, after, "$.upcomingRollOffCount")).isEqualByComparingTo("1");
+
+		// Roll-off reminders go to those who may open the module, once.
+		reminders.sendReminders();
+		reminders.sendReminders();
+		String key = "BENCH_ROLL_OFF:" + first + ":" + today.plusDays(20) + ":30:%d";
+		assertThat(reminderCount(key.formatted(viewerId))).isEqualTo(1);
+		assertThat(reminderCount(key.formatted(plainId))).isZero();
+		assertThat(reminderCount(key.formatted(outsiderId))).isZero();
+
+		// Global search shows bench records only to BENCH_VIEW holders the module is switched on for.
+		for (String token : List.of(adminToken, viewerToken)) {
+			assertThat(searchGroups(token)).contains("CONSULTANTS", "CLIENTS", "ENGAGEMENTS");
+		}
+		for (String token : List.of(outsiderToken, plainToken)) {
+			assertThat(searchGroups(token)).doesNotContain("CONSULTANTS", "CLIENTS", "ENGAGEMENTS");
+		}
+	}
+
 	// --- helpers ----------------------------------------------------------------------------------------------
+
+	private ResultActions allocate(Long consultantId, Long engagementId, String start, String end, int percent,
+			boolean billable) throws Exception {
+		return as(adminToken, post(API + "/allocations").contentType(MediaType.APPLICATION_JSON)
+			.content(allocation(consultantId, engagementId, start, end, percent, billable)));
+	}
+
+	private static String allocation(Long consultantId, Long engagementId, String start, String end, int percent,
+			boolean billable) {
+		return """
+				{"consultantId":%d,"engagementId":%d,"role":"Test Lead","startDate":"%s","endDate":%s,
+				"allocationPercent":%d,"billable":%s}
+				""".formatted(consultantId, engagementId, start, end == null ? "null" : "\"" + end + "\"", percent,
+				billable);
+	}
+
+	private static Long allocationId(ResultActions result) throws Exception {
+		return ((Number) JsonPath.read(body(result), "$.allocation.id")).longValue();
+	}
+
+	private static String body(ResultActions result) throws Exception {
+		return result.andReturn().getResponse().getContentAsString();
+	}
+
+	private static BigDecimal delta(String before, String after, String path) {
+		return number(after, path).subtract(number(before, path));
+	}
+
+	private static BigDecimal number(String body, String path) {
+		Object value = JsonPath.read(body, path);
+		return new BigDecimal(String.valueOf(value));
+	}
+
+	private int reminderCount(String dedupKey) {
+		return jdbc.queryForObject("SELECT COUNT(*) FROM notifications WHERE type = 'BENCH_ROLL_OFF' AND dedup_key = ?",
+				Integer.class, dedupKey);
+	}
+
+	private List<String> searchGroups(String token) throws Exception {
+		return JsonPath.read(body(as(token, get("/api/search").param("q", nonce)).andExpect(status().isOk())),
+				"$.groups[*].group");
+	}
 
 	private String code(String suffix) {
 		return "BEN-" + nonce + "-" + suffix;

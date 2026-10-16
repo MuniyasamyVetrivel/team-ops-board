@@ -12,7 +12,10 @@ export type ResultType =
   | 'KEYWORD'
   | 'EMAIL_CAMPAIGN'
   | 'PAID_CAMPAIGN'
-  | 'LEAD';
+  | 'LEAD'
+  | 'CONSULTANT'
+  | 'CLIENT'
+  | 'CLIENT_ENGAGEMENT';
 
 export type SearchGroupKey =
   | 'TASKS'
@@ -23,7 +26,10 @@ export type SearchGroupKey =
   | 'MARKETING_PAGES'
   | 'KEYWORDS'
   | 'CAMPAIGNS'
-  | 'LEADS';
+  | 'LEADS'
+  | 'CONSULTANTS'
+  | 'CLIENTS'
+  | 'ENGAGEMENTS';
 
 /** Mirrors SearchDtos.Hit. {@code ref} is an article's slug; {@code status} is the record's status code. */
 export interface SearchHit {
@@ -91,6 +97,12 @@ export function hitHref(hit: SearchHit): string {
       return `/digital-marketing/paid-campaigns?campaign=${hit.id}`;
     case 'LEAD':
       return `/digital-marketing/leads?lead=${hit.id}`;
+    case 'CONSULTANT':
+      return `/tools/bench?consultant=${hit.id}`;
+    case 'CLIENT':
+      return `/tools/bench?client=${hit.id}`;
+    case 'CLIENT_ENGAGEMENT':
+      return `/tools/bench?engagement=${hit.id}`;
   }
 }
 
@@ -116,6 +128,10 @@ export function groupHref(group: SearchGroupKey, query: string): string {
       return `/digital-marketing/email-campaigns?search=${q}`;
     case 'LEADS':
       return `/digital-marketing/leads`;
+    case 'CONSULTANTS':
+    case 'CLIENTS':
+    case 'ENGAGEMENTS':
+      return `/tools/bench?search=${q}`;
   }
 }
 

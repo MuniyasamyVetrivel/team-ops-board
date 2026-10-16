@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -12,6 +13,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -24,10 +26,12 @@ import com.teamops.bench.dto.BenchDtos.ConsultantDto;
 import com.teamops.bench.dto.BenchDtos.ConsultantEmployee;
 import com.teamops.bench.dto.BenchDtos.SaveCertification;
 import com.teamops.bench.dto.BenchDtos.SaveConsultant;
+import com.teamops.bench.entity.Allocation;
 import com.teamops.bench.entity.Consultant;
 import com.teamops.bench.entity.ConsultantCertification;
 import com.teamops.bench.entity.ConsultantSkill;
 import com.teamops.bench.entity.EmploymentStatus;
+import com.teamops.bench.repository.AllocationRepository;
 import com.teamops.bench.repository.ConsultantRepository;
 import com.teamops.celebration.entity.Employee;
 import com.teamops.celebration.entity.EmployeeStatus;
@@ -65,9 +69,6 @@ public class ConsultantService {
 	public static final List<String> CSV_COLUMNS = List.of("employee_id", "experience_years", "location",
 			"available_from", "employment_status", "skills", "certifications", "notes");
 
-	/** Allocations arrive with part 2 of Phase X6; until then every active consultant is on the bench. */
-	static final int NO_ALLOCATIONS = 0;
-
 	private static final int CANDIDATE_LIMIT = 20;
 
 	private final ConsultantRepository repository;
@@ -80,6 +81,8 @@ public class ConsultantService {
 
 	private final RecycleBinService recycleBin;
 
+	private final AllocationRepository allocations;
+
 	/** @param skill exact skill name, ignoring case */
 	public record ConsultantFilter(String search, ConsultantStatus status, String skill) {
 	}
@@ -87,12 +90,25 @@ public class ConsultantService {
 	@Transactional(readOnly = true)
 	public PageResponse<ConsultantDto> search(ConsultantFilter filter, Pageable pageable) {
 		LocalDate today = calendar.today();
-		return PageResponse.of(repository.findAll(spec(filter), pageable).map(c -> toDto(c, today)));
+		Page<Consultant> page = repository.findAll(spec(filter, today), pageable);
+		Map<Long, Integer> allocated = allocatedOn(page.map(Consultant::getId).getContent(), today);
+		return PageResponse.of(page.map(c -> toDto(c, today, allocated.getOrDefault(c.getId(), 0))));
 	}
 
 	@Transactional(readOnly = true)
 	public ConsultantDto get(Long id) {
-		return toDto(load(id), calendar.today());
+		return toDto(load(id));
+	}
+
+	/** Each consultant's total allocation on the day (consultants without one are left out). */
+	@Transactional(readOnly = true)
+	public Map<Long, Integer> allocatedOn(Collection<Long> consultantIds, LocalDate day) {
+		Map<Long, Integer> totals = new HashMap<>();
+		if (!consultantIds.isEmpty()) {
+			allocations.totalsOn(consultantIds, day)
+				.forEach(total -> totals.put(total.getConsultantId(), Math.toIntExact(total.getTotal())));
+		}
+		return totals;
 	}
 
 	/** Active employees who are not consultants yet, for the "add consultant" picker. */
@@ -119,7 +135,7 @@ public class ConsultantService {
 	@Transactional(readOnly = true)
 	public byte[] export(ConsultantFilter filter) {
 		List<List<String>> rows = repository
-			.findAll(spec(filter), Sort.by("employee.firstName", "employee.lastName", "id"))
+			.findAll(spec(filter, calendar.today()), Sort.by("employee.firstName", "employee.lastName", "id"))
 			.stream()
 			.limit(EXPORT_LIMIT)
 			.map(c -> List.of(c.getEmployee() == null ? "" : c.getEmployee().getEmployeeCode(),
@@ -137,7 +153,7 @@ public class ConsultantService {
 		apply(consultant, request);
 		Consultant saved = repository.saveAndFlush(consultant);
 		auditService.record(AuditAction.CONSULTANT_CREATED, actor.id(), ENTITY, saved.getId(), identity(saved), client);
-		return toDto(saved, calendar.today());
+		return toDto(saved);
 	}
 
 	@Transactional
@@ -154,13 +170,20 @@ public class ConsultantService {
 		if (!changes.isEmpty()) {
 			auditService.record(AuditAction.CONSULTANT_UPDATED, actor.id(), ENTITY, id, changes.toDetails(), client);
 		}
-		return toDto(consultant, calendar.today());
+		return toDto(consultant);
 	}
 
-	/** Moves the consultant to the recycle bin; skills and certifications stay with it. Audited. */
+	/**
+	 * Moves the consultant to the recycle bin; skills and certifications stay with it. 409 CONSULTANT_HAS_ALLOCATIONS
+	 * while it has live allocations. Audited.
+	 */
 	@Transactional
 	public void delete(Long id, AuthenticatedUser actor, ClientInfo client) {
 		Consultant consultant = load(id);
+		if (allocations.existsByConsultantId(id)) {
+			throw ApiException.conflict("CONSULTANT_HAS_ALLOCATIONS",
+					"This consultant still has allocations. Delete them first.");
+		}
 		recycleBin.moveToBin(consultant, actor);
 		auditService.record(AuditAction.CONSULTANT_DELETED, actor.id(), ENTITY, id, identity(consultant), client);
 	}
@@ -311,7 +334,14 @@ public class ConsultantService {
 		return details;
 	}
 
-	static ConsultantDto toDto(Consultant c, LocalDate today) {
+	private ConsultantDto toDto(Consultant consultant) {
+		LocalDate today = calendar.today();
+		return toDto(consultant, today,
+				allocatedOn(List.of(consultant.getId()), today).getOrDefault(consultant.getId(), 0));
+	}
+
+	/** @param allocatedPercent the consultant's total allocation today */
+	static ConsultantDto toDto(Consultant c, LocalDate today, int allocatedPercent) {
 		List<CertificationDto> certifications = c.getCertifications()
 			.stream()
 			.map(cert -> new CertificationDto(cert.getId(), cert.getName(), cert.getIssuer(), cert.getIssuedOn(),
@@ -320,11 +350,11 @@ public class ConsultantService {
 			.toList();
 		return new ConsultantDto(c.getId(), c.getEmployeeId(), ConsultantEmployee.of(c.getEmployee()),
 				c.getExperienceYears(), c.getLocation(), c.getAvailableFrom(), c.getEmploymentStatus(),
-				ConsultantStatus.of(c.getEmploymentStatus(), NO_ALLOCATIONS), skillsOf(c), certifications, c.getNotes(),
-				c.getVersion(), c.getCreatedAt(), c.getUpdatedAt());
+				ConsultantStatus.of(c.getEmploymentStatus(), allocatedPercent), allocatedPercent, skillsOf(c),
+				certifications, c.getNotes(), c.getVersion(), c.getCreatedAt(), c.getUpdatedAt());
 	}
 
-	private static List<String> skillsOf(Consultant consultant) {
+	static List<String> skillsOf(Consultant consultant) {
 		return consultant.getSkills().stream().map(ConsultantSkill::getName).toList();
 	}
 
@@ -333,7 +363,8 @@ public class ConsultantService {
 			.orElseThrow(() -> ApiException.notFound("CONSULTANT_NOT_FOUND", "Consultant not found"));
 	}
 
-	private static Specification<Consultant> spec(ConsultantFilter f) {
+	/** Status filters match {@link ConsultantStatus#of} on the same day. */
+	private static Specification<Consultant> spec(ConsultantFilter f, LocalDate today) {
 		Specification<Consultant> spec = (root, query, cb) -> cb.conjunction();
 		if (BenchText.trimToNull(f.search()) != null) {
 			String pattern = BenchText.containsPattern(f.search());
@@ -355,12 +386,20 @@ public class ConsultantService {
 			if (employment != null) {
 				spec = spec.and((root, query, cb) -> cb.equal(root.get("employmentStatus"), employment));
 			}
-			else if (f.status() == ConsultantStatus.ON_BENCH) {
-				// NO_ALLOCATIONS: every active consultant is on the bench until part 2 adds allocations.
-				spec = spec.and((root, query, cb) -> cb.equal(root.get("employmentStatus"), EmploymentStatus.ACTIVE));
-			}
 			else {
-				spec = spec.and((root, query, cb) -> cb.disjunction());
+				ConsultantStatus status = f.status();
+				spec = spec.and((root, query, cb) -> {
+					Subquery<Integer> allocated = query.subquery(Integer.class);
+					Root<Allocation> a = allocated.from(Allocation.class);
+					allocated.select(cb.coalesce(cb.sum(a.get("allocationPercent")), 0))
+						.where(cb.equal(a.get("consultant"), root), cb.lessThanOrEqualTo(a.get("startDate"), today),
+								cb.or(cb.isNull(a.get("endDate")), cb.greaterThanOrEqualTo(a.get("endDate"), today)));
+					return cb.and(cb.equal(root.get("employmentStatus"), EmploymentStatus.ACTIVE), switch (status) {
+						case ALLOCATED -> cb.greaterThanOrEqualTo(allocated, BenchMath.FULL);
+						case PARTIALLY_ALLOCATED -> cb.and(cb.greaterThan(allocated, 0), cb.lessThan(allocated, BenchMath.FULL));
+						default -> cb.equal(allocated, 0);
+					});
+				});
 			}
 		}
 		if (BenchText.trimToNull(f.skill()) != null) {

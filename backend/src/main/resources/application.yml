@@ -65,6 +65,9 @@ app:
     reminder-cron: ${CELEBRATION_REMINDER_CRON:0 0 8 * * *}
     # Shown on work anniversaries ("5 years at Tritusa").
     company-name: ${COMPANY_NAME:Tritusa}
+  bench:
+    # Daily allocation roll-off reminders, 30 and 14 days before an allocation ends (app.time-zone).
+    reminder-cron: ${BENCH_REMINDER_CRON:0 15 8 * * *}
   recycle-bin:
     # Daily permanent delete of recycle bin items older than the Admin Settings retention (app.time-zone).
     purge-cron: ${RECYCLE_BIN_PURGE_CRON:0 30 2 * * *}

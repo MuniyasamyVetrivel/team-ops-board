@@ -17,6 +17,8 @@ public enum NotificationType {
 	APPROVAL_DECIDED,
 	ANNOUNCEMENT_PUBLISHED,
 	/** A birthday, work anniversary, important day or event is coming up (or is today). */
-	OCCASION_REMINDER
+	OCCASION_REMINDER,
+	/** A consultant's allocation ends in 30 or 14 days (Bench Management, BENCH_VIEW holders). */
+	BENCH_ROLL_OFF
 
 }

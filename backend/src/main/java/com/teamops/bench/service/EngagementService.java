@@ -16,6 +16,7 @@ import com.teamops.bench.dto.BenchDtos.EngagementDto;
 import com.teamops.bench.dto.BenchDtos.SaveEngagement;
 import com.teamops.bench.entity.Client;
 import com.teamops.bench.entity.ClientEngagement;
+import com.teamops.bench.repository.AllocationRepository;
 import com.teamops.bench.repository.ClientEngagementRepository;
 import com.teamops.bench.repository.ClientRepository;
 import com.teamops.common.audit.AuditAction;
@@ -55,7 +56,9 @@ public class EngagementService {
 
 	private final RecycleBinService recycleBin;
 
-	public record EngagementFilter(String search, Long clientId, EngagementStatus status, Long accountManagerId) {
+	private final AllocationRepository allocations;
+
+	public record EngagementFilter(String search, Long clientId, PeriodStatus status, Long accountManagerId) {
 	}
 
 	@Transactional(readOnly = true)
@@ -96,10 +99,16 @@ public class EngagementService {
 		return toDto(engagement, calendar.today());
 	}
 
-	/** Moves the engagement to the recycle bin. Audited. */
+	/**
+	 * Moves the engagement to the recycle bin; 409 ENGAGEMENT_HAS_ALLOCATIONS while it has live allocations. Audited.
+	 */
 	@Transactional
 	public void delete(Long id, AuthenticatedUser actor, ClientInfo info) {
 		ClientEngagement engagement = load(id);
+		if (allocations.existsByEngagementId(id)) {
+			throw ApiException.conflict("ENGAGEMENT_HAS_ALLOCATIONS",
+					"This engagement still has allocations. Delete them first.");
+		}
 		recycleBin.moveToBin(engagement, actor);
 		auditService.record(AuditAction.ENGAGEMENT_DELETED, actor.id(), ENTITY, id, identity(engagement), info);
 	}
@@ -164,7 +173,7 @@ public class EngagementService {
 
 	private static EngagementDto toDto(ClientEngagement e, LocalDate today) {
 		return new EngagementDto(e.getId(), ClientRef.of(e.getClient()), e.getName(), e.getLocation(), e.getStartDate(),
-				e.getEndDate(), EngagementStatus.of(e.getStartDate(), e.getEndDate(), today),
+				e.getEndDate(), PeriodStatus.of(e.getStartDate(), e.getEndDate(), today),
 				UserSummary.of(e.getAccountManager()), e.getNotes(), e.getVersion(), e.getCreatedAt(), e.getUpdatedAt());
 	}
 
@@ -173,7 +182,7 @@ public class EngagementService {
 			.orElseThrow(() -> ApiException.notFound("ENGAGEMENT_NOT_FOUND", "Engagement not found"));
 	}
 
-	/** Status filters match {@link EngagementStatus#of} on the same day. */
+	/** Status filters match {@link PeriodStatus#of} on the same day. */
 	private static Specification<ClientEngagement> spec(EngagementFilter f, LocalDate today) {
 		Specification<ClientEngagement> spec = (root, query, cb) -> cb.conjunction();
 		if (BenchText.trimToNull(f.search()) != null) {

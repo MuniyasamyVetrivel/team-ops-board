@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -17,6 +19,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.teamops.bench.dto.BenchDtos.ClientDto;
+import com.teamops.bench.entity.ClientStatus;
+import com.teamops.bench.service.ClientService;
+import com.teamops.bench.service.ConsultantService;
+import com.teamops.bench.service.EngagementService;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.web.PageResponse;
 import com.teamops.knowledge.service.KnowledgeService;
@@ -24,8 +31,11 @@ import com.teamops.marketing.email.service.EmailCampaignService;
 import com.teamops.marketing.lead.service.LeadService;
 import com.teamops.marketing.paid.service.PaidCampaignService;
 import com.teamops.marketing.seo.service.SeoService;
+import com.teamops.module.dto.ModuleDtos.Tool;
+import com.teamops.module.service.ModuleAccessService;
 import com.teamops.project.service.ProjectService;
 import com.teamops.search.dto.SearchDtos.Group;
+import com.teamops.search.dto.SearchDtos.ResultType;
 import com.teamops.search.dto.SearchDtos.SearchResults;
 import com.teamops.support.SliceAuth;
 import com.teamops.task.service.TaskService;
@@ -62,12 +72,25 @@ class GlobalSearchServiceTest {
 	@Mock
 	private LeadService leadService;
 
+	@Mock
+	private ModuleAccessService moduleAccess;
+
+	@Mock
+	private ConsultantService consultantService;
+
+	@Mock
+	private ClientService clientService;
+
+	@Mock
+	private EngagementService engagementService;
+
 	private GlobalSearchService service;
 
 	@BeforeEach
 	void setUp() {
 		service = new GlobalSearchService(taskService, ticketService, projectService, teamService, knowledgeService,
-				seoService, emailCampaignService, paidCampaignService, leadService);
+				seoService, emailCampaignService, paidCampaignService, leadService, moduleAccess, consultantService,
+				clientService, engagementService);
 	}
 
 	@Test
@@ -119,6 +142,37 @@ class GlobalSearchServiceTest {
 		SearchResults results = service.search("q4", Set.of(Group.CAMPAIGNS), 5, SliceAuth.SUPER_ADMIN);
 
 		assertThat(results.groups()).isEmpty();
+	}
+
+	@Test
+	void benchGroupsNeedBenchViewAndTheModuleSwitchedOnForTheViewer() {
+		AuthenticatedUser benchReader = user(Set.of("BENCH_VIEW"));
+		assertThat(GlobalSearchService.maySearch(Group.CONSULTANTS, benchReader)).isTrue();
+		assertThat(GlobalSearchService.maySearch(Group.ENGAGEMENTS, SliceAuth.EMPLOYEE)).isFalse();
+
+		// Holding the permission is not enough while the module is off for the viewer's departments.
+		when(moduleAccess.toolsFor(benchReader)).thenReturn(List.of());
+		assertThat(service.search("acme", null, 5, benchReader).groups()).isEmpty();
+		verifyNoInteractions(consultantService, clientService, engagementService);
+
+		when(moduleAccess.toolsFor(benchReader))
+			.thenReturn(List.of(new Tool("bench", "Bench Management", "Users", "", false)));
+		when(consultantService.search(any(), any())).thenReturn(new PageResponse<>(List.of(), 0, 5, 0, 0));
+		when(engagementService.search(any(), any())).thenReturn(new PageResponse<>(List.of(), 0, 5, 0, 0));
+		when(clientService.search(any(), any())).thenReturn(new PageResponse<>(List.of(new ClientDto(4L,
+				"Acme", "Sydney", ClientStatus.ACTIVE, null, 2, 0, null, null)), 0, 5, 1, 1));
+
+		SearchResults results = service.search("acme", null, 5, benchReader);
+
+		assertThat(results.groups()).singleElement().satisfies(group -> {
+			assertThat(group.group()).isEqualTo(Group.CLIENTS);
+			assertThat(group.hits()).singleElement().satisfies(hit -> {
+				assertThat(hit.type()).isEqualTo(ResultType.CLIENT);
+				assertThat(hit.title()).isEqualTo("Acme");
+				assertThat(hit.subtitle()).isEqualTo("Sydney");
+			});
+		});
+		verify(moduleAccess, times(2)).toolsFor(benchReader);
 	}
 
 	private static AuthenticatedUser user(Set<String> permissions) {

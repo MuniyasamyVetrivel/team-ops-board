@@ -32,6 +32,7 @@ import com.teamops.bench.entity.Consultant;
 import com.teamops.bench.entity.ConsultantCertification;
 import com.teamops.bench.entity.ConsultantSkill;
 import com.teamops.bench.entity.EmploymentStatus;
+import com.teamops.bench.repository.AllocationRepository;
 import com.teamops.bench.repository.ConsultantRepository;
 import com.teamops.celebration.entity.Employee;
 import com.teamops.celebration.repository.EmployeeRepository;
@@ -53,6 +54,8 @@ class ConsultantServiceTest {
 
 	private final RecycleBinService recycleBin = mock(RecycleBinService.class);
 
+	private final AllocationRepository allocations = mock(AllocationRepository.class);
+
 	private final ClientInfo client = new ClientInfo("127.0.0.1", "test");
 
 	private ConsultantService service;
@@ -63,7 +66,7 @@ class ConsultantServiceTest {
 	void setUp() {
 		service = new ConsultantService(repository, employees, audit,
 				new BusinessCalendar(Clock.fixed(Instant.parse("2026-10-16T06:00:00Z"), ZoneOffset.UTC), "Asia/Kolkata"),
-				recycleBin);
+				recycleBin, allocations);
 		priya = employee(7L, "TRI-0042", "Priya", "Menon");
 		when(employees.findDetailedById(7L)).thenReturn(Optional.of(priya));
 		when(repository.saveAndFlush(any())).thenAnswer(inv -> {

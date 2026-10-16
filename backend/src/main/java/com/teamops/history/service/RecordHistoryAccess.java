@@ -14,9 +14,11 @@ import com.teamops.approval.service.ApprovalService;
 import com.teamops.calendar.entity.CalendarEvent;
 import com.teamops.calendar.service.CalendarService;
 import com.teamops.bench.BenchModule;
+import com.teamops.bench.entity.Allocation;
 import com.teamops.bench.entity.Client;
 import com.teamops.bench.entity.ClientEngagement;
 import com.teamops.bench.entity.Consultant;
+import com.teamops.bench.service.AllocationService;
 import com.teamops.bench.service.ClientService;
 import com.teamops.bench.service.ConsultantService;
 import com.teamops.bench.service.EngagementService;
@@ -91,7 +93,8 @@ public class RecordHistoryAccess {
 			MarketingEventService events, ActivityService activities, BacklinkService backlinks,
 			ContentService content, LeadService leads, PaidCampaignService paidCampaigns,
 			EmailCampaignService emailCampaigns, TargetService targets, ModuleAccessService moduleAccess,
-			ConsultantService consultants, ClientService clients, EngagementService engagements) {
+			ConsultantService consultants, ClientService clients, EngagementService engagements,
+			AllocationService allocations) {
 		register(Task.class, (id, u) -> {
 			require(u, "TASK_VIEW");
 			tasks.get(id, u);
@@ -178,6 +181,10 @@ public class RecordHistoryAccess {
 		register(ClientEngagement.class, (id, u) -> {
 			requireModule(moduleAccess, u, BenchModule.KEY);
 			engagements.get(id);
+		});
+		register(Allocation.class, (id, u) -> {
+			requireModule(moduleAccess, u, BenchModule.KEY);
+			allocations.get(id);
 		});
 	}
 

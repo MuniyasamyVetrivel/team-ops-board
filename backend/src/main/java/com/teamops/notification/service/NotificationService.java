@@ -42,6 +42,9 @@ public class NotificationService {
 
 	public static final String ENTITY_MARKETING_EVENT = "MARKETING_EVENT";
 
+	/** A Bench Management allocation (roll-off reminders). */
+	public static final String ENTITY_ALLOCATION = "ALLOCATION";
+
 	private final NotificationRepository repository;
 
 	private final BusinessCalendar calendar;

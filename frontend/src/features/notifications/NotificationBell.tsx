@@ -30,6 +30,7 @@ const TYPE_META: Record<NotificationType, { icon: LucideIcon; tone: string; labe
   APPROVAL_DECIDED: { icon: CircleCheck, tone: 'text-status-success', label: 'Request decided' },
   ANNOUNCEMENT_PUBLISHED: { icon: Megaphone, tone: 'text-primary', label: 'Announcement' },
   OCCASION_REMINDER: { icon: CalendarHeart, tone: 'text-primary', label: 'Coming up' },
+  BENCH_ROLL_OFF: { icon: CalendarClock, tone: 'text-status-warning', label: 'Roll-off' },
 };
 
 export function NotificationBell() {

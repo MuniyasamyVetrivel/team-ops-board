@@ -22,7 +22,7 @@ import com.teamops.bench.dto.BenchDtos.EngagementDto;
 import com.teamops.bench.dto.BenchDtos.SaveEngagement;
 import com.teamops.bench.service.EngagementService;
 import com.teamops.bench.service.EngagementService.EngagementFilter;
-import com.teamops.bench.service.EngagementStatus;
+import com.teamops.bench.service.PeriodStatus;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.web.ClientInfo;
 import com.teamops.common.web.PageRequests;
@@ -50,7 +50,7 @@ public class EngagementController {
 
 	@GetMapping
 	public PageResponse<EngagementDto> search(@RequestParam(required = false) String search,
-			@RequestParam(required = false) Long clientId, @RequestParam(required = false) EngagementStatus status,
+			@RequestParam(required = false) Long clientId, @RequestParam(required = false) PeriodStatus status,
 			@RequestParam(required = false) Long accountManagerId, @RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "25") int size, @RequestParam(required = false) String sort) {
 		return engagementService.search(new EngagementFilter(search, clientId, status, accountManagerId),

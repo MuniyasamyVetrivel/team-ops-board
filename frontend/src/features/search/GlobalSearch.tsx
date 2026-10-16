@@ -1,5 +1,7 @@
 import {
   BookOpen,
+  Briefcase,
+  Building,
   ClipboardList,
   FileSearch,
   FolderKanban,
@@ -10,6 +12,7 @@ import {
   Search,
   UserPlus,
   UserRound,
+  UserRoundCheck,
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
@@ -34,6 +37,9 @@ const TYPE_META: Record<ResultType, { icon: LucideIcon; label: string }> = {
   EMAIL_CAMPAIGN: { icon: Mail, label: 'Email campaign' },
   PAID_CAMPAIGN: { icon: MousePointerClick, label: 'Paid campaign' },
   LEAD: { icon: UserPlus, label: 'Lead' },
+  CONSULTANT: { icon: UserRoundCheck, label: 'Consultant' },
+  CLIENT: { icon: Building, label: 'Client' },
+  CLIENT_ENGAGEMENT: { icon: Briefcase, label: 'Engagement' },
 };
 
 /**

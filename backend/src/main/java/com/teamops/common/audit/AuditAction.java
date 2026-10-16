@@ -171,6 +171,14 @@ public enum AuditAction {
 	ENGAGEMENT_CREATED,
 	/** Client, name, dates, location, account manager or notes changed ({@code changes} holds from/to). */
 	ENGAGEMENT_UPDATED,
-	ENGAGEMENT_DELETED
+	ENGAGEMENT_DELETED,
+	/**
+	 * A consultant was allocated to an engagement (consultantId, consultant, engagementId, engagement, client,
+	 * allocationPercent; {@code overAllocated} when it takes them above 100% somewhere).
+	 */
+	ALLOCATION_CREATED,
+	/** Consultant, engagement, role, dates, percentage, billable or notes changed ({@code changes} holds from/to). */
+	ALLOCATION_UPDATED,
+	ALLOCATION_DELETED
 
 }

@@ -13,6 +13,7 @@ describe('notificationHref', () => {
     expect(notificationHref({ ...base, type: 'OCCASION_REMINDER', entityType: 'EMPLOYEE', entityId: 40 })).toBe('/celebrations/employees?employee=40');
     expect(notificationHref({ ...base, type: 'OCCASION_REMINDER', entityType: 'IMPORTANT_DAY', entityId: 4 })).toBe('/celebrations/important-days?day=4');
     expect(notificationHref({ ...base, type: 'OCCASION_REMINDER', entityType: 'MARKETING_EVENT', entityId: 9 })).toBe('/celebrations/events?event=9');
+    expect(notificationHref({ ...base, type: 'BENCH_ROLL_OFF', entityType: 'ALLOCATION', entityId: 12 })).toBe('/tools/bench?allocation=12');
     expect(notificationHref({ ...base, entityType: 'SOMETHING_ELSE' })).toBeNull();
     expect(notificationHref({ ...base, entityId: null })).toBeNull();
   });

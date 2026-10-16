@@ -12,6 +12,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.teamops.bench.BenchModule;
+import com.teamops.bench.service.ClientService;
+import com.teamops.bench.service.ClientService.ClientFilter;
+import com.teamops.bench.service.ConsultantService;
+import com.teamops.bench.service.ConsultantService.ConsultantFilter;
+import com.teamops.bench.service.EngagementService;
+import com.teamops.bench.service.EngagementService.EngagementFilter;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.web.PageResponse;
 import com.teamops.knowledge.dto.KnowledgeDtos;
@@ -21,6 +28,7 @@ import com.teamops.marketing.email.service.EmailCampaignService;
 import com.teamops.marketing.lead.service.LeadService;
 import com.teamops.marketing.paid.service.PaidCampaignService;
 import com.teamops.marketing.seo.service.SeoService;
+import com.teamops.module.service.ModuleAccessService;
 import com.teamops.project.service.ProjectService;
 import com.teamops.search.dto.SearchDtos.Group;
 import com.teamops.search.dto.SearchDtos.GroupResult;
@@ -35,6 +43,7 @@ import com.teamops.ticket.dto.TicketRequests;
 import com.teamops.ticket.dto.TicketView;
 import com.teamops.ticket.service.TicketService;
 import com.teamops.user.dto.UserSearchCriteria;
+import com.teamops.user.entity.PermissionCodes;
 import com.teamops.user.entity.UserStatus;
 
 import lombok.RequiredArgsConstructor;
@@ -43,7 +52,8 @@ import lombok.RequiredArgsConstructor;
  * Global search (brief section 66). Each group runs through its module's own list service, so the results obey
  * exactly the same rules as the module's list page: the module's permission decides whether the group is searched at
  * all, and the service's scope (department, own work, published articles) decides which rows match. Digital Marketing
- * groups also need MARKETING_VIEW, like the whole {@code /api/marketing} API.
+ * groups also need MARKETING_VIEW, like the whole {@code /api/marketing} API. Bench Management groups need BENCH_VIEW
+ * and the module switched on for the viewer ({@link ModuleAccessService#toolsFor}), like its pages.
  */
 @Service
 @RequiredArgsConstructor
@@ -78,6 +88,14 @@ public class GlobalSearchService {
 
 	private final LeadService leadService;
 
+	private final ModuleAccessService moduleAccess;
+
+	private final ConsultantService consultantService;
+
+	private final ClientService clientService;
+
+	private final EngagementService engagementService;
+
 	public SearchResults search(String rawQuery, Set<Group> only, int limit, AuthenticatedUser viewer) {
 		String query = rawQuery == null ? "" : rawQuery.strip();
 		if (query.length() > MAX_QUERY_LENGTH) {
@@ -90,8 +108,17 @@ public class GlobalSearchService {
 		Pageable newest = PageRequest.of(0, size, NEWEST);
 		String q = query;
 		List<GroupResult> groups = new ArrayList<>();
+		Boolean benchOpen = null;
 		for (Group group : Group.values()) {
 			if ((only == null || only.isEmpty() || only.contains(group)) && maySearch(group, viewer)) {
+				if (isBench(group)) {
+					if (benchOpen == null) {
+						benchOpen = moduleAccess.toolsFor(viewer).stream().anyMatch(t -> t.key().equals(BenchModule.KEY));
+					}
+					if (!benchOpen) {
+						continue;
+					}
+				}
 				GroupResult result = run(group, q, size, newest, viewer);
 				if (result.total() > 0) {
 					groups.add(result);
@@ -112,7 +139,13 @@ public class GlobalSearchService {
 			case MARKETING_PAGES, KEYWORDS -> marketing(viewer, "SEO_VIEW");
 			case CAMPAIGNS -> marketing(viewer, "CAMPAIGN_VIEW");
 			case LEADS -> marketing(viewer, "LEAD_VIEW");
+			case CONSULTANTS, CLIENTS, ENGAGEMENTS -> viewer.hasPermission(PermissionCodes.BENCH_VIEW);
 		};
+	}
+
+	/** Groups of the Bench Management department tool, which also need its module switch. */
+	static boolean isBench(Group group) {
+		return group == Group.CONSULTANTS || group == Group.CLIENTS || group == Group.ENGAGEMENTS;
 	}
 
 	private static boolean marketing(AuthenticatedUser viewer, String permission) {
@@ -164,6 +197,18 @@ public class GlobalSearchService {
 							newest, viewer),
 					l -> new Hit(ResultType.LEAD, l.id(), l.code(), l.name(),
 							join(l.company(), label(l.source().name())), l.status().name(), null));
+			case CONSULTANTS -> result(group, consultantService.search(new ConsultantFilter(q, null, null), newest),
+					c -> new Hit(ResultType.CONSULTANT, c.id(), c.employee() == null ? null : c.employee().employeeCode(),
+							c.employee() == null ? "Consultant #" + c.id() : c.employee().fullName(),
+							join(c.employee() == null ? null : c.employee().designation(),
+									String.join(", ", c.skills().stream().limit(3).toList())),
+							c.status().name(), null));
+			case CLIENTS -> result(group, clientService.search(new ClientFilter(q, null), newest),
+					c -> new Hit(ResultType.CLIENT, c.id(), null, c.name(), c.location(), c.status().name(), null));
+			case ENGAGEMENTS -> result(group,
+					engagementService.search(new EngagementFilter(q, null, null, null), newest),
+					e -> new Hit(ResultType.CLIENT_ENGAGEMENT, e.id(), null, e.name(),
+							join(e.client().name(), e.location()), e.status().name(), null));
 		};
 	}
 

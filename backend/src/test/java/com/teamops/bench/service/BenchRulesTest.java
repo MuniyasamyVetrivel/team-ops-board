@@ -46,11 +46,11 @@ class BenchRulesTest {
 	void engagementStatusFollowsTheDatesWithBothDaysIncluded() {
 		LocalDate start = LocalDate.of(2026, 11, 1);
 		LocalDate end = LocalDate.of(2027, 3, 31);
-		assertThat(EngagementStatus.of(start, end, LocalDate.of(2026, 10, 31))).isEqualTo(EngagementStatus.UPCOMING);
-		assertThat(EngagementStatus.of(start, end, start)).isEqualTo(EngagementStatus.ACTIVE);
-		assertThat(EngagementStatus.of(start, end, end)).isEqualTo(EngagementStatus.ACTIVE);
-		assertThat(EngagementStatus.of(start, end, end.plusDays(1))).isEqualTo(EngagementStatus.ENDED);
-		assertThat(EngagementStatus.of(start, null, LocalDate.of(2040, 1, 1))).isEqualTo(EngagementStatus.ACTIVE);
+		assertThat(PeriodStatus.of(start, end, LocalDate.of(2026, 10, 31))).isEqualTo(PeriodStatus.UPCOMING);
+		assertThat(PeriodStatus.of(start, end, start)).isEqualTo(PeriodStatus.ACTIVE);
+		assertThat(PeriodStatus.of(start, end, end)).isEqualTo(PeriodStatus.ACTIVE);
+		assertThat(PeriodStatus.of(start, end, end.plusDays(1))).isEqualTo(PeriodStatus.ENDED);
+		assertThat(PeriodStatus.of(start, null, LocalDate.of(2040, 1, 1))).isEqualTo(PeriodStatus.ACTIVE);
 	}
 
 	@Test

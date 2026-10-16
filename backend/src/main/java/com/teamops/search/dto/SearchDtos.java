@@ -10,7 +10,8 @@ public final class SearchDtos {
 	/** What a result is; the UI links each kind to its page. */
 	public enum ResultType {
 
-		TASK, TICKET, PROJECT, EMPLOYEE, ARTICLE, MARKETING_PAGE, KEYWORD, EMAIL_CAMPAIGN, PAID_CAMPAIGN, LEAD
+		TASK, TICKET, PROJECT, EMPLOYEE, ARTICLE, MARKETING_PAGE, KEYWORD, EMAIL_CAMPAIGN, PAID_CAMPAIGN, LEAD,
+		CONSULTANT, CLIENT, CLIENT_ENGAGEMENT
 
 	}
 
@@ -19,7 +20,8 @@ public final class SearchDtos {
 
 		TASKS("Tasks"), TICKETS("Tickets"), PROJECTS("Projects"), EMPLOYEES("Employees"),
 		KNOWLEDGE_BASE("Knowledge Base"), MARKETING_PAGES("Marketing Pages"), KEYWORDS("Keywords"),
-		CAMPAIGNS("Campaigns"), LEADS("Leads");
+		CAMPAIGNS("Campaigns"), LEADS("Leads"), CONSULTANTS("Consultants"), CLIENTS("Clients"),
+		ENGAGEMENTS("Client engagements");
 
 		private final String label;
 
