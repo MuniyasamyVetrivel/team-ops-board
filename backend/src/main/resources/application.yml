@@ -41,6 +41,12 @@ management:
   endpoint:
     health:
       show-details: never
+      status:
+        # The backup check reports WARNING (stale or failed backup): visible to monitoring, but still HTTP 200 so a
+        # load balancer keeps the app in service.
+        order: DOWN,OUT_OF_SERVICE,WARNING,UP,UNKNOWN
+        http-mapping:
+          WARNING: 200
 
 app:
   # Business time zone: "due today" and "overdue" are evaluated here, not in the server's or browser's zone.
@@ -62,6 +68,30 @@ app:
   recycle-bin:
     # Daily permanent delete of recycle bin items older than the Admin Settings retention (app.time-zone).
     purge-cron: ${RECYCLE_BIN_PURGE_CRON:0 30 2 * * *}
+  backup:
+    # Nightly encrypted backup of the database and the uploads folder (docs/backup-and-restore.md).
+    enabled: ${BACKUP_ENABLED:true}
+    cron: ${BACKUP_CRON:0 0 2 * * *}
+    # Base64 of 32 random bytes. Without it every backup fails (and the status page says why).
+    encryption-key: ${BACKUP_ENCRYPTION_KEY:}
+    mysqldump-path: ${MYSQLDUMP_PATH:mysqldump}
+    # LOCAL (folder below) or S3 (Amazon S3 / Lightsail object storage).
+    target: ${BACKUP_TARGET:LOCAL}
+    local:
+      path: ${BACKUP_LOCAL_PATH:../team-ops-backups}
+    s3:
+      bucket: ${BACKUP_S3_BUCKET:}
+      prefix: ${BACKUP_S3_PREFIX:backups}
+      region: ${BACKUP_S3_REGION:}
+      endpoint: ${BACKUP_S3_ENDPOINT:}
+      access-key: ${BACKUP_S3_ACCESS_KEY:}
+      secret-key: ${BACKUP_S3_SECRET_KEY:}
+      path-style: ${BACKUP_S3_PATH_STYLE:false}
+    keep-daily: ${BACKUP_KEEP_DAILY:30}
+    keep-monthly: ${BACKUP_KEEP_MONTHLY:12}
+    # The health check and status page flag a problem when the last successful backup is older than this.
+    max-age-hours: ${BACKUP_MAX_AGE_HOURS:26}
+    work-dir: ${BACKUP_WORK_DIR:}
   storage:
     dir: ${FILE_STORAGE_DIR:./uploads}
     max-file-size-mb: ${FILE_MAX_SIZE_MB:20}

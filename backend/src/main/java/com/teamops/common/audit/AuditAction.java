@@ -134,6 +134,16 @@ public enum AuditAction {
 	MARKETING_EVENT_UPDATED,
 	MARKETING_EVENT_DELETED,
 	/** LinkedIn post tracking of a birthday, anniversary, important day or event changed. */
-	LINKEDIN_POST_UPDATED
+	LINKEDIN_POST_UPDATED,
+	/** A backup was written, verified and stored (trigger, file, size, checksum, target). */
+	BACKUP_COMPLETED,
+	/** A backup run failed (trigger, target, error). */
+	BACKUP_FAILED,
+	/** The retention policy deleted old backup files (30 daily, 12 monthly by default). */
+	BACKUP_REMOVED,
+	/** A backup was restored into a database with the restore script (file, checksum, target database). */
+	BACKUP_RESTORED,
+	/** "Export all data" was downloaded (tables, rows, files); {@code completed} false when it broke off. */
+	DATA_EXPORTED
 
 }

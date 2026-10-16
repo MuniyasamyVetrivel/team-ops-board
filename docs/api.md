@@ -401,6 +401,17 @@ Deleting a task, announcement, calendar event, employee, important day, marketin
 
 Items older than the `recycleBin.retentionDays` setting (Admin Settings, default 90) are permanently deleted every night (`RECYCLE_BIN_PURGE_CRON`, default 02:30 in `APP_TIME_ZONE`). Deletes, restores and permanent deletes appear in the record's history (`RECORD_DELETED`, `RECORD_RESTORED`, `RECORD_PURGED`).
 
+### Backups: `/api/admin/backups` and `/api/admin/data-export`
+
+Nightly encrypted backups of the database and the uploads folder, kept 30 daily and 12 monthly (docs/backup-and-restore.md). Every backup, export and restore is audited (`BACKUP_COMPLETED`, `BACKUP_FAILED`, `BACKUP_REMOVED`, `DATA_EXPORTED`, `BACKUP_RESTORED`).
+
+| Method | Path | Permission | Description |
+|---|---|---|---|
+| GET | `/api/admin/backups/status` | `BACKUP_VIEW` (Super Admin only by default; 403 otherwise) | `healthy` and `problems` (`NO_BACKUP`, `STALE` when the last success is older than `maxAgeHours` (26), `LAST_FAILED`, `NOT_CONFIGURED`), `lastSuccess`, `lastRun`, `running`, `scheduleEnabled`, `schedule`, `timeZone`, `nextRunAt`, `target`, `keepDaily`, `keepMonthly`, `maxAgeHours` |
+| GET | `/api/admin/backups` | `BACKUP_VIEW` | Backup history, newest first (`page`, `size`, `sort=started,desc`): `trigger` (SCHEDULED, MANUAL), `status` (RUNNING, SUCCESS, FAILED), `startedAt`, `finishedAt`, `fileName`, `sizeBytes`, `checksum` (SHA-256 of the encrypted file), `target`, `uploadFiles`, `errorMessage`, `requestedById`, `removedAt` (deleted by retention) |
+| POST | `/api/admin/backups/run` | Super Admin role | "Run backup now": 202 with the RUNNING run; the backup continues in the background. 409 `BACKUP_RUNNING` while one is running |
+| GET | `/api/admin/data-export` | `DATA_EXPORT` (Super Admin only by default) | "Export all data": a streamed ZIP attachment (`nosniff`) with `tables/<table>.csv` for every table (rows in the recycle bin included, marked `_in_recycle_bin` = yes; password and token hashes redacted), `tables.csv` (row counts), `uploads/` (every uploaded file) and `README.txt` |
+
 ### Record history: `/api/history`
 
 | Method | Path | Permission | Description |
@@ -505,5 +516,5 @@ Every `/api/marketing/**` endpoint needs `MARKETING_VIEW` (a URL rule) in additi
 
 | Path | Auth |
 |---|---|
-| `/actuator/health` | public (no details) |
+| `/actuator/health` | public (no details). `WARNING` (still HTTP 200) when the last successful backup is older than 26 hours, the last backup failed, or backups are not configured |
 | `/actuator/info` | public |

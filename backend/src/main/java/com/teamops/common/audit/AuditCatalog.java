@@ -22,6 +22,7 @@ public final class AuditCatalog {
 		IMPORTS("CSV imports"), SEO("SEO"), TARGETS("Marketing targets"), ACTIVITIES("Marketing activities"),
 		CAMPAIGNS("Campaigns"), LEADS("Leads"), BACKLINKS("Backlinks"), CONTENT("Content"),
 		CELEBRATIONS("Celebrations and events"), REPORTS("Reports"), SETTINGS("Settings"),
+		BACKUPS("Backups and exports"),
 		/** The automatic record changes of every module (each entry also belongs to its record's module). */
 		RECORDS("Record changes");
 
@@ -154,6 +155,7 @@ public final class AuditCatalog {
 				Module.CELEBRATIONS;
 			case MARKETING_REPORT_FROZEN -> Module.REPORTS;
 			case SETTING_UPDATED -> Module.SETTINGS;
+			case BACKUP_COMPLETED, BACKUP_FAILED, BACKUP_REMOVED, BACKUP_RESTORED, DATA_EXPORTED -> Module.BACKUPS;
 		};
 	}
 
@@ -170,6 +172,9 @@ public final class AuditCatalog {
 			case SEO_RANKING_RECORDED -> "SEO ranking recorded";
 			case SEO_RANKING_CORRECTED -> "SEO ranking corrected";
 			case SLA_POLICY_UPDATED -> "SLA policy updated";
+			case BACKUP_REMOVED -> "Old backups removed (retention)";
+			case BACKUP_RESTORED -> "Backup restored";
+			case DATA_EXPORTED -> "All data exported";
 			case RECORD_CREATED -> "Created";
 			case RECORD_UPDATED -> "Edited";
 			case RECORD_DELETED -> "Deleted";

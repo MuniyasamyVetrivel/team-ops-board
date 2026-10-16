@@ -1,7 +1,11 @@
 package com.teamops.common.csv;
 
+import java.io.Closeable;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -47,6 +51,42 @@ public final class CsvWriter {
 		System.arraycopy(BOM, 0, result, 0, BOM.length);
 		System.arraycopy(body, 0, result, BOM.length, body.length);
 		return result;
+	}
+
+	/**
+	 * Writes records one at a time straight to {@code out} (for exports too large to build in memory), with the same
+	 * BOM, quoting and formula protection. Closing it flushes but leaves {@code out} open.
+	 */
+	public static Streaming stream(OutputStream out) throws IOException {
+		out.write(BOM);
+		return new Streaming(out);
+	}
+
+	public static final class Streaming implements Closeable {
+
+		private final Writer writer;
+
+		private final CSVPrinter printer;
+
+		private Streaming(OutputStream out) throws IOException {
+			this.writer = new OutputStreamWriter(out, StandardCharsets.UTF_8) {
+				@Override
+				public void close() throws IOException {
+					flush();
+				}
+			};
+			this.printer = new CSVPrinter(writer, CSVFormat.RFC4180);
+		}
+
+		public void row(List<String> record) throws IOException {
+			printer.printRecord(record.stream().map(CsvWriter::safe).toList());
+		}
+
+		@Override
+		public void close() throws IOException {
+			printer.close(true);
+		}
+
 	}
 
 	/**

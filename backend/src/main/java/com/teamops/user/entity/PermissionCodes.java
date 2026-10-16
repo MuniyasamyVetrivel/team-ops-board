@@ -22,6 +22,12 @@ public final class PermissionCodes {
 	/** Delete Recycle Bin items permanently (Super Admin only by default; with RECYCLE_BIN_MANAGE). */
 	public static final String RECYCLE_BIN_PURGE = "RECYCLE_BIN_PURGE";
 
+	/** The backup status page and history (Super Admin only by default). */
+	public static final String BACKUP_VIEW = "BACKUP_VIEW";
+
+	/** "Export all data": every table as CSV plus all uploads (Super Admin only by default). */
+	public static final String DATA_EXPORT = "DATA_EXPORT";
+
 	/** See money amounts (budgets, spend, approval amounts), including in audit history. */
 	public static final String FINANCE_VIEW = "FINANCE_VIEW";
 

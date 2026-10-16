@@ -51,6 +51,7 @@ change is a new migration. See [architecture.md](architecture.md) for how the ap
 | V25 user_password_change_and_time_zone | `users.must_change_password` (an admin-set password must be replaced at the next sign-in) and `users.time_zone` |
 | V26 audit_history | Phase X1: `created_at`/`created_by`/`updated_at`/`updated_by` on every record table (backfilled from the author, requester, uploader or recorder column where there was one, otherwise NULL = system); `audit_logs.entity_label`, `parent_type`, `parent_id`, `finance` and `(entity_type, entity_id, created_at)` / `(parent_type, parent_id, created_at)` indexes; the `FINANCE_VIEW` permission (Super Admin) |
 | V27 recycle_bin | Phase X2: `deleted_at`, `deleted_by` and a `deleted_at` index on the 17 recycle-bin tables (`tasks`, `announcements`, `calendar_events`, `employees`, `important_days`, `marketing_events`, `documents`, `marketing_activities`, `backlinks`, `content_items`, `email_campaigns`, `marketing_leads`, `paid_campaigns`, `marketing_keywords`, `marketing_pages`, `marketing_targets`, `marketing_target_types`); `recycle_bin_items`; the `recycleBin.retentionDays` setting (90) |
+| V30 backups | Phase X3: `backup_runs` (backup history: trigger, status, start and end, file, size, SHA-256 checksum, target, error, who asked, when retention removed the file); the `BACKUP_VIEW` and `DATA_EXPORT` permissions (Super Admin) |
 
 Never edit an applied migration; add `V{n+1}__description.sql` instead, in the phase that first needs it.
 
@@ -113,6 +114,7 @@ otherwise); occurrences are never stored.
 | `announcements`, `announcement_reads` | Announcements and per-person read and acknowledgement receipts | — |
 | `knowledge_categories`, `knowledge_articles`, `article_tags`, `article_attachments` | Knowledge base (FULLTEXT search) | Unique slug and name |
 | `documents`, `document_versions` | Documents with numbered versions | Unique `(document_id, version_no)` |
+| `backup_runs` | Backup history (Phase X3, docs/backup-and-restore.md); a log, so not in record history | — |
 
 ### Digital Marketing
 
