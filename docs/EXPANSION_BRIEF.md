@@ -88,6 +88,7 @@
 - Renewal reminders 30 and 7 days before, to holders of `VENDOR_VIEW` (Super Admin only by default)
 - A vendor page shows its contracts, linked licences and expenses
 - CSV import and export
+- Decision (agreed after the X7 backend): a contract's value is finance data. Only holders of `FINANCE_VIEW` (Super Admin by default) see it: on the vendor pages, in exports, in search and in audit history. Everyone else sees "Hidden" (the export cell reads `Hidden`, which the contract import treats as no value), cannot sort contracts by value, and keeps the stored value when they save a contract.
 
 ## Phase X8 — Finance Tracker (Super Admin only by default; FINANCE_VIEW / FINANCE_EDIT can be granted)
 - Tools and licences: name, vendor, owner, department, seats paid, seats used (assigned users), billing cycle (monthly, yearly, one-off), cost, currency, start date, renewal date, payment method label (never full card numbers; last 4 digits at most), status (Active, Trial, Cancelled)

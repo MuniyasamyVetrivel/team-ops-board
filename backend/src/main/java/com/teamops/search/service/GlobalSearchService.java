@@ -230,7 +230,7 @@ public class GlobalSearchService {
 					v -> new Hit(ResultType.VENDOR, v.id(), null, v.name(), join(label(v.category().name()), v.country()),
 							v.status().name(), null));
 			case VENDOR_CONTRACTS -> result(group,
-					contractService.search(new ContractFilter(q, null, null, null, null), newest),
+					contractService.search(new ContractFilter(q, null, null, null, null), newest, viewer),
 					c -> new Hit(ResultType.VENDOR_CONTRACT, c.id(), null, c.title(),
 							join(c.vendor().name(), c.renewsOn() == null ? null : "Renews " + c.renewsOn()),
 							c.status().name(), null));

@@ -2,6 +2,7 @@ package com.teamops.vendor.controller;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.teamops.common.security.AuthenticatedUser;
+import com.teamops.common.security.FinanceAccess;
 import com.teamops.common.web.ClientInfo;
 import com.teamops.common.web.PageRequests;
 import com.teamops.common.web.PageResponse;
@@ -39,7 +41,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * Vendor contracts and their documents. VENDOR_VIEW reads and downloads, VENDOR_EDIT changes and uploads; the module
- * switch applies to every endpoint.
+ * switch applies to every endpoint. Contract values are shown, exported and sortable only with FINANCE_VIEW.
  */
 @RestController
 @RequestMapping(VendorModule.API + "/contracts")
@@ -52,6 +54,12 @@ public class VendorContractController {
 			"renewal", List.of("renewalDate", "endDate", "id"), "value", List.of("value", "id"), "updated",
 			List.of("updatedAt", "id"));
 
+	/** Without FINANCE_VIEW the order of values would give them away, so sorting on them is refused (400). */
+	static final Map<String, List<String>> SORTS_WITHOUT_VALUE = SORTS.entrySet()
+		.stream()
+		.filter(sort -> !sort.getKey().equals("value"))
+		.collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
+
 	private final VendorContractService contractService;
 
 	@GetMapping
@@ -59,23 +67,26 @@ public class VendorContractController {
 			@RequestParam(required = false) Long vendorId, @RequestParam(required = false) ContractStatus status,
 			@RequestParam(required = false) Integer renewalWithinDays, @RequestParam(required = false) Boolean autoRenew,
 			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "25") int size,
-			@RequestParam(required = false) String sort) {
+			@RequestParam(required = false) String sort, @AuthenticationPrincipal AuthenticatedUser viewer) {
 		return contractService.search(new ContractFilter(search, vendorId, status, renewalWithinDays, autoRenew),
-				PageRequests.of(page, size, sort, SORTS, "start,desc"));
+				PageRequests.of(page, size, sort, FinanceAccess.canView(viewer) ? SORTS : SORTS_WITHOUT_VALUE,
+						"start,desc"),
+				viewer);
 	}
 
 	/** CSV in the import's columns. */
 	@GetMapping("/export")
 	public ResponseEntity<byte[]> export(@RequestParam(required = false) String search,
 			@RequestParam(required = false) Long vendorId, @RequestParam(required = false) ContractStatus status,
-			@RequestParam(required = false) Integer renewalWithinDays, @RequestParam(required = false) Boolean autoRenew) {
+			@RequestParam(required = false) Integer renewalWithinDays, @RequestParam(required = false) Boolean autoRenew,
+			@AuthenticationPrincipal AuthenticatedUser viewer) {
 		return VendorDownloads.csv("vendor-contracts.csv",
-				contractService.export(new ContractFilter(search, vendorId, status, renewalWithinDays, autoRenew)));
+				contractService.export(new ContractFilter(search, vendorId, status, renewalWithinDays, autoRenew), viewer));
 	}
 
 	@GetMapping("/{id}")
-	public ContractDto get(@PathVariable Long id) {
-		return contractService.get(id);
+	public ContractDto get(@PathVariable Long id, @AuthenticationPrincipal AuthenticatedUser viewer) {
+		return contractService.get(id, viewer);
 	}
 
 	@PostMapping

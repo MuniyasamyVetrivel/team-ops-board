@@ -39,7 +39,7 @@ public class VendorContractCsvImporter implements CsvImporter<VendorContractCsvI
 			CsvColumn.required("title", "Unique for the vendor", "Jira Cloud Premium"),
 			CsvColumn.required("start_date", "YYYY-MM-DD", "2026-03-01"),
 			CsvColumn.optional("end_date", "YYYY-MM-DD; empty while open-ended", "2027-02-28"),
-			CsvColumn.optional("value", "Contract value, up to two decimals", "18500.00"),
+			CsvColumn.optional("value", "Contract value, up to two decimals; empty or Hidden for none", "18500.00"),
 			CsvColumn.optional("currency", "Three-letter code; INR when empty", "AUD"),
 			CsvColumn.optional("renewal_date", "YYYY-MM-DD; reminders use the end date when empty", "2027-03-01"),
 			CsvColumn.optional("auto_renew", "yes or no (default)", "yes"),
@@ -103,7 +103,9 @@ public class VendorContractCsvImporter implements CsvImporter<VendorContractCsvI
 				String title = row.text("title", 200);
 				LocalDate start = row.date("start_date");
 				LocalDate end = row.date("end_date");
-				BigDecimal value = row.amount("value", 2);
+				// An export by someone without FINANCE_VIEW says "Hidden": that imports as no value.
+				BigDecimal value = VendorContractService.HIDDEN.equalsIgnoreCase(row.text("value", 40)) ? null
+						: row.amount("value", 2);
 				String currency = row.text("currency", 3);
 				LocalDate renewal = row.date("renewal_date");
 				Boolean autoRenew = yesNo(row, "auto_renew");

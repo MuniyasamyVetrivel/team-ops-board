@@ -110,7 +110,7 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
   - Vendors have a unique name and carry their contacts as children (replaced as a list, matched by id).
   - Contracts (title unique per vendor) are recycle-bin records with documents in `vendor_contract_documents`, stored through `FileService` (`ContractDocumentService`). A purge removes the stored files too.
   - `ContractRules` computes the status (UPCOMING/ACTIVE/EXPIRED), `renewsOn` (the renewal date, or else the end date), `noticeBy` and the reminder lead times. None of these are stored.
-  - A contract's `value` is `@AuditFinance` and listed in `AuditCatalog.FINANCE_PATHS`, so history hides it without FINANCE_VIEW.
+  - A contract's `value` is finance data (brief X7 decision). Without `FinanceAccess.canView`, the DTO sends `value: null` with `valueHidden: true` (the UI shows "Hidden"), the export writes `Hidden`, sorting by value is refused, and an update keeps the stored value. It is also `@AuditFinance` and listed in `AuditCatalog.FINANCE_PATHS` for history.
   - Vendors with live contracts can't be deleted; blacklisted vendors take no new contracts.
   - Renewal reminders (`VendorReminderService`, 30/7 days, `CONTRACT_RENEWAL`) go to `ModuleAccessService.recipients("vendors")`.
   - CSV imports `vendors` and `vendor-contracts` (`CsvImporter.Area.VENDORS`); the exports use the import's columns.

@@ -100,15 +100,19 @@ public final class VendorDtos {
 	 * @param renewsOn the renewal date, or else the end date
 	 * @param daysUntilRenewal days to {@code renewsOn} while that is today or later and the contract has not expired
 	 * @param noticeBy the last day to give notice: {@code renewsOn} less the notice period
+	 * @param valueHidden the viewer may not see finance amounts (FINANCE_VIEW), so {@code value} is null
 	 */
 	public record ContractDto(Long id, VendorRef vendor, String title, LocalDate startDate, LocalDate endDate,
-			BigDecimal value, String currency, LocalDate renewalDate, boolean autoRenew, Integer noticePeriodDays,
+			BigDecimal value, boolean valueHidden, String currency, LocalDate renewalDate, boolean autoRenew, Integer noticePeriodDays,
 			String notes, ContractStatus status, LocalDate renewsOn, Long daysUntilRenewal, LocalDate noticeBy,
 			List<DocumentDto> documents, Integer version, Instant createdAt, Instant updatedAt) {
 
 	}
 
-	/** {@code currency} defaults to INR; {@code version} is required for an update. */
+	/**
+	 * {@code currency} defaults to INR; {@code version} is required for an update. {@code value} is ignored on an
+	 * update by someone without FINANCE_VIEW (the stored value stays).
+	 */
 	public record SaveContract(@NotNull Long vendorId, @NotBlank @Size(max = 200) String title,
 			@NotNull LocalDate startDate, LocalDate endDate,
 			@DecimalMin("0.00") @Digits(integer = 12, fraction = 2) BigDecimal value,

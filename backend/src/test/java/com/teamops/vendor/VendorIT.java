@@ -3,6 +3,9 @@ package com.teamops.vendor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -13,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
@@ -94,6 +98,8 @@ class VendorIT {
 
 	private String outsiderToken;
 
+	private String editorToken;
+
 	@BeforeEach
 	void setUp() throws Exception {
 		users = new IntegrationUsers(userService, userRepository, departmentRepository);
@@ -110,6 +116,8 @@ class VendorIT {
 		// Reads vendors and record history, but cannot see finance amounts.
 		viewerId = users.create(departmentId, RoleCodes.EMPLOYEE, "VENDOR_VIEW", "HISTORY_VIEW");
 		viewerToken = login(viewerId);
+		// Edits vendors and contracts, but cannot see finance amounts either.
+		editorToken = login(users.create(departmentId, RoleCodes.EMPLOYEE, "VENDOR_VIEW", "VENDOR_EDIT"));
 		plainId = users.create(departmentId, RoleCodes.EMPLOYEE);
 		plainToken = login(plainId);
 		// Holds both permissions, but the module is not switched on for the IT department.
@@ -237,6 +245,35 @@ class VendorIT {
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("INVALID_DATES"));
 		Long expired = createContract(vendorId, "Old support", "\"2020-01-01\"", "\"2020-12-31\"", "null");
+
+		// The value is finance data: hidden on the pages, in exports and from sorting without FINANCE_VIEW.
+		as(viewerToken, get(API + "/contracts/" + contractId)).andExpect(status().isOk())
+			.andExpect(jsonPath("$.value").doesNotExist())
+			.andExpect(jsonPath("$.valueHidden").value(true))
+			.andExpect(jsonPath("$.currency").value("AUD"));
+		as(adminToken, get(API + "/contracts/" + contractId)).andExpect(jsonPath("$.value").value(42000.0))
+			.andExpect(jsonPath("$.valueHidden").value(false));
+		as(viewerToken, get(API + "/contracts").param("vendorId", vendorId.toString()))
+			.andExpect(jsonPath("$.content[*].value").value(everyItem(nullValue())));
+		as(viewerToken, get(API + "/contracts").param("sort", "value,desc")).andExpect(status().isBadRequest());
+		as(adminToken, get(API + "/contracts").param("sort", "value,desc")).andExpect(status().isOk());
+		as(viewerToken, get(API + "/contracts/export").param("vendorId", vendorId.toString()))
+			.andExpect(content().string(containsString("Microsoft 365 E3,2026-01-01," + today.plusDays(40) + ",Hidden,AUD")))
+			.andExpect(content().string(not(containsString("42000"))));
+		as(adminToken, get(API + "/contracts/export").param("vendorId", vendorId.toString()))
+			.andExpect(content().string(containsString(",42000.00,AUD,")));
+		assertThat(body(as(viewerToken, get("/api/search").param("q", nonce))).contains("42000")).isFalse();
+
+		// An editor who cannot see the value keeps it when saving the contract.
+		as(editorToken, put(API + "/contracts/" + contractId).contentType(MediaType.APPLICATION_JSON).content("""
+				{"vendorId":%d,"title":"Microsoft 365 E3","startDate":"2026-01-01","endDate":"%s","value":null,
+				"currency":"AUD","renewalDate":"%s","autoRenew":true,"noticePeriodDays":45,"version":%d}
+				""".formatted(vendorId, today.plusDays(40), today.plusDays(20), version(API + "/contracts/" + contractId))))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.valueHidden").value(true))
+			.andExpect(jsonPath("$.noticePeriodDays").value(45));
+		assertThat(jdbc.queryForObject("SELECT value FROM vendor_contracts WHERE id = ?", BigDecimal.class,
+				contractId)).isEqualByComparingTo("42000");
 		as(viewerToken, get(API + "/contracts").param("vendorId", vendorId.toString()).param("status", "EXPIRED"))
 			.andExpect(jsonPath("$.totalElements").value(1))
 			.andExpect(jsonPath("$.content[0].id").value(expired))
@@ -351,8 +388,11 @@ class VendorIT {
 			.andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("vendors.csv")))
 			.andExpect(content().string(containsString("Canva " + nonce + ",,SOFTWARE,Australia,,,,ACTIVE,5,,Meera Iyer,,"
 					+ "meera@canva.example,")));
-		as(viewerToken, get(API + "/contracts/export").param("search", nonce)).andExpect(status().isOk())
+		as(adminToken, get(API + "/contracts/export").param("search", nonce)).andExpect(status().isOk())
 			.andExpect(content().string(containsString("Canva " + nonce + ",Canva Teams,2026-01-01,2026-12-31,1200.50,AUD,,"
+					+ "yes,30,")));
+		as(viewerToken, get(API + "/contracts/export").param("search", nonce)).andExpect(status().isOk())
+			.andExpect(content().string(containsString("Canva " + nonce + ",Canva Teams,2026-01-01,2026-12-31,Hidden,AUD,,"
 					+ "yes,30,")));
 	}
 

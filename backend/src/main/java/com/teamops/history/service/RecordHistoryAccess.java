@@ -197,7 +197,7 @@ public class RecordHistoryAccess {
 		});
 		register(VendorContract.class, (id, u) -> {
 			requireModule(moduleAccess, u, VendorModule.KEY);
-			contracts.get(id);
+			contracts.get(id, u);
 		});
 	}
 

@@ -135,6 +135,17 @@ class VendorCsvImportersTest {
 		assertThat(contractErrors(with(valid, "value", "-5"))).containsExactly("value: Cannot be negative");
 	}
 
+	@Test
+	void aHiddenValueFromAnExportWithoutFinanceViewImportsAsNoValue() {
+		RowReader reader = reader(contractImporter.columns(), Map.of("vendor", "atlassian", "title", "Confluence",
+				"start_date", "2026-03-01", "value", "Hidden"));
+
+		VendorContractCsvImporter.Row row = contractSession.parse(reader);
+
+		assertThat(reader.errors()).isEmpty();
+		assertThat(row.value()).isNull();
+	}
+
 	private List<String> vendorErrors(Map<String, String> cells) {
 		RowReader reader = reader(vendorImporter.columns(), cells);
 		vendorSession.parse(reader);

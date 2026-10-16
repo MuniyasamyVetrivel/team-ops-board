@@ -22,6 +22,7 @@ import com.teamops.common.config.BusinessCalendar;
 import com.teamops.common.csv.CsvWriter;
 import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AuthenticatedUser;
+import com.teamops.common.security.FinanceAccess;
 import com.teamops.common.storage.StoredFile;
 import com.teamops.common.web.ClientInfo;
 import com.teamops.common.web.PageResponse;
@@ -46,8 +47,9 @@ import lombok.RequiredArgsConstructor;
 /**
  * Vendor contracts and their documents (Phase X7). The title is unique per vendor, including contracts in the
  * recycle bin. Status, the renewal date and the notice deadline are computed on today's business date
- * ({@link ContractRules}). A blacklisted vendor takes no new contracts. Changes are audited; the value is a finance
- * field, so audit history shows it only to FINANCE_VIEW holders.
+ * ({@link ContractRules}). A blacklisted vendor takes no new contracts. Changes are audited. The value is a finance
+ * amount: only FINANCE_VIEW holders see it, on the pages, in exports and in audit history; for everyone else it is
+ * hidden, cannot be sorted on, and is kept as it is when they save the contract.
  */
 @Service
 @RequiredArgsConstructor
@@ -56,6 +58,9 @@ public class VendorContractService {
 	public static final String ENTITY = "VENDOR_CONTRACT";
 
 	public static final int EXPORT_LIMIT = 10_000;
+
+	/** What the value reads as, on screen and in exports, for viewers without FINANCE_VIEW. */
+	public static final String HIDDEN = "Hidden";
 
 	/** The export's columns: the same as the import's. */
 	public static final List<String> CSV_COLUMNS = List.of("vendor", "title", "start_date", "end_date", "value",
@@ -79,20 +84,21 @@ public class VendorContractService {
 	}
 
 	@Transactional(readOnly = true)
-	public PageResponse<ContractDto> search(ContractFilter filter, Pageable pageable) {
+	public PageResponse<ContractDto> search(ContractFilter filter, Pageable pageable, AuthenticatedUser viewer) {
 		LocalDate today = calendar.today();
-		return PageResponse.of(repository.findAll(spec(filter, today), pageable).map(c -> toDto(c, today)));
+		boolean finance = FinanceAccess.canView(viewer);
+		return PageResponse.of(repository.findAll(spec(filter, today), pageable).map(c -> toDto(c, today, finance)));
 	}
 
 	@Transactional(readOnly = true)
-	public ContractDto get(Long id) {
-		return toDto(load(id), calendar.today());
+	public ContractDto get(Long id, AuthenticatedUser viewer) {
+		return toDto(load(id), calendar.today(), FinanceAccess.canView(viewer));
 	}
 
 	@Transactional
 	public ContractDto create(SaveContract request, AuthenticatedUser actor, ClientInfo info) {
 		VendorContract contract = new VendorContract();
-		apply(contract, request);
+		apply(contract, request, true);
 		VendorContract saved = repository.saveAndFlush(contract);
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("vendorId", saved.getVendor().getId());
@@ -102,7 +108,7 @@ public class VendorContractService {
 		details.put("currency", saved.getCurrency());
 		details.put("renewsOn", ContractRules.renewsOn(saved));
 		auditService.record(AuditAction.VENDOR_CONTRACT_CREATED, actor.id(), ENTITY, saved.getId(), details, info);
-		return toDto(saved, calendar.today());
+		return toDto(saved, calendar.today(), FinanceAccess.canView(actor));
 	}
 
 	@Transactional
@@ -112,14 +118,15 @@ public class VendorContractService {
 			throw ApiException.conflict("STALE_UPDATE", "Someone else changed this contract just now. Reload and try again.");
 		}
 		Map<String, Object> before = snapshot(contract);
-		apply(contract, request);
+		// Without FINANCE_VIEW the form never showed the value, so an update keeps it.
+		apply(contract, request, FinanceAccess.canView(actor));
 		AuditChanges changes = new AuditChanges();
 		snapshot(contract).forEach((field, to) -> changes.track(field, before.get(field), to));
 		repository.flush();
 		if (!changes.isEmpty()) {
 			auditService.record(AuditAction.VENDOR_CONTRACT_UPDATED, actor.id(), ENTITY, id, changes.toDetails(), info);
 		}
-		return toDto(contract, calendar.today());
+		return toDto(contract, calendar.today(), FinanceAccess.canView(actor));
 	}
 
 	/** Moves the contract to the recycle bin; its documents stay with it until it is purged. Audited. */
@@ -131,15 +138,16 @@ public class VendorContractService {
 				Map.of("vendor", contract.getVendor().getName(), "title", contract.getTitle()), info);
 	}
 
-	/** CSV in the import's columns. */
+	/** CSV in the import's columns; the value reads "Hidden" for viewers without FINANCE_VIEW. */
 	@Transactional(readOnly = true)
-	public byte[] export(ContractFilter filter) {
+	public byte[] export(ContractFilter filter, AuthenticatedUser viewer) {
+		boolean finance = FinanceAccess.canView(viewer);
 		List<List<String>> rows = repository
 			.findAll(spec(filter, calendar.today()), Sort.by("vendor.name", "title", "id"))
 			.stream()
 			.limit(EXPORT_LIMIT)
 			.map(c -> List.of(c.getVendor().getName(), c.getTitle(), text(c.getStartDate()), text(c.getEndDate()),
-					c.getValue() == null ? "" : c.getValue().toPlainString(), c.getCurrency(), text(c.getRenewalDate()),
+					!finance ? HIDDEN : c.getValue() == null ? "" : c.getValue().toPlainString(), c.getCurrency(), text(c.getRenewalDate()),
 					c.isAutoRenew() ? "yes" : "no", text(c.getNoticePeriodDays()), text(c.getNotes())))
 			.toList();
 		return CsvWriter.write(CSV_COLUMNS, rows);
@@ -179,7 +187,8 @@ public class VendorContractService {
 
 	// --- helpers ----------------------------------------------------------------------------------------------
 
-	private void apply(VendorContract contract, SaveContract request) {
+	/** @param setValue false keeps the stored value (the person saving cannot see it) */
+	private void apply(VendorContract contract, SaveContract request, boolean setValue) {
 		Vendor vendor = vendors.findById(request.vendorId())
 			.orElseThrow(() -> ApiException.badRequest("UNKNOWN_VENDOR", "Vendor not found"));
 		boolean newVendor = contract.getVendor() == null || !contract.getVendor().getId().equals(vendor.getId());
@@ -201,7 +210,9 @@ public class VendorContractService {
 		contract.setTitle(title);
 		contract.setStartDate(request.startDate());
 		contract.setEndDate(request.endDate());
-		contract.setValue(money(request.value()));
+		if (setValue) {
+			contract.setValue(money(request.value()));
+		}
 		contract.setCurrency(VendorText.currency(request.currency()));
 		contract.setRenewalDate(request.renewalDate());
 		contract.setAutoRenew(Boolean.TRUE.equals(request.autoRenew()));
@@ -225,10 +236,11 @@ public class VendorContractService {
 		return values;
 	}
 
-	static ContractDto toDto(VendorContract c, LocalDate today) {
+	/** @param showValue whether the viewer may see finance amounts; otherwise the value is null and flagged hidden */
+	static ContractDto toDto(VendorContract c, LocalDate today, boolean showValue) {
 		LocalDate renewsOn = ContractRules.renewsOn(c);
 		return new ContractDto(c.getId(), VendorRef.of(c.getVendor()), c.getTitle(), c.getStartDate(), c.getEndDate(),
-				c.getValue(), c.getCurrency(), c.getRenewalDate(), c.isAutoRenew(), c.getNoticePeriodDays(), c.getNotes(),
+				showValue ? c.getValue() : null, !showValue, c.getCurrency(), c.getRenewalDate(), c.isAutoRenew(), c.getNoticePeriodDays(), c.getNotes(),
 				ContractRules.status(c, today), renewsOn, ContractRules.daysUntilRenewal(c, today),
 				ContractRules.noticeBy(renewsOn, c.getNoticePeriodDays()),
 				c.getDocuments().stream().map(DocumentDto::of).toList(), c.getVersion(), c.getCreatedAt(),

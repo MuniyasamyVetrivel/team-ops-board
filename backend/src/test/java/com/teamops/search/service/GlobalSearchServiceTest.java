@@ -206,7 +206,7 @@ class GlobalSearchServiceTest {
 		when(vendorService.search(any(), any())).thenReturn(new PageResponse<>(List.of(new VendorDto(9L, "Acme Software",
 				null, VendorCategory.SOFTWARE, "Australia", null, null, null, VendorStatus.ACTIVE, 4, null, List.of(), 1,
 				null, 0, null, null)), 0, 5, 1, 1));
-		when(contractService.search(any(), any())).thenReturn(new PageResponse<>(List.of(), 0, 5, 0, 0));
+		when(contractService.search(any(), any(), any())).thenReturn(new PageResponse<>(List.of(), 0, 5, 0, 0));
 
 		SearchResults results = service.search("acme", null, 5, vendorReader);
 

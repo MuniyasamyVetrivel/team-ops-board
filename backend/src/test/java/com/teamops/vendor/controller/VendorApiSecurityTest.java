@@ -137,6 +137,11 @@ class VendorApiSecurityTest {
 		mvc.perform(get("/api/modules/vendors/contracts").param("status", "ACTIVE").param("renewalWithinDays", "30")
 			.header(HttpHeaders.AUTHORIZATION, token)).andExpect(status().isOk());
 		verify(moduleAccess, atLeastOnce()).requireAccess(VIEWER, "vendors", false);
+		// Contract values are finance data: without FINANCE_VIEW their order is not given away by sorting either.
+		mvc.perform(get("/api/modules/vendors/contracts").param("sort", "value,desc").header(HttpHeaders.AUTHORIZATION, token))
+			.andExpect(status().isBadRequest());
+		mvc.perform(get("/api/modules/vendors/contracts").param("sort", "value,desc")
+			.header(HttpHeaders.AUTHORIZATION, bearer(SliceAuth.SUPER_ADMIN))).andExpect(status().isOk());
 
 		for (AbstractMockHttpServletRequestBuilder<?> request : List.<AbstractMockHttpServletRequestBuilder<?>>of(
 				post("/api/modules/vendors/vendors").contentType(MediaType.APPLICATION_JSON).content(VENDOR_BODY),
