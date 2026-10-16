@@ -54,6 +54,8 @@ export const PERMISSION_CODES = [
   'HISTORY_VIEW',
   'RECYCLE_BIN_MANAGE',
   'RECYCLE_BIN_PURGE',
+  'BACKUP_VIEW',
+  'DATA_EXPORT',
 ] as const;
 
 export type PermissionCode = (typeof PERMISSION_CODES)[number];
@@ -97,6 +99,21 @@ export function canManageRecycleBin(user: Authorities | null | undefined): boole
 /** Delete Recycle Bin items permanently: needs the bin itself as well (Super Admin only unless granted). */
 export function canPurgeRecycleBin(user: Authorities | null | undefined): boolean {
   return isSuperAdmin(user) || (hasPermission(user, 'RECYCLE_BIN_MANAGE') && hasPermission(user, 'RECYCLE_BIN_PURGE'));
+}
+
+/** The Backups page: backup status, history and health (Super Admin only unless granted). */
+export function canViewBackups(user: Authorities | null | undefined): boolean {
+  return isSuperAdmin(user) || hasPermission(user, 'BACKUP_VIEW');
+}
+
+/** "Run backup now" is the Super Admin's alone (the server checks the role, not a permission). */
+export function canRunBackup(user: Authorities | null | undefined): boolean {
+  return isSuperAdmin(user);
+}
+
+/** "Export all data": every table as CSV plus all uploads (Super Admin only unless granted). */
+export function canExportAllData(user: Authorities | null | undefined): boolean {
+  return isSuperAdmin(user) || hasPermission(user, 'DATA_EXPORT');
 }
 
 /** Highest-privilege role, for display. */

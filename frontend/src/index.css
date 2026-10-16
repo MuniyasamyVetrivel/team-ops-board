@@ -309,3 +309,17 @@
     @apply my-6 border-border;
   }
 }
+
+/* Indeterminate progress (a streamed download whose size is not known in advance). */
+@theme {
+  --animate-indeterminate: indeterminate 1.4s ease-in-out infinite;
+
+  @keyframes indeterminate {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(300%);
+    }
+  }
+}

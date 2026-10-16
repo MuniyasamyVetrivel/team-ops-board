@@ -9,9 +9,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/features/auth/use-auth';
-import { formatBytes } from '@/features/tasks/task-meta';
 import { errorMessage } from '@/lib/api/errors';
-import { formatRelative } from '@/lib/format';
+import { formatBytes, formatRelative } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { ACCEPTED_UPLOADS } from '@/lib/uploads';
 

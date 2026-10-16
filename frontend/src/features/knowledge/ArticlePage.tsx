@@ -9,9 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { HistoryPanel } from '@/features/history/HistoryPanel';
-import { formatBytes } from '@/features/tasks/task-meta';
 import { errorMessage } from '@/lib/api/errors';
-import { formatDate, formatRelative } from '@/lib/format';
+import { formatBytes, formatDate, formatRelative } from '@/lib/format';
 import { ACCEPTED_UPLOADS } from '@/lib/uploads';
 
 import { downloadArticleAttachment, useArticle, useArticleAttachments, type ArticleDetail } from './api';

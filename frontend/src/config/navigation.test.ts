@@ -27,6 +27,14 @@ describe('visibleNavigation', () => {
     expect(labels(webEmployee)).toEqual(expect.arrayContaining(['Dashboard', 'My Tasks', 'Tickets', 'Team']));
   });
 
+  it('shows Backups only to the Super Admin and anyone granted BACKUP_VIEW', () => {
+    expect(labels(superAdmin)).toContain('Backups');
+    expect(labels(webEmployee)).not.toContain('Backups');
+    expect(labels(makeUser(['DEPARTMENT_MANAGER'], [...webEmployee.permissions, 'DATA_EXPORT']))).not.toContain('Backups');
+    expect(labels(makeUser(['EMPLOYEE'], [...webEmployee.permissions, 'BACKUP_VIEW']))).toContain('Backups');
+    expect(NAV_ITEMS.find((item) => item.path === '/admin/backups')?.requires).toEqual(['BACKUP_VIEW']);
+  });
+
   it('shows a Digital Marketing employee only the marketing pages they hold permissions for', () => {
     const visible = labels(seoExecutive);
     expect(visible).toEqual(

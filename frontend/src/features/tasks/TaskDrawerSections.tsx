@@ -11,13 +11,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/features/auth/use-auth';
 import { useTeamDirectory } from '@/features/team/api';
 import { errorMessage } from '@/lib/api/errors';
-import { formatRelative } from '@/lib/format';
+import { formatBytes, formatRelative } from '@/lib/format';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { ACCEPTED_UPLOADS } from '@/lib/uploads';
 
 import { downloadAttachment, useTaskAttachments, useTaskChecklist, useTaskComments, useTaskDependencies, useTaskWatchers, useTasks } from './api';
 import { TaskStatusBadge } from './TaskBadges';
-import { formatBytes } from './task-meta';
 import type { TaskDetail } from './types';
 
 async function attempt(action: Promise<unknown>, success?: string): Promise<boolean> {

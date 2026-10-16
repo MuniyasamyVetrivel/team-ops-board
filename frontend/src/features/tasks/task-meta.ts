@@ -71,9 +71,3 @@ export function historyValue(value: string | null): string {
 export function formatHours(hours: number | null | undefined): string {
   return hours === null || hours === undefined ? '—' : `${Number(hours).toLocaleString(undefined, { maximumFractionDigits: 1 })} h`;
 }
-
-export function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}

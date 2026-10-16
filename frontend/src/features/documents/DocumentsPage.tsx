@@ -14,8 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { hasPermission } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
 import { useDepartments } from '@/features/departments/api';
-import { formatBytes } from '@/features/tasks/task-meta';
-import { formatRelative } from '@/lib/format';
+import { formatBytes, formatRelative } from '@/lib/format';
 import { useIdParam } from '@/lib/use-id-param';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { cn } from '@/lib/utils';

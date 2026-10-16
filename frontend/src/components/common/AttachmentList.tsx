@@ -4,10 +4,9 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatBytes } from '@/features/tasks/task-meta';
 import { errorMessage } from '@/lib/api/errors';
 import type { UserSummary } from '@/lib/api/types';
-import { formatRelative } from '@/lib/format';
+import { formatBytes, formatRelative } from '@/lib/format';
 import { ACCEPTED_UPLOADS } from '@/lib/uploads';
 
 export interface AttachmentFile {

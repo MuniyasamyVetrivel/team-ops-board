@@ -42,6 +42,11 @@ missing. Each copy is judged on its own (`copies` in the status): problems of th
 `SECONDARY_STALE`, `SECONDARY_LAST_FAILED` and `SECONDARY_NO_BACKUP`. `/actuator/health` then answers `{"status":"WARNING"}` with HTTP 200, so monitoring sees it without a load
 balancer taking the app out of service. "Run backup now" is `POST /api/admin/backups/run` (Super Admin).
 
+In the app, **Administration → Backups** (`BACKUP_VIEW`) shows the last successful backup, its size, the next
+scheduled run, the health of each copy and the history with the primary and second copy of every run. Super Admins
+also get **Run backup now**, holders of `DATA_EXPORT` get **Export all data** (with download progress), and while the
+health check fails every Super Admin sees a red banner across the top of every page with a link to the page.
+
 ## Where backups go
 
 **Development (this machine):** `BACKUP_TARGET=LOCAL`, `BACKUP_LOCAL_PATH=D:/team-ops-backups` (outside the project

@@ -42,3 +42,12 @@ export function formatRelative(iso: string | null | undefined, now: Date = new D
   }
   return 'just now';
 }
+
+/** "512 B", "48 KB", "3.2 MB", "1.40 GB"; "—" when there is no value. */
+export function formatBytes(bytes: number | null | undefined): string {
+  if (bytes === null || bytes === undefined) return '—';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}

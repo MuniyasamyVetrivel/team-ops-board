@@ -11,9 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
 import { toastDeleted } from '@/features/recycle-bin/undo-toast';
-import { formatBytes } from '@/features/tasks/task-meta';
 import { errorMessage } from '@/lib/api/errors';
-import { formatDateTime } from '@/lib/format';
+import { formatBytes, formatDateTime } from '@/lib/format';
 import { ACCEPTED_UPLOADS } from '@/lib/uploads';
 
 import { downloadDocumentVersion, useAddDocumentVersion, useDeleteDocument, useDocument, type DocumentDetail } from './api';
