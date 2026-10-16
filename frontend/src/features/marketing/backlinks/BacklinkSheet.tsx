@@ -140,7 +140,7 @@ function BacklinkBody({ backlinkId, canEdit, onClose }: { backlinkId: number; ca
                 )}
               </Detail>
               <Detail label="Anchor text">{b.anchorText ?? <span className="text-muted-foreground">None</span>}</Detail>
-              <Detail label="Owner">{b.owner ? <UserCell name={b.owner.fullName} /> : <span className="text-muted-foreground">No owner</span>}</Detail>
+              <Detail label="Owner">{b.owner ? <UserCell name={b.owner.fullName} user={b.owner} /> : <span className="text-muted-foreground">No owner</span>}</Detail>
               <Detail label="Recorded from">{b.provider === 'CSV' ? 'CSV import' : 'Entered by hand'}</Detail>
             </dl>
           </section>

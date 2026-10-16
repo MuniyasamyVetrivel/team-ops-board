@@ -56,7 +56,7 @@ export function ConversationSection({ ticket }: { ticket: TicketDetail }) {
               key={comment.id}
               className={cn('flex gap-3 rounded-lg p-3', comment.internal ? 'border border-status-warning/30 bg-status-warning/5' : 'border bg-card')}
             >
-              <UserAvatar name={comment.author?.fullName ?? 'Former user'} size="sm" />
+              <UserAvatar name={comment.author?.fullName ?? 'Former user'} user={comment.author} size="sm" />
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-center gap-2 text-sm">
                   <span className="font-medium">{comment.author?.fullName ?? 'Former user'}</span>

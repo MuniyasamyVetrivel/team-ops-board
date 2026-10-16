@@ -297,7 +297,7 @@ function BacklinkList({ filters, canEdit, onOpen }: { filters: MarketingFilters;
                       )}
                     </TableCell>
                     <TableCell numeric>{b.domainAuthority ?? <span className="text-muted-foreground">—</span>}</TableCell>
-                    <TableCell className="max-w-44">{b.owner ? <UserCell name={b.owner.fullName} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
+                    <TableCell className="max-w-44">{b.owner ? <UserCell name={b.owner.fullName} user={b.owner} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
                   </TableRow>
                 );
               })}

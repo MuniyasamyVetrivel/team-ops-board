@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { createUserSchema, passwordSchema, profileSchema, resetPasswordSchema, toProfilePayload } from './schemas';
+import { createUserSchema, EMPLOYEE_ID_PATTERN, passwordSchema, profileSchema, resetPasswordSchema, toProfilePayload } from './schemas';
 
 const validProfile = {
+  employeeId: 'E-1042',
   email: '  Asha.Iyer@teamops.local ',
   firstName: 'Asha',
   lastName: '',
@@ -63,8 +64,32 @@ describe('resetPasswordSchema', () => {
 
 describe('toProfilePayload', () => {
   it('converts select values to ids and an empty manager to null', () => {
-    const payload = toProfilePayload(profileSchema.parse(validProfile));
+    const payload = toProfilePayload(profileSchema.parse(validProfile), { includeEmployeeId: true });
     expect(payload.departmentId).toBe(5);
     expect(payload.reportsToId).toBeNull();
+  });
+
+  it('sends the employee ID only when the viewer may set it, and null to keep it', () => {
+    const values = profileSchema.parse({ ...validProfile, employeeId: ' EMP170_IN ' });
+    expect(toProfilePayload(values, { includeEmployeeId: true }).employeeId).toBe('EMP170_IN');
+    expect(toProfilePayload(values, { includeEmployeeId: false }).employeeId).toBeNull();
+    expect(toProfilePayload(profileSchema.parse({ ...validProfile, employeeId: '' }), { includeEmployeeId: true }).employeeId).toBeNull();
+  });
+});
+
+describe('employee IDs', () => {
+  it('accept letters, digits, underscores, dots, dashes and slashes, like the server', () => {
+    for (const id of ['EMP170_IN', 'EMP100_AU', 'E-1042', 'TRI/2026/07', 'a.b']) {
+      expect(EMPLOYEE_ID_PATTERN.test(id)).toBe(true);
+    }
+    for (const id of ['_E1', 'E 1', 'E1<x>', 'E'.repeat(41)]) {
+      expect(EMPLOYEE_ID_PATTERN.test(id)).toBe(false);
+    }
+  });
+
+  it('are required when creating a user', () => {
+    const result = createUserSchema.safeParse({ ...validProfile, employeeId: '', password: 'Welcome2026', role: 'EMPLOYEE' });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((i) => i.path[0])).toContain('employeeId');
   });
 });

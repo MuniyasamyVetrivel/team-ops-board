@@ -42,6 +42,7 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
   - Use the existing UI pieces: `Dialog`/`SheetContent` (right-hand drawer), `Tabs`, `Table`, `Badge` (semantic tones), native `Select`/`Checkbox`, and the common `StatusBadge`, `UserCell`, `Pagination`, `SearchInput`, `ErrorState`, `EmptyState`, `FormField`.
   - Every record drawer or page has a History tab: `RecordHistory` (`features/history`) inside an existing `Tabs`, `DetailsWithHistory` for sheets and edit dialogs without tabs, or `HistoryPanel` for full pages. Add new record types to `HistoryRecordType`. It groups a named event with the automatic change of the same action, shows "System" for system changes, and hides finance amounts unless `canSeeFinance(user)`. These components hide themselves without `HISTORY_VIEW` (`useCanViewHistory()`); a page with its own `Tabs` hides its History trigger and content the same way.
   - The access token is kept in memory only (`src/lib/api/client.ts`); never put tokens in localStorage.
+  - Avatars: pass the user reference to `UserAvatar`/`UserCell` (`user={task.assignee}`); it fetches the profile photo with the login token (`useUserPhoto`, cached by `photoVersion`) and falls back to initials. Photo changes go through `PhotoDialog` (`features/profile-photo`), which crops the square in the browser.
 - Package root: `com.teamops`. Organised by feature: `controller/ dto/ entity/ repository/ service/ mapper/`.
 
 ## Secrets & config

@@ -47,7 +47,7 @@ export function CommentsSection({ task }: { task: TaskDetail }) {
         <ul className="space-y-4">
           {task.comments.map((comment) => (
             <li key={comment.id} className="flex gap-3">
-              <UserAvatar name={comment.author?.fullName ?? 'Former user'} size="sm" />
+              <UserAvatar name={comment.author?.fullName ?? 'Former user'} user={comment.author} size="sm" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm">
                   <span className="font-medium">{comment.author?.fullName ?? 'Former user'}</span>{' '}
@@ -300,7 +300,7 @@ export function WatchersSection({ task, onLostAccess }: { task: TaskDetail; onLo
         <ul className="divide-y rounded-lg border">
           {task.watchers.map((watcher) => (
             <li key={watcher.id} className="flex items-center gap-3 px-3 py-2">
-              <UserAvatar name={watcher.fullName} size="sm" />
+              <UserAvatar name={watcher.fullName} user={watcher} size="sm" />
               <span className="flex-1 text-sm">{watcher.fullName}</span>
               {task.permissions.canEdit && watcher.id !== user?.id && (
                 <Button variant="ghost" size="icon" className="size-7" aria-label={`Remove ${watcher.fullName}`} onClick={() => void unwatch(watcher.id)}>

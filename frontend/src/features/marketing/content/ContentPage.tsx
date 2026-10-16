@@ -253,7 +253,7 @@ function ContentList({ filters, canEdit, onOpen }: { filters: MarketingFilters; 
                       )}
                     </span>
                   </TableCell>
-                  <TableCell className="max-w-44">{c.owner ? <UserCell name={c.owner.fullName} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
+                  <TableCell className="max-w-44">{c.owner ? <UserCell name={c.owner.fullName} user={c.owner} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
                   <TableCell numeric>{formatCount(c.leads)}</TableCell>
                   <TableCell numeric className="text-sm text-muted-foreground">
                     {c.attachments > 0 ? (

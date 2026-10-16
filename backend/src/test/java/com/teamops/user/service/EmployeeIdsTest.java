@@ -14,6 +14,8 @@ class EmployeeIdsTest {
 		assertThat(EmployeeIds.normalise(" E-1042 ")).isEqualTo("E-1042");
 		assertThat(EmployeeIds.normalise("TRI/2026/07")).isEqualTo("TRI/2026/07");
 		assertThat(EmployeeIds.normalise("a.b_c-9")).isEqualTo("a.b_c-9");
+		assertThat(EmployeeIds.normalise("EMP170_IN")).isEqualTo("EMP170_IN");
+		assertThat(EmployeeIds.normalise("EMP100_AU")).isEqualTo("EMP100_AU");
 	}
 
 	@Test

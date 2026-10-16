@@ -1,5 +1,5 @@
-import { ArrowLeft, Clock, Gauge, Lock, Mail, MapPin, Phone, type LucideIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { ArrowLeft, Camera, Clock, Gauge, IdCard, Lock, Mail, MapPin, Phone, type LucideIcon } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 
 import { ErrorState } from '@/components/common/ErrorState';
@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RoleBadges } from '@/features/admin/users/RoleBadges';
-import { hasPermission, type RoleCode } from '@/features/auth/permissions';
+import { canChangePhoto, hasPermission, type RoleCode } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
+import { PhotoDialog } from '@/features/profile-photo/PhotoDialog';
 import { useWorkload } from '@/features/workload/api';
 import { WorkloadMeter } from '@/features/workload/WorkloadMeter';
 import { formatDate } from '@/lib/format';
@@ -76,6 +77,7 @@ export default function TeamProfilePage() {
   const { id } = useParams();
   const { user: viewer } = useAuth();
   const profile = useTeamProfile(Number(id));
+  const [photoOpen, setPhotoOpen] = useState(false);
 
   const back = (
     <Button asChild variant="ghost" size="sm" className="-ml-2">
@@ -111,6 +113,7 @@ export default function TeamProfilePage() {
 
   const { member, roles, memberSince, directReports, canViewWork } = profile.data;
   const isSelf = viewer?.id === member.id;
+  const mayChangePhoto = canChangePhoto(viewer, member.id);
 
   return (
     <div className="space-y-6">
@@ -118,7 +121,15 @@ export default function TeamProfilePage() {
 
       <Card>
         <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center">
-          <UserAvatar name={member.fullName} size="lg" />
+          <div className="flex shrink-0 flex-col items-center gap-2">
+            <UserAvatar name={member.fullName} user={member} size="xl" />
+            {mayChangePhoto && (
+              <Button variant="ghost" size="sm" onClick={() => setPhotoOpen(true)}>
+                <Camera aria-hidden />
+                {member.photoVersion != null ? 'Change photo' : 'Add photo'}
+              </Button>
+            )}
+          </div>
           <div className="min-w-0 flex-1 space-y-1.5">
             <h1 className="text-2xl font-bold tracking-tight sm:text-page-title">
               {member.fullName}
@@ -126,6 +137,14 @@ export default function TeamProfilePage() {
             </h1>
             <p className="text-muted-foreground">
               {member.jobTitle ?? 'No job title'} · {member.department.name}
+              {member.employeeId && (
+                <>
+                  {' · '}
+                  <span className="font-mono text-sm" title="Employee ID">
+                    {member.employeeId}
+                  </span>
+                </>
+              )}
             </p>
             <div className="flex flex-wrap items-center gap-1.5">
               <StatusBadge status={member.status} />
@@ -148,6 +167,9 @@ export default function TeamProfilePage() {
           </CardHeader>
           <CardContent>
             <dl className="space-y-3 text-sm">
+              <Detail icon={IdCard} label="Employee ID">
+                {member.employeeId ? <span className="font-mono">{member.employeeId}</span> : '—'}
+              </Detail>
               <Detail icon={Mail} label="Email">
                 <a href={`mailto:${member.email}`} className="text-primary hover:underline">
                   {member.email}
@@ -162,7 +184,7 @@ export default function TeamProfilePage() {
                 <p className="mb-1.5 text-xs font-medium text-muted-foreground uppercase">Reports to</p>
                 {member.manager ? (
                   <Link to={`/team/${member.manager.id}`} className="block rounded-md hover:underline">
-                    <UserCell name={member.manager.fullName} detail={member.manager.jobTitle} />
+                    <UserCell name={member.manager.fullName} detail={member.manager.jobTitle} user={member.manager} />
                   </Link>
                 ) : (
                   <p className="text-muted-foreground">Nobody</p>
@@ -186,7 +208,7 @@ export default function TeamProfilePage() {
                   {directReports.map((report) => (
                     <li key={report.id}>
                       <Link to={`/team/${report.id}`} className="block rounded-lg border p-3 hover:bg-muted/40">
-                        <UserCell name={report.fullName} detail={report.jobTitle} />
+                        <UserCell name={report.fullName} detail={report.jobTitle} user={report} />
                       </Link>
                     </li>
                   ))}
@@ -209,6 +231,10 @@ export default function TeamProfilePage() {
       </div>
 
       {canViewWork && <WorkHistory userId={member.id} fullName={member.fullName} firstName={member.firstName} />}
+
+      {mayChangePhoto && (
+        <PhotoDialog open={photoOpen} onOpenChange={setPhotoOpen} userId={isSelf ? null : member.id} name={member.fullName} current={member} />
+      )}
     </div>
   );
 }

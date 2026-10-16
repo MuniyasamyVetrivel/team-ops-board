@@ -59,7 +59,7 @@ export function EmployeeWorkloadTable({ rows, onOpenPerson }: { rows: WorkloadRo
         {rows.map((row) => (
           <TableRow key={row.user.id} data-clickable={Boolean(onOpenPerson)} onClick={() => onOpenPerson?.(row)}>
             <TableCell className="max-w-56">
-              <UserCell name={row.user.fullName} detail={row.department.name} />
+              <UserCell name={row.user.fullName} user={row.user} detail={row.department.name} />
             </TableCell>
             <TableCell numeric>{row.activeTasks}</TableCell>
             <TableCell numeric className={cn(row.overdue > 0 && 'font-semibold text-status-danger')}>{row.overdue}</TableCell>

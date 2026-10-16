@@ -257,7 +257,7 @@ function LeadList({ filters, canEdit, source, onSourceChange, onOpen }: LeadList
                   <TableCell>
                     <LeadStatusBadge status={l.status} />
                   </TableCell>
-                  <TableCell className="max-w-44">{l.owner ? <UserCell name={l.owner.fullName} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
+                  <TableCell className="max-w-44">{l.owner ? <UserCell name={l.owner.fullName} user={l.owner} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

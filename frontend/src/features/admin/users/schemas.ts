@@ -18,8 +18,18 @@ function isTimeZone(value: string): boolean {
   }
 }
 
+/** Mirrors EmployeeIds on the server: a letter or digit, then letters, digits, . _ - or /; up to 40 characters. */
+export const EMPLOYEE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,39}$/;
+export const EMPLOYEE_ID_HINT = 'Letters, digits, . _ - or /, e.g. EMP170_IN';
+const EMPLOYEE_ID_MESSAGE = 'Use letters, digits, . _ - or / (starting with a letter or digit), up to 40 characters';
+
 /** Mirrors UpdateUserRequest. Select values arrive as strings, so ids are coerced. */
 export const profileSchema = z.object({
+  /** Blank keeps it (users from before employee IDs); only a Super Admin can change it. */
+  employeeId: z
+    .string()
+    .trim()
+    .refine((value) => value === '' || EMPLOYEE_ID_PATTERN.test(value), EMPLOYEE_ID_MESSAGE),
   email: z.string().trim().min(1, 'Email is required').pipe(z.email('Enter a valid email address')),
   firstName: z.string().trim().min(1, 'First name is required').max(100),
   lastName: optionalText(100),
@@ -37,6 +47,7 @@ export const profileSchema = z.object({
 });
 
 export const createUserSchema = profileSchema.extend({
+  employeeId: z.string().trim().min(1, 'Employee ID is required').regex(EMPLOYEE_ID_PATTERN, EMPLOYEE_ID_MESSAGE),
   password: passwordSchema,
   role: z.enum(['SUPER_ADMIN', 'DEPARTMENT_MANAGER', 'EMPLOYEE'], { error: 'Choose a role' }),
 });
@@ -51,9 +62,13 @@ export type CreateUserFormInput = z.input<typeof createUserSchema>;
 export type CreateUserFormValues = z.output<typeof createUserSchema>;
 export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
-/** Converts form values (strings) to the API payload. */
-export function toProfilePayload(values: ProfileFormValues) {
+/**
+ * Converts form values (strings) to the API payload. {@code employeeId} is sent only when the viewer may set it;
+ * null keeps the current one.
+ */
+export function toProfilePayload(values: ProfileFormValues, options: { includeEmployeeId: boolean }) {
   return {
+    employeeId: options.includeEmployeeId && values.employeeId ? values.employeeId : null,
     email: values.email,
     firstName: values.firstName,
     lastName: values.lastName,

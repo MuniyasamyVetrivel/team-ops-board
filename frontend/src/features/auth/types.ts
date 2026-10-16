@@ -19,6 +19,9 @@ export interface CurrentUser {
   permissions: PermissionCode[];
   /** Set while an admin-chosen password is in use; the API then only allows choosing a new one. */
   mustChangePassword: boolean;
+  employeeId: string | null;
+  /** Null without a profile photo; changes with every new photo. */
+  photoVersion: number | null;
 }
 
 /** Mirrors com.teamops.auth.dto.AuthResponse. */

@@ -112,8 +112,8 @@ function ContentBody({ itemId, canEdit, onClose }: { itemId: number; canEdit: bo
                 )}
               </Detail>
               {c.refreshedDate && <Detail label="Refreshed on">{day(c.refreshedDate)}</Detail>}
-              <Detail label="Author">{c.author ? <UserCell name={c.author.fullName} /> : <Muted>No author</Muted>}</Detail>
-              <Detail label="Owner">{c.owner ? <UserCell name={c.owner.fullName} /> : <Muted>No owner</Muted>}</Detail>
+              <Detail label="Author">{c.author ? <UserCell name={c.author.fullName} user={c.author} /> : <Muted>No author</Muted>}</Detail>
+              <Detail label="Owner">{c.owner ? <UserCell name={c.owner.fullName} user={c.owner} /> : <Muted>No owner</Muted>}</Detail>
               <Detail label="Target keyword">{c.targetKeywordText ?? <Muted>None</Muted>}</Detail>
               <Detail label="Target page">{c.targetPage ? c.targetPage.title : <Muted>None</Muted>}</Detail>
             </dl>

@@ -60,7 +60,7 @@ function OccasionBody({ item, occasion }: { item: CalendarItem; occasion: Occasi
           {occasion.location && <Detail label="Location">{occasion.location}</Detail>}
           {isCampaign && occasion.detail && <Detail label="Audience">{occasion.detail}</Detail>}
           {item.department && <Detail label="Department">{item.department.name}</Detail>}
-          {item.user && <Detail label={occasion.subjectType === 'EVENT' || isCampaign ? 'Owner' : 'App user'}>{<UserCell name={item.user.fullName} />}</Detail>}
+          {item.user && <Detail label={occasion.subjectType === 'EVENT' || isCampaign ? 'Owner' : 'App user'}>{<UserCell name={item.user.fullName} user={item.user} />}</Detail>}
         </dl>
 
         {linkedIn && occasion.subjectType && (

@@ -30,6 +30,8 @@ const profile: TeamMemberProfile = {
     location: null,
     workingHours: null,
     status: 'ACTIVE',
+    employeeId: 'EMP173_IN',
+    photoVersion: null,
   },
   roles: ['EMPLOYEE'],
   memberSince: '2025-01-06T00:00:00Z',
@@ -248,6 +250,25 @@ describe('TeamProfilePage', () => {
     renderProfile({ ...webEmployee, id: 4, permissions: webEmployee.permissions.filter((p) => p !== 'TICKET_VIEW') });
     expect(await screen.findByRole('tablist', { name: 'Task status' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Tickets' })).not.toBeInTheDocument();
+  });
+
+  it('shows the employee ID, and offers the photo only to its owner and the Super Admin', async () => {
+    mockApi({ 'GET /team/4': () => ({ ...profile, canViewWork: false }) });
+    const view = renderProfile(webEmployee);
+    expect(await screen.findAllByText('EMP173_IN')).not.toHaveLength(0);
+    // webEmployee is user 1, not Karthik (4): someone else's photo.
+    expect(screen.queryByRole('button', { name: /photo/i })).not.toBeInTheDocument();
+    view.unmount();
+
+    mockApi({ 'GET /team/4': () => ({ ...profile, canViewWork: false }) });
+    const own = renderProfile({ ...webEmployee, id: 4 });
+    expect(await screen.findByRole('button', { name: 'Add photo' })).toBeInTheDocument();
+    own.unmount();
+
+    mockApi({ 'GET /team/4': () => ({ ...profile, canViewWork: false }) });
+    renderProfile(superAdmin);
+    await userEvent.click(await screen.findByRole('button', { name: 'Add photo' }));
+    expect(await screen.findByRole('heading', { name: 'Profile photo of Karthik Raj' })).toBeInTheDocument();
   });
 
   it('explains when the viewer may not see this person’s work', async () => {

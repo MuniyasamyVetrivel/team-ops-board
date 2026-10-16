@@ -254,7 +254,7 @@ function TargetTable({ targets, onEdit }: { targets: TargetItem[]; onEdit: (targ
               <TableCell>
                 <TargetStatusBadge status={target.status} />
               </TableCell>
-              <TableCell className="max-w-44">{target.owner ? <UserCell name={target.owner.fullName} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
+              <TableCell className="max-w-44">{target.owner ? <UserCell name={target.owner.fullName} user={target.owner} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
               {anyEditable && (
                 <TableCell>
                   {target.editable && (

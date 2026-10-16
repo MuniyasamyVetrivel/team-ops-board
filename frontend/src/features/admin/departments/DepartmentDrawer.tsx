@@ -129,6 +129,7 @@ function MemberList({ title, members, department, empty }: { title: string; memb
               <Link to={`/team/${member.user.id}`} className="min-w-0 flex-1 rounded-md hover:underline">
                 <UserCell
                   name={member.user.fullName}
+                  user={member.user}
                   detail={member.membership === 'PRIMARY' ? member.user.jobTitle : `${member.primaryDepartment.name} · ${member.user.jobTitle ?? ''}`}
                 />
               </Link>

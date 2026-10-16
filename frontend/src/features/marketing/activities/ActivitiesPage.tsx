@@ -188,7 +188,7 @@ function ActivitiesTab() {
                   <TableCell>
                     <FrequencyBadge frequency={a.frequency} />
                   </TableCell>
-                  <TableCell className="max-w-44">{a.assignee ? <UserCell name={a.assignee.fullName} /> : <span className="text-sm text-muted-foreground">Unassigned</span>}</TableCell>
+                  <TableCell className="max-w-44">{a.assignee ? <UserCell name={a.assignee.fullName} user={a.assignee} /> : <span className="text-sm text-muted-foreground">Unassigned</span>}</TableCell>
                   <TableCell>
                     {a.nextOccurrence ? (
                       <div className="space-y-0.5">

@@ -137,7 +137,7 @@ function LeadBody({ leadId, canEdit, onClose }: { leadId: number; canEdit: boole
                   <span className="text-muted-foreground">None</span>
                 )}
               </Detail>
-              <Detail label="Owner">{l.owner ? <UserCell name={l.owner.fullName} /> : <span className="text-muted-foreground">No owner</span>}</Detail>
+              <Detail label="Owner">{l.owner ? <UserCell name={l.owner.fullName} user={l.owner} /> : <span className="text-muted-foreground">No owner</span>}</Detail>
               <Detail label="Department">{l.department?.name ?? <span className="text-muted-foreground">None</span>}</Detail>
               <Detail label="Recorded from">
                 {LEAD_ORIGIN_LABELS[l.provider]}

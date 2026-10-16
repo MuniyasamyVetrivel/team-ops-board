@@ -198,7 +198,7 @@ export default function WorkloadPage() {
                 <TableRow key={row.user.id}>
                   <TableCell>
                     <Link to={`/team/${row.user.id}`} className="block rounded-md hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
-                      <UserCell name={row.user.fullName} detail={`${row.department.name}${row.user.jobTitle ? ` · ${row.user.jobTitle}` : ''}`} />
+                      <UserCell name={row.user.fullName} user={row.user} detail={`${row.department.name}${row.user.jobTitle ? ` · ${row.user.jobTitle}` : ''}`} />
                     </Link>
                   </TableCell>
                   <Num value={row.totalTasks} />

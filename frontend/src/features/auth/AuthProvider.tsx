@@ -76,9 +76,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     navigate('/login', { replace: true });
   }, [navigate, queryClient]);
 
+  const updateUser = useCallback((patch: Partial<CurrentUser>) => {
+    setState((current) => (current.user ? { ...current, user: { ...current.user, ...patch } } : current));
+  }, []);
+
   const value = useMemo<AuthContextValue>(
-    () => ({ status: state.status, user: state.user, login, changePassword, logout }),
-    [state, login, changePassword, logout],
+    () => ({ status: state.status, user: state.user, login, changePassword, logout, updateUser }),
+    [state, login, changePassword, logout, updateUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

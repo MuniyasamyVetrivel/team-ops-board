@@ -157,7 +157,7 @@ export default function ProjectsPage() {
                     <TableCell>
                       <ProjectStatusBadge status={project.status} />
                     </TableCell>
-                    <TableCell className="max-w-48">{project.owner ? <UserCell name={project.owner.fullName} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
+                    <TableCell className="max-w-48">{project.owner ? <UserCell name={project.owner.fullName} user={project.owner} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
                     <TableCell className="text-sm whitespace-nowrap text-muted-foreground">{dateRange(project.startDate, project.endDate)}</TableCell>
                     <TableCell>
                       <ProgressBar value={project.progress} label={`${project.name} progress`} />

@@ -25,6 +25,8 @@ const catalogue: PermissionResponse[] = [
 
 const employee: UserDetail = {
   id: 21,
+  employeeId: 'E-21',
+  photoVersion: null,
   email: 'arun.kumar@teamops.local',
   firstName: 'Arun',
   lastName: 'Kumar',

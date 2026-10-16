@@ -116,6 +116,16 @@ export function canExportAllData(user: Authorities | null | undefined): boolean 
   return isSuperAdmin(user) || hasPermission(user, 'DATA_EXPORT');
 }
 
+/** Employee IDs are set when a user is created; only a Super Admin can change them (the server enforces it). */
+export function canEditEmployeeId(user: Authorities | null | undefined): boolean {
+  return isSuperAdmin(user);
+}
+
+/** Everyone changes their own profile photo; only a Super Admin changes someone else's. */
+export function canChangePhoto(user: (Authorities & { id: number }) | null | undefined, ownerId: number): boolean {
+  return !!user && (user.id === ownerId || isSuperAdmin(user));
+}
+
 /** Highest-privilege role, for display. */
 export function primaryRoleLabel(user: Authorities): string {
   const order: RoleCode[] = ['SUPER_ADMIN', 'DEPARTMENT_MANAGER', 'EMPLOYEE'];

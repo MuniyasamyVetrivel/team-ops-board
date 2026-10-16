@@ -6,7 +6,7 @@ import { Select } from '@/components/ui/select';
 import { useDepartments } from '@/features/departments/api';
 import { useTeamDirectory } from '@/features/team/api';
 
-import type { ProfileFormInput } from './schemas';
+import { EMPLOYEE_ID_HINT, type ProfileFormInput } from './schemas';
 
 function invalid(error: unknown) {
   return error ? true : undefined;
@@ -16,8 +16,9 @@ function invalid(error: unknown) {
  * Profile inputs shared by the create dialog and the edit tab. Must be rendered inside a react-hook-form
  * {@code <FormProvider>} whose values include the profile fields.
  * @param userId the user being edited, excluded from the reports-to list
+ * @param employeeIdEditable false shows the employee ID read-only (only a Super Admin can change it)
  */
-export function ProfileFields({ userId }: { userId?: number }) {
+export function ProfileFields({ userId, employeeIdEditable = true }: { userId?: number; employeeIdEditable?: boolean }) {
   const {
     register,
     formState: { errors },
@@ -28,6 +29,25 @@ export function ProfileFields({ userId }: { userId?: number }) {
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
+      <FormField
+        id="employeeId"
+        label="Employee ID"
+        required={employeeIdEditable}
+        hint={employeeIdEditable ? EMPLOYEE_ID_HINT : 'Only a Super Admin can change the employee ID'}
+        error={errors.employeeId?.message}
+        className="sm:col-span-2"
+      >
+        <Input
+          id="employeeId"
+          autoComplete="off"
+          readOnly={!employeeIdEditable}
+          className={employeeIdEditable ? 'font-mono' : 'bg-muted font-mono text-muted-foreground'}
+          placeholder={employeeIdEditable ? undefined : 'Not set'}
+          aria-invalid={invalid(errors.employeeId)}
+          aria-describedby="employeeId-message"
+          {...register('employeeId')}
+        />
+      </FormField>
       <FormField id="firstName" label="First name" required error={errors.firstName?.message}>
         <Input id="firstName" aria-invalid={invalid(errors.firstName)} aria-describedby="firstName-message" {...register('firstName')} />
       </FormField>

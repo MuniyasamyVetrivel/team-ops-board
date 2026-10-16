@@ -209,7 +209,7 @@ function RankingTable({ rows, month, year, onHistory, dimmed }: { rows: KeywordI
                 <StandingChange standing={row.ranking} />
               </TableCell>
               <TableCell numeric className="text-sm">{formatCount(volume)}</TableCell>
-              <TableCell className="max-w-44">{row.owner ? <UserCell name={row.owner.fullName} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
+              <TableCell className="max-w-44">{row.owner ? <UserCell name={row.owner.fullName} user={row.owner} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
               <TableCell className="text-sm whitespace-nowrap text-muted-foreground">{row.entry?.updatedAt ? dayFormat.format(new Date(row.entry.updatedAt)) : '—'}</TableCell>
               <TableCell>
                 <Button variant="ghost" size="icon" aria-label={`Ranking history for ${row.keyword}`} onClick={() => onHistory(row.id)}>

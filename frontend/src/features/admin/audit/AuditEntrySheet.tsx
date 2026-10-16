@@ -36,7 +36,7 @@ function EntryBody({ entry, canSeeFinance }: { entry: AuditLogItem; canSeeFinanc
       <DialogBody className="space-y-6 overflow-y-auto">
         <dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
           <dt className="text-muted-foreground">By</dt>
-          <dd>{entry.actor ? <UserCell name={entry.actor.fullName} detail={entry.actor.email} /> : <span className="text-muted-foreground">System</span>}</dd>
+          <dd>{entry.actor ? <UserCell name={entry.actor.fullName} user={entry.actor} detail={entry.actor.email} /> : <span className="text-muted-foreground">System</span>}</dd>
           <dt className="text-muted-foreground">Record</dt>
           <dd className="min-w-0">
             <RecordName entry={entry} />

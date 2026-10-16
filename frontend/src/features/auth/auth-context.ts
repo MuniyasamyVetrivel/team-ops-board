@@ -10,6 +10,8 @@ export interface AuthContextValue {
   login: (credentials: LoginCredentials) => Promise<CurrentUser>;
   changePassword: (input: ChangePasswordInput) => Promise<CurrentUser>;
   logout: () => Promise<void>;
+  /** Applies a change the server confirmed to the signed-in user (for example a new profile photo). */
+  updateUser: (patch: Partial<CurrentUser>) => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

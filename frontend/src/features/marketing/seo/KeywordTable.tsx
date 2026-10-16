@@ -79,7 +79,7 @@ export function KeywordTable({ keywords, month, year, showPage = true, onEdit, o
               <TableCell numeric className="text-sm">{keyword.targetPosition === null ? '—' : `#${keyword.targetPosition}`}</TableCell>
               <TableCell numeric className="text-sm">{formatCount(keyword.searchVolume)}</TableCell>
               <TableCell numeric className="text-sm">{formatCount(keyword.keywordDifficulty)}</TableCell>
-              <TableCell className="max-w-44">{keyword.owner ? <UserCell name={keyword.owner.fullName} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
+              <TableCell className="max-w-44">{keyword.owner ? <UserCell name={keyword.owner.fullName} user={keyword.owner} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
               <TableCell>
                 <KeywordStatusBadge status={keyword.status} />
               </TableCell>

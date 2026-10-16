@@ -14,6 +14,8 @@ export function makeUser(roles: RoleCode[], permissions: PermissionCode[], overr
     roles,
     permissions,
     mustChangePassword: false,
+    employeeId: 'E-1',
+    photoVersion: null,
     ...overrides,
   };
 }

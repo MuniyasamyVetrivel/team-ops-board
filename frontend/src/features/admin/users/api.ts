@@ -25,6 +25,9 @@ export interface UserListItem {
   roles: RoleCode[];
   status: UserStatus;
   lastLoginAt: string | null;
+  /** Null only for users from before employee IDs, until a Super Admin sets one. */
+  employeeId: string | null;
+  photoVersion: number | null;
 }
 
 /** Mirrors com.teamops.user.dto.UserDetail. */
@@ -50,6 +53,8 @@ export interface UserDetail {
   roles: RoleCode[];
   directPermissions: PermissionCode[];
   effectivePermissions: PermissionCode[];
+  employeeId: string | null;
+  photoVersion: number | null;
 }
 
 export interface RoleResponse {
@@ -73,12 +78,16 @@ export interface UserQuery {
   departmentId?: number;
   status?: UserStatus;
   role?: RoleCode;
+  /** Only users still without an employee ID. */
+  missingEmployeeId?: boolean;
   page?: number;
   size?: number;
   sort?: string;
 }
 
 export interface UserProfileInput {
+  /** Null keeps the current one; a different one needs a Super Admin. Required when creating. */
+  employeeId: string | null;
   email: string;
   firstName: string;
   lastName?: string;

@@ -104,7 +104,7 @@ function HistoryEntry({ item }: { item: HistoryItem }) {
   return (
     <li className="relative flex gap-3">
       {item.actor ? (
-        <UserAvatar name={item.actor.fullName} className="relative ring-4 ring-background" />
+        <UserAvatar name={item.actor.fullName} user={item.actor} className="relative ring-4 ring-background" />
       ) : (
         <span className="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground ring-4 ring-background" aria-hidden>
           <Cog className="size-4" />

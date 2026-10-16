@@ -144,7 +144,7 @@ export default function EventsPage() {
                       <span className="block text-xs text-muted-foreground">{formatTime(e.startAt)}</span>
                     </TableCell>
                     <TableCell className="max-w-44">
-                      <UserCell name={e.owner.fullName} />
+                      <UserCell name={e.owner.fullName} user={e.owner} />
                     </TableCell>
                     <TableCell>
                       <EventStatusBadge status={e.status} />

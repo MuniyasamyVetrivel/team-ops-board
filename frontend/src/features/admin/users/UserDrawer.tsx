@@ -14,6 +14,8 @@ import { Dialog, DialogDescription, DialogTitle, SheetContent } from '@/componen
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { applyServerErrors } from '@/lib/api/form-errors';
+import { canEditEmployeeId } from '@/features/auth/permissions';
+import { useAuth } from '@/features/auth/use-auth';
 import { useCanViewHistory } from '@/features/history/api';
 import { RecordHistory } from '@/features/history/RecordHistory';
 
@@ -24,7 +26,7 @@ import { RoleBadges } from './RoleBadges';
 import { profileSchema, toProfilePayload, type ProfileFormInput, type ProfileFormValues } from './schemas';
 import { SecurityPanel } from './SecurityPanel';
 
-const SERVER_FIELDS = ['email', 'firstName', 'lastName', 'jobTitle', 'phone', 'location', 'workingHours', 'timeZone', 'departmentId', 'reportsToId', 'weeklyCapacityHours'] as const;
+const SERVER_FIELDS = ['employeeId', 'email', 'firstName', 'lastName', 'jobTitle', 'phone', 'location', 'workingHours', 'timeZone', 'departmentId', 'reportsToId', 'weeklyCapacityHours'] as const;
 
 interface UserDrawerProps {
   userId: number | null;
@@ -62,11 +64,12 @@ function UserDrawerBody({ user }: { user: UserDetail }) {
   return (
     <>
       <div className="flex items-start gap-4 border-b px-6 py-5 pr-12">
-        <UserAvatar name={user.fullName} size="lg" />
+        <UserAvatar name={user.fullName} user={user} size="lg" />
         <div className="min-w-0 space-y-1.5">
           <DialogTitle className="truncate text-lg">{user.fullName}</DialogTitle>
           <DialogDescription className="truncate">
             {user.jobTitle ?? 'No job title'} · {user.department.name}
+            {user.employeeId && <span className="font-mono"> · {user.employeeId}</span>}
           </DialogDescription>
           <div className="flex flex-wrap items-center gap-1.5">
             <StatusBadge status={user.status} />
@@ -103,11 +106,14 @@ function UserDrawerBody({ user }: { user: UserDetail }) {
 }
 
 function ProfileForm({ user }: { user: UserDetail }) {
+  const { user: viewer } = useAuth();
+  const employeeIdEditable = canEditEmployeeId(viewer);
   const updateUser = useUpdateUser(user.id);
   const [banner, setBanner] = useState<string | null>(null);
   const form = useForm<ProfileFormInput, unknown, ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
+      employeeId: user.employeeId ?? '',
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
@@ -126,7 +132,7 @@ function ProfileForm({ user }: { user: UserDetail }) {
   const onSubmit = handleSubmit(async (values) => {
     setBanner(null);
     try {
-      await updateUser.mutateAsync(toProfilePayload(values));
+      await updateUser.mutateAsync(toProfilePayload(values, { includeEmployeeId: employeeIdEditable }));
       reset(values);
       toast.success('Profile saved');
     } catch (error) {
@@ -138,7 +144,7 @@ function ProfileForm({ user }: { user: UserDetail }) {
     <form onSubmit={onSubmit} noValidate className="space-y-5">
       <FormBanner message={banner} />
       <FormProvider {...form}>
-        <ProfileFields userId={user.id} />
+        <ProfileFields userId={user.id} employeeIdEditable={employeeIdEditable} />
       </FormProvider>
       <div className="flex items-center justify-between gap-2 border-t pt-4">
         <Button asChild variant="link" className="px-0">

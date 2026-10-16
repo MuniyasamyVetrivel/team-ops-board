@@ -67,7 +67,7 @@ export function TaskTable({ tasks, onOpen, hideAssignee = false, dimmed = false 
               <TableCell>
                 {task.assignee ? (
                   <span className="flex items-center gap-2">
-                    <UserAvatar name={task.assignee.fullName} size="sm" />
+                    <UserAvatar name={task.assignee.fullName} user={task.assignee} size="sm" />
                     <span className="truncate text-sm">{task.assignee.fullName}</span>
                   </span>
                 ) : (

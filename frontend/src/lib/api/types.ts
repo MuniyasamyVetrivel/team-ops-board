@@ -16,6 +16,10 @@ export interface UserSummary {
   email: string;
   jobTitle: string | null;
   status: UserStatus;
+  /** Visible to everyone signed in; null only for users from before employee IDs. */
+  employeeId?: string | null;
+  /** Null without a profile photo; changes with every new photo (see features/profile-photo). */
+  photoVersion?: number | null;
 }
 
 /** Drops empty values so they are not sent as query parameters. */

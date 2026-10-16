@@ -79,7 +79,7 @@ export default function DepartmentsPage() {
                   </TableCell>
                   <TableCell>
                     {department.manager ? (
-                      <UserCell name={department.manager.fullName} detail={department.manager.jobTitle} />
+                      <UserCell name={department.manager.fullName} user={department.manager} detail={department.manager.jobTitle} />
                     ) : (
                       <span className="text-sm text-muted-foreground">Not assigned</span>
                     )}

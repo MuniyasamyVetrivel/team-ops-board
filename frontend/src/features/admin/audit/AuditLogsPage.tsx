@@ -290,7 +290,7 @@ export default function AuditLogsPage() {
                       <span className="text-xs text-muted-foreground">{formatRelative(entry.createdAt)}</span>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {entry.actor ? <UserCell name={entry.actor.fullName} detail={entry.actor.email} /> : <span className="text-sm text-muted-foreground">System</span>}
+                      {entry.actor ? <UserCell name={entry.actor.fullName} user={entry.actor} detail={entry.actor.email} /> : <span className="text-sm text-muted-foreground">System</span>}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       <span className="block text-sm font-medium">{entry.actionLabel}</span>

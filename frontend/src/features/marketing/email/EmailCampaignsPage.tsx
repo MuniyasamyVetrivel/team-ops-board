@@ -231,7 +231,7 @@ function CampaignList({ filters, canEdit }: { filters: MarketingFilters; canEdit
                     <TableCell numeric>{sent ? formatPercent(c.rates.openRate) : '—'}</TableCell>
                     <TableCell numeric>{sent ? formatPercent(c.rates.clickRate) : '—'}</TableCell>
                     <TableCell numeric>{sent ? formatCount(c.counts.leads) : '—'}</TableCell>
-                    <TableCell className="max-w-44">{c.owner ? <UserCell name={c.owner.fullName} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
+                    <TableCell className="max-w-44">{c.owner ? <UserCell name={c.owner.fullName} user={c.owner} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
                     {canEdit && (
                       <TableCell>
                         <Button variant="ghost" size="icon" aria-label={`Edit ${c.name}`} onClick={() => setEditing(c)}>

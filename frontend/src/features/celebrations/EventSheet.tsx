@@ -67,7 +67,7 @@ function EventBody({ eventId, onClose }: { eventId: number; onClose: () => void 
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
           <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
             <Detail label="Owner">
-              <UserCell name={e.owner.fullName} />
+              <UserCell name={e.owner.fullName} user={e.owner} />
             </Detail>
             <Detail label="Location">{e.location ?? <Muted>None</Muted>}</Detail>
             <Detail label="Online link">{e.onlineLink ? <ExternalAnchor href={e.onlineLink}>Join online</ExternalAnchor> : <Muted>None</Muted>}</Detail>

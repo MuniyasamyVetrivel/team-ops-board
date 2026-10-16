@@ -101,7 +101,7 @@ export function OccurrenceTable({ occurrences, showActivity, dimmed }: Occurrenc
                   <span className="text-sm text-muted-foreground">No task</span>
                 )}
               </TableCell>
-              <TableCell className="max-w-44">{o.assignee ? <UserCell name={o.assignee.fullName} /> : <span className="text-sm text-muted-foreground">—</span>}</TableCell>
+              <TableCell className="max-w-44">{o.assignee ? <UserCell name={o.assignee.fullName} user={o.assignee} /> : <span className="text-sm text-muted-foreground">—</span>}</TableCell>
               <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
                 {o.completedAt ? `${formatInstantDate(o.completedAt)}${o.completedBy ? ` · ${o.completedBy.fullName}` : ''}` : '—'}
               </TableCell>

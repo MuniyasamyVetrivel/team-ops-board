@@ -249,7 +249,7 @@ function PagesTab({ filters, canEdit }: { filters: MarketingFilters; canEdit: bo
                     <p className="truncate font-mono text-xs text-muted-foreground">{p.url}</p>
                   </TableCell>
                   <TableCell className="text-sm">{PAGE_TYPE_LABELS[p.pageType]}</TableCell>
-                  <TableCell className="max-w-44">{p.owner ? <UserCell name={p.owner.fullName} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
+                  <TableCell className="max-w-44">{p.owner ? <UserCell name={p.owner.fullName} user={p.owner} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
                   <TableCell numeric>{formatCount(p.stats.totalKeywords)}</TableCell>
                   <TableCell numeric>{formatCount(p.stats.top10)}</TableCell>
                   <TableCell numeric>{formatDecimal(p.stats.averagePosition)}</TableCell>

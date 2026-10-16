@@ -99,7 +99,7 @@ function EmployeeBody({ employeeId, onClose }: { employeeId: number; onClose: ()
             <Detail label="Joined">{formatShortDate(e.dateOfJoining) ?? <Muted>Not recorded</Muted>}</Detail>
             <Detail label="Work email">{e.workEmail ?? <Muted>None</Muted>}</Detail>
             <Detail label="Office">{e.officeLocation ?? <Muted>None</Muted>}</Detail>
-            <Detail label="App user">{e.user ? <UserCell name={e.user.fullName} detail={e.user.email} /> : <Muted>Does not sign in</Muted>}</Detail>
+            <Detail label="App user">{e.user ? <UserCell name={e.user.fullName} user={e.user} detail={e.user.email} /> : <Muted>Does not sign in</Muted>}</Detail>
           </dl>
         </div>
       </DetailsWithHistory>

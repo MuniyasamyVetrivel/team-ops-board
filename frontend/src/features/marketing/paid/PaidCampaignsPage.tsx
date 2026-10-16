@@ -236,7 +236,7 @@ function CampaignList({ filters, canEdit, onOpen }: { filters: MarketingFilters;
                     <TableCell numeric>{formatInr(figures.results.spend)}</TableCell>
                     <TableCell numeric>{formatCount(figures.results.leads)}</TableCell>
                     <TableCell numeric>{formatInr(figures.rates.costPerLead)}</TableCell>
-                    <TableCell className="max-w-44">{c.owner ? <UserCell name={c.owner.fullName} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
+                    <TableCell className="max-w-44">{c.owner ? <UserCell name={c.owner.fullName} user={c.owner} /> : <span className="text-sm text-muted-foreground">No owner</span>}</TableCell>
                   </TableRow>
                 );
               })}

@@ -47,7 +47,7 @@ export default function TeamPage() {
       <Card>
         <div className="flex flex-col gap-3 border-b px-6 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:*:w-auto! sm:*:min-w-40 sm:[&>*:first-child]:min-w-64 sm:[&>*:first-child]:flex-1">
           <SearchInput
-            placeholder="Search people"
+            placeholder="Search by name, email or employee ID"
             aria-label="Search people"
             value={search}
             onChange={(event) => {
@@ -99,6 +99,7 @@ export default function TeamPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Employee</TableHead>
+                  <TableHead>Employee ID</TableHead>
                   <TableHead>Department</TableHead>
                   <TableHead>Manager</TableHead>
                   <TableHead>Contact</TableHead>
@@ -111,9 +112,10 @@ export default function TeamPage() {
                   <TableRow key={person.id}>
                     <TableCell>
                       <Link to={`/team/${person.id}`} className="block rounded-md hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
-                        <UserCell name={person.fullName} detail={person.jobTitle} />
+                        <UserCell name={person.fullName} detail={person.jobTitle} user={person} />
                       </Link>
                     </TableCell>
+                    <TableCell className="font-mono text-xs whitespace-nowrap">{person.employeeId ?? <span className="font-sans text-muted-foreground">—</span>}</TableCell>
                     <TableCell className="whitespace-nowrap">{person.department.name}</TableCell>
                     <TableCell className="text-muted-foreground">{person.manager?.fullName ?? '—'}</TableCell>
                     <TableCell>

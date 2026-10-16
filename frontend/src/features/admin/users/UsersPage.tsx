@@ -1,4 +1,4 @@
-import { FileUp, Plus, UsersRound } from 'lucide-react';
+import { FileUp, Plus, TriangleAlert, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 
 import { EmptyState } from '@/components/common/EmptyState';
@@ -8,6 +8,7 @@ import { Pagination } from '@/components/common/Pagination';
 import { SearchInput } from '@/components/common/SearchInput';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { UserCell } from '@/components/common/UserAvatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
@@ -40,6 +41,7 @@ export default function UsersPage() {
   const [departmentId, setDepartmentId] = useState('');
   const [role, setRole] = useState<RoleCode | ''>('');
   const [status, setStatus] = useState<UserStatus | ''>('');
+  const [missingEmployeeId, setMissingEmployeeId] = useState(false);
   const [sort, setSort] = useState(SORTS[0]!.value);
   const [page, setPage] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -53,6 +55,7 @@ export default function UsersPage() {
     departmentId: departmentId ? Number(departmentId) : undefined,
     role: role || undefined,
     status: status || undefined,
+    missingEmployeeId: missingEmployeeId || undefined,
     sort,
     page,
     size: PAGE_SIZE,
@@ -118,6 +121,14 @@ export default function UsersPage() {
             <option value="ACTIVE">Active</option>
             <option value="DISABLED">Disabled</option>
           </Select>
+          <Select
+            aria-label="Employee ID"
+            value={missingEmployeeId ? 'missing' : ''}
+            onChange={(event) => filter(setMissingEmployeeId)(event.target.value === 'missing')}
+          >
+            <option value="">Any employee ID</option>
+            <option value="missing">Missing employee ID</option>
+          </Select>
           <Select aria-label="Sort" value={sort} onChange={(event) => filter(setSort)(event.target.value)}>
             {SORTS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -147,6 +158,7 @@ export default function UsersPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>User</TableHead>
+                  <TableHead>Employee ID</TableHead>
                   <TableHead>Department</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
@@ -169,7 +181,17 @@ export default function UsersPage() {
                     aria-label={`Open ${user.fullName}`}
                   >
                     <TableCell>
-                      <UserCell name={user.fullName} detail={user.email} />
+                      <UserCell name={user.fullName} detail={user.email} user={user} />
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {user.employeeId ? (
+                        <span className="font-mono text-xs">{user.employeeId}</span>
+                      ) : (
+                        <Badge tone="warning">
+                          <TriangleAlert aria-hidden />
+                          Missing
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <p>{user.department.name}</p>

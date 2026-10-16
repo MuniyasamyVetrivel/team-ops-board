@@ -371,7 +371,7 @@ function TeamSection({ project }: { project: ProjectDetail }) {
         <ul className="divide-y rounded-lg border">
           {project.members.map((m) => (
             <li key={m.id} className="flex items-center gap-3 px-4 py-2.5">
-              <UserAvatar name={m.fullName} size="sm" />
+              <UserAvatar name={m.fullName} user={m} size="sm" />
               <span className="flex-1 text-sm">
                 {m.fullName}
                 {m.jobTitle && <span className="text-muted-foreground"> · {m.jobTitle}</span>}

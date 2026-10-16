@@ -175,7 +175,7 @@ export function TaskReportView({ report, previous }: { report: TaskReport; previ
               {report.employees.map((e) => (
                 <TableRow key={e.user.id}>
                   <TableCell className="max-w-56">
-                    <UserCell name={e.user.fullName} detail={e.department.name} />
+                    <UserCell name={e.user.fullName} user={e.user} detail={e.department.name} />
                   </TableCell>
                   <TableCell numeric>{formatCount(e.completed)}</TableCell>
                   <TableCell numeric>{formatPercent(e.onTimePct)}</TableCell>
@@ -244,7 +244,7 @@ export function WorkloadReportView({ report }: { report: WorkloadReport }) {
             {report.employees.rows.map((r) => (
               <TableRow key={r.user.id}>
                 <TableCell className="max-w-56">
-                  <UserCell name={r.user.fullName} detail={r.department.name} />
+                  <UserCell name={r.user.fullName} user={r.user} detail={r.department.name} />
                 </TableCell>
                 <TableCell numeric>{formatCount(r.activeTasks)}</TableCell>
                 <TableCell numeric>{formatCount(r.overdue)}</TableCell>

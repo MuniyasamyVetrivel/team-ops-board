@@ -17,6 +17,9 @@ export interface TeamMember {
   location: string | null;
   workingHours: string | null;
   status: UserStatus;
+  /** Visible to everyone signed in; null only for users from before employee IDs. */
+  employeeId: string | null;
+  photoVersion: number | null;
 }
 
 /** Mirrors com.teamops.team.dto.TeamMemberProfile. */

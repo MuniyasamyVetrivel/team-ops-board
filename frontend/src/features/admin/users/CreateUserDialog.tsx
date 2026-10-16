@@ -18,7 +18,7 @@ import { useCreateUser, type UserDetail } from './api';
 import { ProfileFields } from './ProfileFields';
 import { createUserSchema, toProfilePayload, type CreateUserFormInput, type CreateUserFormValues } from './schemas';
 
-const SERVER_FIELDS = ['email', 'password', 'firstName', 'lastName', 'jobTitle', 'phone', 'location', 'workingHours', 'timeZone', 'departmentId', 'reportsToId', 'weeklyCapacityHours'] as const;
+const SERVER_FIELDS = ['employeeId', 'email', 'password', 'firstName', 'lastName', 'jobTitle', 'phone', 'location', 'workingHours', 'timeZone', 'departmentId', 'reportsToId', 'weeklyCapacityHours'] as const;
 
 interface CreateUserDialogProps {
   open: boolean;
@@ -35,7 +35,7 @@ export function CreateUserDialog({ open, onOpenChange, onCreated }: CreateUserDi
   const form = useForm<CreateUserFormInput, unknown, CreateUserFormValues>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
-      email: '', firstName: '', lastName: '', jobTitle: '', phone: '', location: '', workingHours: '', timeZone: '',
+      employeeId: '', email: '', firstName: '', lastName: '', jobTitle: '', phone: '', location: '', workingHours: '', timeZone: '',
       departmentId: '', reportsToId: '', weeklyCapacityHours: 40, password: '', role: 'EMPLOYEE',
     },
   });
@@ -53,7 +53,7 @@ export function CreateUserDialog({ open, onOpenChange, onCreated }: CreateUserDi
     setBanner(null);
     try {
       const created = await createUser.mutateAsync({
-        ...toProfilePayload(values),
+        ...toProfilePayload(values, { includeEmployeeId: true }),
         password: values.password,
         roles: [values.role],
         permissions: [],

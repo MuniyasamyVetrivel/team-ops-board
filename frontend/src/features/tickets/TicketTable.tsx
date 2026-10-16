@@ -74,7 +74,7 @@ export function TicketTable({ tickets, onOpen, hideRequester = false, dimmed = f
               <TableCell>
                 {ticket.assignee ? (
                   <span className="flex items-center gap-2">
-                    <UserAvatar name={ticket.assignee.fullName} size="sm" />
+                    <UserAvatar name={ticket.assignee.fullName} user={ticket.assignee} size="sm" />
                     <span className="truncate text-sm">{ticket.assignee.fullName}</span>
                   </span>
                 ) : (

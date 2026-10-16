@@ -225,7 +225,7 @@ export default function RecycleBinPage() {
                         <Badge tone="neutral">{item.moduleLabel}</Badge>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        {item.deletedBy ? <UserCell name={item.deletedBy.fullName} detail={item.deletedBy.email} /> : <span className="text-sm text-muted-foreground">System</span>}
+                        {item.deletedBy ? <UserCell name={item.deletedBy.fullName} user={item.deletedBy} detail={item.deletedBy.email} /> : <span className="text-sm text-muted-foreground">System</span>}
                       </TableCell>
                       <TableCell className="text-sm whitespace-nowrap">
                         <span className="block">{formatDateTime(item.deletedAt)}</span>

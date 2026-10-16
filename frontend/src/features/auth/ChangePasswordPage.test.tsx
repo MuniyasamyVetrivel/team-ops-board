@@ -21,6 +21,7 @@ function TestAuth({ initial, changePassword, children }: { initial: CurrentUser;
     status: 'authenticated',
     user,
     login: vi.fn(),
+    updateUser: vi.fn(),
     changePassword: async (input) => {
       const updated = await changePassword(input);
       setUser(updated);

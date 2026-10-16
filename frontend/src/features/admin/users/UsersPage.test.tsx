@@ -22,6 +22,8 @@ const priya: UserListItem = {
   roles: ['DEPARTMENT_MANAGER'],
   status: 'ACTIVE',
   lastLoginAt: null,
+  employeeId: 'EMP170_IN',
+  photoVersion: null,
 };
 
 const formerStaff: UserListItem = { ...priya, id: 8, email: 'gone@teamops.local', fullName: 'Former Person', roles: ['EMPLOYEE'], status: 'DISABLED' };
@@ -71,6 +73,23 @@ describe('UsersPage', () => {
       expect(last?.params).toMatchObject({ status: 'DISABLED', search: 'priya', page: 0, sort: 'name,asc' });
     });
     expect(await screen.findByText('No users match these filters')).toBeInTheDocument();
+  });
+
+  it('shows employee IDs and finds users still without one', async () => {
+    const adapter = mockApi({
+      'GET /users': () => page([priya, { ...formerStaff, employeeId: null }]),
+      'GET /departments': () => [],
+    });
+    renderPage(<UsersPage />, superAdmin);
+
+    expect(within(await screen.findByRole('row', { name: 'Open Priya Menon' })).getByText('EMP170_IN')).toBeInTheDocument();
+    expect(within(screen.getByRole('row', { name: 'Open Former Person' })).getByText('Missing')).toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByLabelText('Employee ID'), 'missing');
+    await waitFor(() => {
+      const last = adapter.mock.calls.filter(([config]) => config.url === '/users').at(-1)?.[0];
+      expect(last?.params).toMatchObject({ missingEmployeeId: true, page: 0 });
+    });
   });
 
   it('shows an error state with retry when loading fails', async () => {
