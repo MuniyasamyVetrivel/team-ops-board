@@ -19,6 +19,8 @@ public enum NotificationType {
 	/** A birthday, work anniversary, important day or event is coming up (or is today). */
 	OCCASION_REMINDER,
 	/** A consultant's allocation ends in 30 or 14 days (Bench Management, BENCH_VIEW holders). */
-	BENCH_ROLL_OFF
+	BENCH_ROLL_OFF,
+	/** A vendor contract renews or ends in 30 or 7 days (Vendor Management, VENDOR_VIEW holders). */
+	CONTRACT_RENEWAL
 
 }

@@ -1,10 +1,11 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { allocationHref } from '@/features/bench/bench-paths';
+import { toolPath } from '@/features/modules/module-icons';
 import { api } from '@/lib/api/client';
 import type { PageResponse } from '@/lib/api/types';
 
-export type NotificationType = 'TASK_ASSIGNED' | 'TASK_DUE_SOON' | 'TASK_OVERDUE' | 'TICKET_ASSIGNED' | 'TICKET_UPDATED' | 'TICKET_REPLY' | 'APPROVAL_REQUIRED' | 'APPROVAL_DECIDED' | 'ANNOUNCEMENT_PUBLISHED' | 'OCCASION_REMINDER' | 'BENCH_ROLL_OFF';
+export type NotificationType = 'TASK_ASSIGNED' | 'TASK_DUE_SOON' | 'TASK_OVERDUE' | 'TICKET_ASSIGNED' | 'TICKET_UPDATED' | 'TICKET_REPLY' | 'APPROVAL_REQUIRED' | 'APPROVAL_DECIDED' | 'ANNOUNCEMENT_PUBLISHED' | 'OCCASION_REMINDER' | 'BENCH_ROLL_OFF' | 'CONTRACT_RENEWAL';
 
 /** Mirrors com.teamops.notification.dto.NotificationResponse. */
 export interface AppNotification {
@@ -34,6 +35,8 @@ export function notificationHref(notification: AppNotification): string | null {
   if (notification.entityType === 'IMPORTANT_DAY') return `/celebrations/important-days?day=${notification.entityId}`;
   if (notification.entityType === 'MARKETING_EVENT') return `/celebrations/events?event=${notification.entityId}`;
   if (notification.entityType === 'ALLOCATION') return allocationHref(notification.entityId);
+  // Vendors (Phase X7) has no pages yet: its tool page opens until the X7 frontend replaces this link.
+  if (notification.entityType === 'VENDOR_CONTRACT') return `${toolPath('vendors')}?contract=${notification.entityId}`;
   return null;
 }
 

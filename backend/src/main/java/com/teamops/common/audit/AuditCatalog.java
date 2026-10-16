@@ -23,6 +23,7 @@ public final class AuditCatalog {
 		CAMPAIGNS("Campaigns"), LEADS("Leads"), BACKLINKS("Backlinks"), CONTENT("Content"),
 		CELEBRATIONS("Celebrations and events"), REPORTS("Reports"), SETTINGS("Settings"),
 		BACKUPS("Backups and exports"), MODULES("Department tools"), BENCH("Bench management"),
+		VENDORS("Vendors"),
 		/** The automatic record changes of every module (each entry also belongs to its record's module). */
 		RECORDS("Record changes");
 
@@ -102,7 +103,9 @@ public final class AuditCatalog {
 	private static final Map<AuditAction, List<String>> FINANCE_PATHS = Map.of(AuditAction.APPROVAL_SUBMITTED,
 			List.of("amount"), AuditAction.PAID_CAMPAIGN_CREATED, List.of("budget"), AuditAction.PAID_CAMPAIGN_UPDATED,
 			List.of("changes.budget"), AuditAction.PAID_RESULTS_RECORDED, List.of("results.spend"),
-			AuditAction.PAID_RESULTS_CORRECTED, List.of("changes.results.from.spend", "changes.results.to.spend"));
+			AuditAction.PAID_RESULTS_CORRECTED, List.of("changes.results.from.spend", "changes.results.to.spend"),
+			AuditAction.VENDOR_CONTRACT_CREATED, List.of("value"), AuditAction.VENDOR_CONTRACT_UPDATED,
+			List.of("changes.value"));
 
 	public static List<String> financePaths(AuditAction action) {
 		return FINANCE_PATHS.getOrDefault(action, List.of());
@@ -161,6 +164,9 @@ public final class AuditCatalog {
 					CLIENT_DELETED, ENGAGEMENT_CREATED, ENGAGEMENT_UPDATED, ENGAGEMENT_DELETED, ALLOCATION_CREATED,
 					ALLOCATION_UPDATED, ALLOCATION_DELETED ->
 				Module.BENCH;
+			case VENDOR_CREATED, VENDOR_UPDATED, VENDOR_DELETED, VENDOR_CONTRACT_CREATED, VENDOR_CONTRACT_UPDATED,
+					VENDOR_CONTRACT_DELETED, VENDOR_CONTRACT_DOCUMENT_ADDED, VENDOR_CONTRACT_DOCUMENT_REMOVED ->
+				Module.VENDORS;
 		};
 	}
 

@@ -68,6 +68,9 @@ app:
   bench:
     # Daily allocation roll-off reminders, 30 and 14 days before an allocation ends (app.time-zone).
     reminder-cron: ${BENCH_REMINDER_CRON:0 15 8 * * *}
+  vendors:
+    # Daily contract renewal reminders, 30 and 7 days before a contract renews or ends (app.time-zone).
+    reminder-cron: ${VENDOR_REMINDER_CRON:0 20 8 * * *}
   recycle-bin:
     # Daily permanent delete of recycle bin items older than the Admin Settings retention (app.time-zone).
     purge-cron: ${RECYCLE_BIN_PURGE_CRON:0 30 2 * * *}

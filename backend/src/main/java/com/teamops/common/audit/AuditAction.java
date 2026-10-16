@@ -179,6 +179,20 @@ public enum AuditAction {
 	ALLOCATION_CREATED,
 	/** Consultant, engagement, role, dates, percentage, billable or notes changed ({@code changes} holds from/to). */
 	ALLOCATION_UPDATED,
-	ALLOCATION_DELETED
+	ALLOCATION_DELETED,
+	/** A vendor was created (name, category). */
+	VENDOR_CREATED,
+	/** Details, status, rating or contacts changed ({@code changes} holds from/to). */
+	VENDOR_UPDATED,
+	VENDOR_DELETED,
+	/** A vendor contract was created (vendorId, vendor, title, value, currency, renewsOn). */
+	VENDOR_CONTRACT_CREATED,
+	/** Title, dates, value, renewal terms or notes changed ({@code changes} holds from/to). */
+	VENDOR_CONTRACT_UPDATED,
+	VENDOR_CONTRACT_DELETED,
+	/** A document was added to a vendor contract (fileId, fileName). */
+	VENDOR_CONTRACT_DOCUMENT_ADDED,
+	/** A document was removed from a vendor contract (fileId, fileName). */
+	VENDOR_CONTRACT_DOCUMENT_REMOVED
 
 }

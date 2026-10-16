@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -45,6 +46,11 @@ import com.teamops.ticket.service.TicketService;
 import com.teamops.user.dto.UserSearchCriteria;
 import com.teamops.user.entity.PermissionCodes;
 import com.teamops.user.entity.UserStatus;
+import com.teamops.vendor.VendorModule;
+import com.teamops.vendor.service.VendorContractService;
+import com.teamops.vendor.service.VendorContractService.ContractFilter;
+import com.teamops.vendor.service.VendorService;
+import com.teamops.vendor.service.VendorService.VendorFilter;
 
 import lombok.RequiredArgsConstructor;
 
@@ -52,8 +58,9 @@ import lombok.RequiredArgsConstructor;
  * Global search (brief section 66). Each group runs through its module's own list service, so the results obey
  * exactly the same rules as the module's list page: the module's permission decides whether the group is searched at
  * all, and the service's scope (department, own work, published articles) decides which rows match. Digital Marketing
- * groups also need MARKETING_VIEW, like the whole {@code /api/marketing} API. Bench Management groups need BENCH_VIEW
- * and the module switched on for the viewer ({@link ModuleAccessService#toolsFor}), like its pages.
+ * groups also need MARKETING_VIEW, like the whole {@code /api/marketing} API. Department tool groups (Bench Management:
+ * BENCH_VIEW; Vendors: VENDOR_VIEW) also need the module switched on for the viewer ({@link ModuleAccessService#toolsFor}),
+ * like their pages.
  */
 @Service
 @RequiredArgsConstructor
@@ -96,6 +103,10 @@ public class GlobalSearchService {
 
 	private final EngagementService engagementService;
 
+	private final VendorService vendorService;
+
+	private final VendorContractService contractService;
+
 	public SearchResults search(String rawQuery, Set<Group> only, int limit, AuthenticatedUser viewer) {
 		String query = rawQuery == null ? "" : rawQuery.strip();
 		if (query.length() > MAX_QUERY_LENGTH) {
@@ -108,14 +119,15 @@ public class GlobalSearchService {
 		Pageable newest = PageRequest.of(0, size, NEWEST);
 		String q = query;
 		List<GroupResult> groups = new ArrayList<>();
-		Boolean benchOpen = null;
+		Set<String> openModules = null;
 		for (Group group : Group.values()) {
 			if ((only == null || only.isEmpty() || only.contains(group)) && maySearch(group, viewer)) {
-				if (isBench(group)) {
-					if (benchOpen == null) {
-						benchOpen = moduleAccess.toolsFor(viewer).stream().anyMatch(t -> t.key().equals(BenchModule.KEY));
+				String module = moduleOf(group);
+				if (module != null) {
+					if (openModules == null) {
+						openModules = moduleAccess.toolsFor(viewer).stream().map(t -> t.key()).collect(Collectors.toSet());
 					}
-					if (!benchOpen) {
+					if (!openModules.contains(module)) {
 						continue;
 					}
 				}
@@ -140,12 +152,17 @@ public class GlobalSearchService {
 			case CAMPAIGNS -> marketing(viewer, "CAMPAIGN_VIEW");
 			case LEADS -> marketing(viewer, "LEAD_VIEW");
 			case CONSULTANTS, CLIENTS, ENGAGEMENTS -> viewer.hasPermission(PermissionCodes.BENCH_VIEW);
+			case VENDORS, VENDOR_CONTRACTS -> viewer.hasPermission(PermissionCodes.VENDOR_VIEW);
 		};
 	}
 
-	/** Groups of the Bench Management department tool, which also need its module switch. */
-	static boolean isBench(Group group) {
-		return group == Group.CONSULTANTS || group == Group.CLIENTS || group == Group.ENGAGEMENTS;
+	/** The department tool a group belongs to, which must also be switched on for the viewer; null for core groups. */
+	static String moduleOf(Group group) {
+		return switch (group) {
+			case CONSULTANTS, CLIENTS, ENGAGEMENTS -> BenchModule.KEY;
+			case VENDORS, VENDOR_CONTRACTS -> VendorModule.KEY;
+			default -> null;
+		};
 	}
 
 	private static boolean marketing(AuthenticatedUser viewer, String permission) {
@@ -209,6 +226,14 @@ public class GlobalSearchService {
 					engagementService.search(new EngagementFilter(q, null, null, null), newest),
 					e -> new Hit(ResultType.CLIENT_ENGAGEMENT, e.id(), null, e.name(),
 							join(e.client().name(), e.location()), e.status().name(), null));
+			case VENDORS -> result(group, vendorService.search(new VendorFilter(q, null, null, null), newest),
+					v -> new Hit(ResultType.VENDOR, v.id(), null, v.name(), join(label(v.category().name()), v.country()),
+							v.status().name(), null));
+			case VENDOR_CONTRACTS -> result(group,
+					contractService.search(new ContractFilter(q, null, null, null, null), newest),
+					c -> new Hit(ResultType.VENDOR_CONTRACT, c.id(), null, c.title(),
+							join(c.vendor().name(), c.renewsOn() == null ? null : "Renews " + c.renewsOn()),
+							c.status().name(), null));
 		};
 	}
 

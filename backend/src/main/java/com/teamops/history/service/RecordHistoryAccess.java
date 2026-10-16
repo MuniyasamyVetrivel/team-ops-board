@@ -67,6 +67,11 @@ import com.teamops.user.entity.PermissionCodes;
 import com.teamops.user.entity.Role;
 import com.teamops.user.entity.User;
 import com.teamops.user.service.UserService;
+import com.teamops.vendor.VendorModule;
+import com.teamops.vendor.entity.Vendor;
+import com.teamops.vendor.entity.VendorContract;
+import com.teamops.vendor.service.VendorContractService;
+import com.teamops.vendor.service.VendorService;
 
 /**
  * Which records' history a HISTORY_VIEW holder may read (the controller requires that permission, Super Admin only by
@@ -94,7 +99,7 @@ public class RecordHistoryAccess {
 			ContentService content, LeadService leads, PaidCampaignService paidCampaigns,
 			EmailCampaignService emailCampaigns, TargetService targets, ModuleAccessService moduleAccess,
 			ConsultantService consultants, ClientService clients, EngagementService engagements,
-			AllocationService allocations) {
+			AllocationService allocations, VendorService vendors, VendorContractService contracts) {
 		register(Task.class, (id, u) -> {
 			require(u, "TASK_VIEW");
 			tasks.get(id, u);
@@ -185,6 +190,14 @@ public class RecordHistoryAccess {
 		register(Allocation.class, (id, u) -> {
 			requireModule(moduleAccess, u, BenchModule.KEY);
 			allocations.get(id);
+		});
+		register(Vendor.class, (id, u) -> {
+			requireModule(moduleAccess, u, VendorModule.KEY);
+			vendors.get(id);
+		});
+		register(VendorContract.class, (id, u) -> {
+			requireModule(moduleAccess, u, VendorModule.KEY);
+			contracts.get(id);
 		});
 	}
 

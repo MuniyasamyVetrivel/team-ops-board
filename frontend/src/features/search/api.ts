@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 import { BENCH_PATHS, clientHref, consultantPath, engagementHref, withSearch } from '@/features/bench/bench-paths';
+import { toolPath } from '@/features/modules/module-icons';
 import { api } from '@/lib/api/client';
 
 export type ResultType =
@@ -16,7 +17,9 @@ export type ResultType =
   | 'LEAD'
   | 'CONSULTANT'
   | 'CLIENT'
-  | 'CLIENT_ENGAGEMENT';
+  | 'CLIENT_ENGAGEMENT'
+  | 'VENDOR'
+  | 'VENDOR_CONTRACT';
 
 export type SearchGroupKey =
   | 'TASKS'
@@ -30,7 +33,9 @@ export type SearchGroupKey =
   | 'LEADS'
   | 'CONSULTANTS'
   | 'CLIENTS'
-  | 'ENGAGEMENTS';
+  | 'ENGAGEMENTS'
+  | 'VENDORS'
+  | 'VENDOR_CONTRACTS';
 
 /** Mirrors SearchDtos.Hit. {@code ref} is an article's slug; {@code status} is the record's status code. */
 export interface SearchHit {
@@ -104,6 +109,11 @@ export function hitHref(hit: SearchHit): string {
       return clientHref(hit.id);
     case 'CLIENT_ENGAGEMENT':
       return engagementHref(hit.id);
+    // Vendors (Phase X7) has no pages yet: its tool page opens until the X7 frontend replaces these links.
+    case 'VENDOR':
+      return `${toolPath('vendors')}?vendor=${hit.id}`;
+    case 'VENDOR_CONTRACT':
+      return `${toolPath('vendors')}?contract=${hit.id}`;
   }
 }
 
@@ -135,6 +145,9 @@ export function groupHref(group: SearchGroupKey, query: string): string {
       return withSearch(BENCH_PATHS.clients, query);
     case 'ENGAGEMENTS':
       return withSearch(BENCH_PATHS.engagements, query);
+    case 'VENDORS':
+    case 'VENDOR_CONTRACTS':
+      return withSearch(toolPath('vendors'), query);
   }
 }
 

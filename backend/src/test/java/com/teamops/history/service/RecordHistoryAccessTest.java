@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
@@ -32,12 +33,15 @@ import com.teamops.marketing.email.service.EmailCampaignService;
 import com.teamops.marketing.lead.service.LeadService;
 import com.teamops.marketing.paid.service.PaidCampaignService;
 import com.teamops.marketing.target.service.TargetService;
+import com.teamops.module.dto.ModuleDtos.Tool;
 import com.teamops.module.service.ModuleAccessService;
 import com.teamops.project.service.ProjectService;
 import com.teamops.support.SliceAuth;
 import com.teamops.task.service.TaskService;
 import com.teamops.ticket.service.TicketService;
 import com.teamops.user.service.UserService;
+import com.teamops.vendor.service.VendorContractService;
+import com.teamops.vendor.service.VendorService;
 
 /** History is visible exactly to whoever may open the record. */
 class RecordHistoryAccessTest {
@@ -48,14 +52,18 @@ class RecordHistoryAccessTest {
 
 	private final LeadService leads = mock(LeadService.class);
 
+	private final ModuleAccessService moduleAccess = mock(ModuleAccessService.class);
+
+	private final VendorService vendors = mock(VendorService.class);
+
 	private final RecordHistoryAccess access = new RecordHistoryAccess(tasks, mock(TicketService.class),
 			mock(ProjectService.class), mock(ApprovalService.class), mock(DepartmentService.class), users,
 			mock(DocumentService.class), mock(CalendarService.class), mock(EmployeeService.class),
 			mock(ImportantDayService.class), mock(MarketingEventService.class), mock(ActivityService.class),
 			mock(BacklinkService.class), mock(ContentService.class), leads, mock(PaidCampaignService.class),
-			mock(EmailCampaignService.class), mock(TargetService.class), mock(ModuleAccessService.class),
+			mock(EmailCampaignService.class), mock(TargetService.class), moduleAccess,
 			mock(ConsultantService.class), mock(ClientService.class), mock(EngagementService.class),
-			mock(AllocationService.class));
+			mock(AllocationService.class), vendors, mock(VendorContractService.class));
 
 	@Test
 	void aTaskUsesTheTaskReadCheck() {
@@ -99,7 +107,21 @@ class RecordHistoryAccessTest {
 		assertThat(access.types()).contains("TASK", "TICKET", "PROJECT", "APPROVAL", "DEPARTMENT", "USER", "DOCUMENT",
 				"CALENDAR_EVENT", "EMPLOYEE", "IMPORTANT_DAY", "MARKETING_EVENT", "SEO_PAGE", "SEO_KEYWORD",
 				"MARKETING_TARGET", "MARKETING_ACTIVITY", "EMAIL_CAMPAIGN", "PAID_CAMPAIGN", "MARKETING_LEAD",
-				"BACKLINK", "CONTENT_ITEM", "ARTICLE", "ANNOUNCEMENT", "SETTING");
+				"BACKLINK", "CONTENT_ITEM", "ARTICLE", "ANNOUNCEMENT", "SETTING", "CONSULTANT", "ALLOCATION", "VENDOR",
+				"VENDOR_CONTRACT");
+	}
+
+	@Test
+	void vendorHistoryNeedsTheVendorsModuleSwitchedOnForTheViewer() {
+		AuthenticatedUser historian = new AuthenticatedUser(14L, "hr@teamops.local", "HR", 2L, Set.of("EMPLOYEE"),
+				Set.of("HISTORY_VIEW", "VENDOR_VIEW"));
+		when(moduleAccess.toolsFor(historian)).thenReturn(List.of());
+		assertThatThrownBy(() -> access.check("VENDOR", 5L, historian)).isInstanceOf(ApiException.class);
+		verifyNoInteractions(vendors);
+
+		when(moduleAccess.toolsFor(historian)).thenReturn(List.of(new Tool("vendors", "Vendors", "Store", "", false)));
+		access.check("VENDOR", 5L, historian);
+		verify(vendors).get(5L);
 	}
 
 }

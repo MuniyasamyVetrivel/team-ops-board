@@ -4,12 +4,14 @@ import {
   Building,
   ClipboardList,
   FileSearch,
+  FileSignature,
   FolderKanban,
   KeyRound,
   LifeBuoy,
   Mail,
   MousePointerClick,
   Search,
+  Store,
   UserPlus,
   UserRound,
   UserRoundCheck,
@@ -40,6 +42,8 @@ const TYPE_META: Record<ResultType, { icon: LucideIcon; label: string }> = {
   CONSULTANT: { icon: UserRoundCheck, label: 'Consultant' },
   CLIENT: { icon: Building, label: 'Client' },
   CLIENT_ENGAGEMENT: { icon: Briefcase, label: 'Engagement' },
+  VENDOR: { icon: Store, label: 'Vendor' },
+  VENDOR_CONTRACT: { icon: FileSignature, label: 'Vendor contract' },
 };
 
 /**

@@ -37,6 +37,12 @@ public final class PermissionCodes {
 	/** Change Bench Management records (with BENCH_VIEW). */
 	public static final String BENCH_EDIT = "BENCH_EDIT";
 
+	/** Vendor Management: vendors, contacts, contracts and documents (Super Admin only by default; a department tool). */
+	public static final String VENDOR_VIEW = "VENDOR_VIEW";
+
+	/** Change Vendor Management records (with VENDOR_VIEW). */
+	public static final String VENDOR_EDIT = "VENDOR_EDIT";
+
 	/** See money amounts (budgets, spend, approval amounts), including in audit history. */
 	public static final String FINANCE_VIEW = "FINANCE_VIEW";
 

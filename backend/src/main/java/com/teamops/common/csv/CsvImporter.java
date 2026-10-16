@@ -21,7 +21,9 @@ public interface CsvImporter<T> {
 		/** {@code /api/users/import}: user administration. */
 		USERS,
 		/** {@code /api/modules/bench/imports}: Bench Management, behind its module switch. */
-		BENCH
+		BENCH,
+		/** {@code /api/modules/vendors/imports}: Vendor Management, behind its module switch. */
+		VENDORS
 
 	}
 

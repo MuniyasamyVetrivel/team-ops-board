@@ -41,6 +41,11 @@ import com.teamops.support.SliceAuth;
 import com.teamops.task.service.TaskService;
 import com.teamops.team.service.TeamService;
 import com.teamops.ticket.service.TicketService;
+import com.teamops.vendor.dto.VendorDtos.VendorDto;
+import com.teamops.vendor.entity.VendorCategory;
+import com.teamops.vendor.entity.VendorStatus;
+import com.teamops.vendor.service.VendorContractService;
+import com.teamops.vendor.service.VendorService;
 
 @ExtendWith(MockitoExtension.class)
 class GlobalSearchServiceTest {
@@ -84,13 +89,19 @@ class GlobalSearchServiceTest {
 	@Mock
 	private EngagementService engagementService;
 
+	@Mock
+	private VendorService vendorService;
+
+	@Mock
+	private VendorContractService contractService;
+
 	private GlobalSearchService service;
 
 	@BeforeEach
 	void setUp() {
 		service = new GlobalSearchService(taskService, ticketService, projectService, teamService, knowledgeService,
 				seoService, emailCampaignService, paidCampaignService, leadService, moduleAccess, consultantService,
-				clientService, engagementService);
+				clientService, engagementService, vendorService, contractService);
 	}
 
 	@Test
@@ -173,6 +184,42 @@ class GlobalSearchServiceTest {
 			});
 		});
 		verify(moduleAccess, times(2)).toolsFor(benchReader);
+	}
+
+	@Test
+	void vendorGroupsNeedVendorViewAndTheVendorsModuleSwitchedOnForTheViewer() {
+		AuthenticatedUser vendorReader = user(Set.of("VENDOR_VIEW", "BENCH_VIEW"));
+		assertThat(GlobalSearchService.maySearch(Group.VENDORS, vendorReader)).isTrue();
+		assertThat(GlobalSearchService.maySearch(Group.VENDOR_CONTRACTS, SliceAuth.EMPLOYEE)).isFalse();
+
+		// Bench is switched on for this viewer, Vendors is not: vendor groups are skipped, bench groups searched.
+		when(moduleAccess.toolsFor(vendorReader))
+			.thenReturn(List.of(new Tool("bench", "Bench Management", "Users", "", false)));
+		when(consultantService.search(any(), any())).thenReturn(new PageResponse<>(List.of(), 0, 5, 0, 0));
+		when(clientService.search(any(), any())).thenReturn(new PageResponse<>(List.of(), 0, 5, 0, 0));
+		when(engagementService.search(any(), any())).thenReturn(new PageResponse<>(List.of(), 0, 5, 0, 0));
+		assertThat(service.search("acme", null, 5, vendorReader).groups()).isEmpty();
+		verifyNoInteractions(vendorService, contractService);
+
+		when(moduleAccess.toolsFor(vendorReader))
+			.thenReturn(List.of(new Tool("vendors", "Vendors", "Store", "", false)));
+		when(vendorService.search(any(), any())).thenReturn(new PageResponse<>(List.of(new VendorDto(9L, "Acme Software",
+				null, VendorCategory.SOFTWARE, "Australia", null, null, null, VendorStatus.ACTIVE, 4, null, List.of(), 1,
+				null, 0, null, null)), 0, 5, 1, 1));
+		when(contractService.search(any(), any())).thenReturn(new PageResponse<>(List.of(), 0, 5, 0, 0));
+
+		SearchResults results = service.search("acme", null, 5, vendorReader);
+
+		assertThat(results.groups()).singleElement().satisfies(group -> {
+			assertThat(group.group()).isEqualTo(Group.VENDORS);
+			assertThat(group.hits()).singleElement().satisfies(hit -> {
+				assertThat(hit.type()).isEqualTo(ResultType.VENDOR);
+				assertThat(hit.subtitle()).isEqualTo("Software · Australia");
+				assertThat(hit.status()).isEqualTo("ACTIVE");
+			});
+		});
+		// The module list is read once per search, however many tool groups there are.
+		verify(moduleAccess, times(2)).toolsFor(vendorReader);
 	}
 
 	private static AuthenticatedUser user(Set<String> permissions) {

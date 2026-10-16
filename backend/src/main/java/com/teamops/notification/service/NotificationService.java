@@ -45,6 +45,9 @@ public class NotificationService {
 	/** A Bench Management allocation (roll-off reminders). */
 	public static final String ENTITY_ALLOCATION = "ALLOCATION";
 
+	/** A Vendor Management contract (renewal reminders). */
+	public static final String ENTITY_VENDOR_CONTRACT = "VENDOR_CONTRACT";
+
 	private final NotificationRepository repository;
 
 	private final BusinessCalendar calendar;
