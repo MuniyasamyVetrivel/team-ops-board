@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { useAuth } from '@/features/auth/use-auth';
 import { useDepartments } from '@/features/departments/api';
+import { toastDeleted } from '@/features/recycle-bin/undo-toast';
 import { applyServerErrors } from '@/lib/api/form-errors';
 import { errorMessage } from '@/lib/api/errors';
 
@@ -117,7 +118,7 @@ function PageForm({ page, onCancel, onSaved, onDeleted }: { page?: SeoPageDetail
     if (!page) return;
     try {
       await remove.mutateAsync(page.id);
-      toast.success('Page deleted');
+      toastDeleted('Page deleted', 'SEO_PAGE', page.id);
       onDeleted();
     } catch (error) {
       setConfirmingDelete(false);

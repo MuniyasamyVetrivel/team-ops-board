@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { hasPermission } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
+import { toastDeleted } from '@/features/recycle-bin/undo-toast';
 import { applyServerErrors } from '@/lib/api/form-errors';
 import { errorMessage } from '@/lib/api/errors';
 
@@ -204,7 +205,7 @@ function BacklinkForm({ backlink, today, onDone, onCreated, onDeleted }: Backlin
     if (!backlink) return;
     try {
       await remove.mutateAsync(backlink.id);
-      toast.success(`${backlink.code} deleted`);
+      toastDeleted(`${backlink.code} deleted`, 'BACKLINK', backlink.id);
       onDone();
       onDeleted?.();
     } catch (error) {

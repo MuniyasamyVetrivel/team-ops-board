@@ -245,7 +245,7 @@ class RecordHistoryIT {
 		assertThat(jdbc.queryForList("""
 				SELECT r.code FROM role_permissions rp JOIN roles r ON r.id = rp.role_id
 				JOIN permissions p ON p.id = rp.permission_id
-				WHERE p.code IN ('HISTORY_VIEW', 'RECYCLE_BIN_MANAGE', 'AUDIT_VIEW', 'FINANCE_VIEW')""", String.class))
+				WHERE p.code IN ('HISTORY_VIEW', 'RECYCLE_BIN_MANAGE', 'RECYCLE_BIN_PURGE', 'AUDIT_VIEW', 'FINANCE_VIEW')""", String.class))
 			.isNotEmpty()
 			.containsOnly(RoleCodes.SUPER_ADMIN);
 

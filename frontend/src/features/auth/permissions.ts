@@ -53,6 +53,7 @@ export const PERMISSION_CODES = [
   'FINANCE_VIEW',
   'HISTORY_VIEW',
   'RECYCLE_BIN_MANAGE',
+  'RECYCLE_BIN_PURGE',
 ] as const;
 
 export type PermissionCode = (typeof PERMISSION_CODES)[number];
@@ -86,6 +87,16 @@ export function canSeeFinance(user: Authorities | null | undefined): boolean {
 /** The History tab on records: Super Admin only unless the permission was granted (the server answers 403 otherwise). */
 export function canViewHistory(user: Authorities | null | undefined): boolean {
   return isSuperAdmin(user) || hasPermission(user, 'HISTORY_VIEW');
+}
+
+/** The Recycle Bin: see every deleted item and restore it (Super Admin only unless granted). */
+export function canManageRecycleBin(user: Authorities | null | undefined): boolean {
+  return isSuperAdmin(user) || hasPermission(user, 'RECYCLE_BIN_MANAGE');
+}
+
+/** Delete Recycle Bin items permanently: needs the bin itself as well (Super Admin only unless granted). */
+export function canPurgeRecycleBin(user: Authorities | null | undefined): boolean {
+  return isSuperAdmin(user) || (hasPermission(user, 'RECYCLE_BIN_MANAGE') && hasPermission(user, 'RECYCLE_BIN_PURGE'));
 }
 
 /** Highest-privilege role, for display. */

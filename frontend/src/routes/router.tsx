@@ -47,6 +47,7 @@ const BacklinksPage = lazy(() => import('@/features/marketing/backlinks/Backlink
 const ContentPage = lazy(() => import('@/features/marketing/content/ContentPage'));
 const SettingsPage = lazy(() => import('@/features/admin/settings/SettingsPage'));
 const AuditLogsPage = lazy(() => import('@/features/admin/audit/AuditLogsPage'));
+const RecycleBinPage = lazy(() => import('@/features/recycle-bin/RecycleBinPage'));
 const EmployeesPage = lazy(() => import('@/features/celebrations/EmployeesPage'));
 const ImportantDaysPage = lazy(() => import('@/features/celebrations/ImportantDaysPage'));
 const EventsPage = lazy(() => import('@/features/celebrations/EventsPage'));
@@ -87,6 +88,7 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
   '/digital-marketing/content': ContentPage,
   '/admin/settings': SettingsPage,
   '/admin/audit-logs': AuditLogsPage,
+  '/admin/recycle-bin': RecycleBinPage,
 };
 
 /** Detail routes that are not sidebar entries. */

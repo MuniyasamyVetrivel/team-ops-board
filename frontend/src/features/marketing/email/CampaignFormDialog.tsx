@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/features/auth/use-auth';
 import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
+import { toastDeleted } from '@/features/recycle-bin/undo-toast';
 import { applyServerErrors } from '@/lib/api/form-errors';
 import { errorMessage } from '@/lib/api/errors';
 
@@ -150,7 +151,7 @@ function CampaignForm({ campaign, today, onDone }: { campaign?: EmailCampaign; t
     if (!campaign) return;
     try {
       await remove.mutateAsync(campaign.id);
-      toast.success('Campaign deleted');
+      toastDeleted('Campaign deleted', 'EMAIL_CAMPAIGN', campaign.id);
       onDone();
     } catch (error) {
       setConfirmingDelete(false);

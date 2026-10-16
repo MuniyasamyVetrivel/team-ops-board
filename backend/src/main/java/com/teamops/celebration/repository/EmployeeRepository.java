@@ -35,6 +35,9 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
 
 	boolean existsByEmployeeCodeAndIdNot(String employeeCode, Long id);
 
+	/** Another live employee with this work email (restore warnings). */
+	Optional<Employee> findFirstByWorkEmailIgnoreCaseAndIdNot(String workEmail, Long id);
+
 	Optional<Employee> findByUserId(Long userId);
 
 	@EntityGraph(attributePaths = "user")

@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { hasPermission } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
+import { toastDeleted } from '@/features/recycle-bin/undo-toast';
 import { applyServerErrors } from '@/lib/api/form-errors';
 import { errorMessage } from '@/lib/api/errors';
 
@@ -206,7 +207,7 @@ function ContentForm({ item, today, onDone, onCreated, onDeleted }: ContentFormP
     if (!item) return;
     try {
       await remove.mutateAsync(item.id);
-      toast.success('Content deleted');
+      toastDeleted('Content deleted', 'CONTENT_ITEM', item.id);
       onDone();
       onDeleted?.();
     } catch (error) {

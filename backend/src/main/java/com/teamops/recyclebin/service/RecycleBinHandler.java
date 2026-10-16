@@ -1,5 +1,7 @@
 package com.teamops.recyclebin.service;
 
+import java.util.List;
+
 import com.teamops.common.persistence.SoftDeletableEntity;
 
 /**
@@ -16,7 +18,7 @@ public interface RecycleBinHandler<T extends SoftDeletableEntity> {
 	}
 
 	/**
-	 * The department whose managers may see and restore the item, when it is not the record's own department or its
+	 * The department the item belongs to (shown in the bin), when it is not the record's own department or its
 	 * owner's; null for the default.
 	 */
 	default Long departmentOf(T entity) {
@@ -28,6 +30,14 @@ public interface RecycleBinHandler<T extends SoftDeletableEntity> {
 	 * record now uses its unique value or the record it belongs to is itself in the bin.
 	 */
 	default void checkRestore(T entity) {
+	}
+
+	/**
+	 * Clashes a restore survives but the person restoring should know about, for example a work email another live
+	 * record now uses. Shown before the restore; empty by default.
+	 */
+	default List<String> restoreWarnings(T entity) {
+		return List.of();
 	}
 
 	/** Cleans up what the row's removal does not: stored files, rows that point at it without a foreign key. */

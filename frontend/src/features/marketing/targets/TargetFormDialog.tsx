@@ -13,6 +13,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/features/auth/use-auth';
 import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
+import { toastDeleted } from '@/features/recycle-bin/undo-toast';
 import { applyServerErrors } from '@/lib/api/form-errors';
 import { errorMessage } from '@/lib/api/errors';
 
@@ -109,7 +110,7 @@ function TargetForm({ target, type: newType, month, year, planned, onDone }: Omi
     if (!target) return;
     try {
       await remove.mutateAsync(target.id);
-      toast.success(`${type.name} target removed`);
+      toastDeleted(`${type.name} target removed`, 'MARKETING_TARGET', target.id);
       onDone();
     } catch (error) {
       setConfirmingDelete(false);

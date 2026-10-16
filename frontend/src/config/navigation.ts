@@ -27,6 +27,7 @@ import {
   Target,
   Ticket,
   Timer,
+  Trash2,
   UserPlus,
   Users,
   UsersRound,
@@ -141,6 +142,7 @@ export const NAVIGATION: NavSection[] = [
       { label: 'Departments', path: '/admin/departments', icon: Building, permission: 'DEPARTMENT_MANAGE', description: 'Departments, managers and members.' },
       { label: 'Settings', path: '/admin/settings', icon: Settings, permission: 'SETTINGS_MANAGE', description: 'Thresholds, capacity defaults and workflows.' },
       { label: 'Audit Logs', path: '/admin/audit-logs', icon: ScrollText, permission: 'AUDIT_VIEW', description: 'Who changed what, and when.' },
+      { label: 'Recycle Bin', path: '/admin/recycle-bin', icon: Trash2, permission: 'RECYCLE_BIN_MANAGE', description: 'Deleted items: restore them or delete them permanently.' },
     ],
   },
 ];

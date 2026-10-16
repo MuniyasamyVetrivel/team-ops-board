@@ -10,7 +10,8 @@
   |---|---|
   | X1 History tab | `HISTORY_VIEW` |
   | X1 Audit Logs | `AUDIT_VIEW` |
-  | X2 Recycle Bin (view, restore, permanent delete) | `RECYCLE_BIN_MANAGE` |
+  | X2 Recycle Bin: view (every department) and restore | `RECYCLE_BIN_MANAGE` |
+  | X2 Recycle Bin: permanent delete | `RECYCLE_BIN_PURGE` (with `RECYCLE_BIN_MANAGE`) |
   | X3 Backup status | `BACKUP_VIEW` |
   | X3 Export all data | `DATA_EXPORT` |
   | X5 Module settings | `MODULE_MANAGE` |
@@ -20,7 +21,7 @@
 
   Reminders and notifications go only to holders of the module's permission.
 - Enforced on the backend (`@PreAuthorize` on the permission; direct API calls without it get **403**). The frontend hides the menu items and tabs, but that is not the security.
-- Each phase adds its permissions in the migration of the phase that first needs them. `HISTORY_VIEW` and `RECYCLE_BIN_MANAGE` were added in V28; `AUDIT_VIEW` and `FINANCE_VIEW` already existed.
+- Each phase adds its permissions in the migration of the phase that first needs them. `HISTORY_VIEW` and `RECYCLE_BIN_MANAGE` were added in V28, `RECYCLE_BIN_PURGE` in V29; `AUDIT_VIEW` and `FINANCE_VIEW` already existed.
 
 ## Phase X1 — Audit history on every record
 - Every table gets created_at, created_by, updated_at, updated_by (backfill existing rows with the system user)
@@ -34,11 +35,12 @@
 ## Phase X2 — Recycle bin
 - Soft delete everywhere: deleting sets deleted_at and deleted_by instead of removing the row
 - Deleted items disappear from lists, search, dashboards and reports
-- Recycle Bin page (`RECYCLE_BIN_MANAGE`): sees every deleted item; filter by module, deleted by and date. Anyone allowed to delete an item can still delete it; only the bin is restricted
+- Recycle Bin page under Administration (`RECYCLE_BIN_MANAGE`): sees every deleted item in every department; filter by module, deleted by and date, and search by name; shows days until the automatic delete. Anyone allowed to delete an item can still delete it; only the bin is restricted
 - Restore puts the item back exactly as it was, including its children (for example a task with its comments, checklist and attachments)
-- Restore and permanent delete need `RECYCLE_BIN_MANAGE`; permanent delete asks for a confirmation that names the item
+- Restore needs `RECYCLE_BIN_MANAGE`; permanent delete needs `RECYCLE_BIN_PURGE` as well and asks for a confirmation that names the item
+- After a delete anywhere in the app, a toast offers "Undo" for a few seconds; whoever deleted the item may undo it for two minutes without the bin permissions
 - Automatic permanent delete after a configurable number of days (default 90) in Admin Settings
-- Unique fields (such as email and employee ID) are released only on permanent delete; restore checks for clashes
+- Unique fields (such as email and employee ID) are released only on permanent delete; restore checks for clashes first (a clash on a unique value such as the employee ID blocks it; a reused work email is a warning)
 
 ## Phase X3 — Backups and "never lose data"
 - Nightly encrypted backup of the database AND uploaded files

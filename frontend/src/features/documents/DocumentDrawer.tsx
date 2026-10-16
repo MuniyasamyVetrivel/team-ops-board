@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
+import { toastDeleted } from '@/features/recycle-bin/undo-toast';
 import { formatBytes } from '@/features/tasks/task-meta';
 import { errorMessage } from '@/lib/api/errors';
 import { formatDateTime } from '@/lib/format';
@@ -121,7 +122,7 @@ function Body({ document, onDeleted }: { document: DocumentDetail; onDeleted: ()
                   variant="ghost"
                   className="ml-auto text-destructive"
                   disabled={remove.isPending}
-                  onClick={() => void run(remove.mutateAsync(document.id), 'Document deleted').then((ok) => ok && onDeleted())}
+                  onClick={() => void run(remove.mutateAsync(document.id).then(() => toastDeleted('Document deleted', 'DOCUMENT', document.id))).then((ok) => ok && onDeleted())}
                 >
                   <Trash2 aria-hidden />
                   Delete document

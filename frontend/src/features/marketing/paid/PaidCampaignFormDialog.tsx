@@ -13,6 +13,7 @@ import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/features/auth/use-auth';
+import { toastDeleted } from '@/features/recycle-bin/undo-toast';
 import { applyServerErrors } from '@/lib/api/form-errors';
 import { errorMessage } from '@/lib/api/errors';
 
@@ -146,7 +147,7 @@ function CampaignForm({ campaign, hasResults, today, onDone, onCreated, onDelete
     if (!campaign) return;
     try {
       await remove.mutateAsync(campaign.id);
-      toast.success('Campaign deleted');
+      toastDeleted('Campaign deleted', 'PAID_CAMPAIGN', campaign.id);
       onDone();
       onDeleted?.();
     } catch (error) {

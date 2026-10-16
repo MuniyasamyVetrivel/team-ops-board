@@ -17,6 +17,7 @@ import { useAuth } from '@/features/auth/use-auth';
 import { useDepartments } from '@/features/departments/api';
 import { PRIORITY_LABELS } from '@/features/tasks/task-meta';
 import { PRIORITIES } from '@/features/tasks/types';
+import { toastDeleted } from '@/features/recycle-bin/undo-toast';
 import { applyServerErrors } from '@/lib/api/form-errors';
 import { errorMessage } from '@/lib/api/errors';
 
@@ -161,7 +162,7 @@ function ActivityForm({ activity, onCancel, onSaved, onDeleted }: { activity?: A
     if (!activity) return;
     try {
       await remove.mutateAsync(activity.id);
-      toast.success('Activity deleted');
+      toastDeleted('Activity deleted', 'MARKETING_ACTIVITY', activity.id);
       onDeleted();
     } catch (error) {
       setConfirmingDelete(false);

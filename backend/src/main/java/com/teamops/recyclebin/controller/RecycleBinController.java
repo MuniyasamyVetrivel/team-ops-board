@@ -23,7 +23,9 @@ import com.teamops.recyclebin.dto.RecycleBinDtos.Catalog;
 import com.teamops.recyclebin.dto.RecycleBinDtos.Filter;
 import com.teamops.recyclebin.dto.RecycleBinDtos.Item;
 import com.teamops.recyclebin.dto.RecycleBinDtos.PurgeRequest;
+import com.teamops.recyclebin.dto.RecycleBinDtos.RestoreCheck;
 import com.teamops.recyclebin.dto.RecycleBinDtos.Restored;
+import com.teamops.recyclebin.dto.RecycleBinDtos.UndoRequest;
 import com.teamops.recyclebin.service.RecycleBinService;
 
 import jakarta.validation.Valid;
@@ -31,8 +33,9 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * The recycle bin: deleted records, newest first, filtered by module, record type, who deleted them, dates and name.
- * Needs RECYCLE_BIN_MANAGE (Super Admin only by default; 403 for anyone else), which covers viewing, restoring and
- * permanently deleting (confirmed with the item's name).
+ * Needs RECYCLE_BIN_MANAGE (Super Admin only by default; 403 for anyone else), which covers viewing every department's
+ * items and restoring them. A permanent delete (confirmed with the item's name) also needs RECYCLE_BIN_PURGE. The one
+ * exception is {@code /undo}: whoever deleted a record may bring it back for a short while (the "Undo" toast).
  */
 @RestController
 @PreAuthorize("hasAuthority('RECYCLE_BIN_MANAGE')")
@@ -63,11 +66,25 @@ public class RecycleBinController {
 		return recycleBin.catalog(viewer);
 	}
 
+	/** What a restore would run into: a clash that blocks it, and warnings (for example a reused work email). */
+	@GetMapping("/{id}/restore-check")
+	public RestoreCheck restoreCheck(@PathVariable Long id, @AuthenticationPrincipal AuthenticatedUser viewer) {
+		return recycleBin.restoreCheck(id, viewer);
+	}
+
 	@PostMapping("/{id}/restore")
 	public Restored restore(@PathVariable Long id, @AuthenticationPrincipal AuthenticatedUser actor) {
 		return recycleBin.restore(id, actor);
 	}
 
+	/** Open to any signed-in user; the service allows only the person who deleted it, shortly after. */
+	@PreAuthorize("isAuthenticated()")
+	@PostMapping("/undo")
+	public Restored undo(@Valid @RequestBody UndoRequest request, @AuthenticationPrincipal AuthenticatedUser actor) {
+		return recycleBin.undo(request.entityType().trim(), request.entityId(), actor);
+	}
+
+	@PreAuthorize("hasAuthority('RECYCLE_BIN_MANAGE') and hasAuthority('RECYCLE_BIN_PURGE')")
 	@PostMapping("/{id}/purge")
 	public ResponseEntity<Void> purge(@PathVariable Long id, @Valid @RequestBody PurgeRequest request,
 			@AuthenticationPrincipal AuthenticatedUser actor) {

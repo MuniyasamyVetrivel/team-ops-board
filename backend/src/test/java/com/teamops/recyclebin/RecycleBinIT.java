@@ -35,7 +35,8 @@ import com.teamops.user.service.UserService;
 
 /**
  * Phase X2 against MySQL: deleting moves a record to the recycle bin (hidden everywhere, children untouched), restore
- * brings it back exactly as it was, permanent delete is Super Admin only and confirmed by name, unique values stay
+ * brings it back exactly as it was, restoring needs RECYCLE_BIN_MANAGE and permanent delete also RECYCLE_BIN_PURGE
+ * (both Super Admin only by default) and is confirmed by name, a restore warns about clashes, unique values stay
  * taken until the permanent delete, a child comes back only after its parent, expired items are purged
  * automatically, and every step is in the record's history. Runs in a throwaway department.
  */
@@ -117,6 +118,9 @@ class RecycleBinIT {
 		jdbc.update("DELETE FROM recycle_bin_items WHERE department_id = ? OR deleted_by IN (?, ?, ?)", departmentId,
 				managerId, employeeId, marketerId);
 		tasks.forEach(id -> jdbc.update("DELETE FROM tasks WHERE id = ?", id));
+		jdbc.update("DELETE FROM recycle_bin_items WHERE entity_type = 'EMPLOYEE' AND entity_id IN "
+				+ "(SELECT id FROM employees WHERE employee_code LIKE ?)", "BIN-" + nonce + "%");
+		jdbc.update("DELETE FROM employees WHERE employee_code LIKE ?", "BIN-" + nonce + "%");
 		String pages = "SELECT id FROM marketing_pages WHERE department_id = ?";
 		jdbc.update("DELETE FROM marketing_keywords WHERE page_id IN (SELECT id FROM (" + pages + ") p)", departmentId);
 		jdbc.update("DELETE FROM marketing_pages WHERE department_id = ?", departmentId);
@@ -193,6 +197,77 @@ class RecycleBinIT {
 		assertThat(jdbc.queryForObject(
 				"SELECT COUNT(*) FROM audit_logs WHERE entity_type = 'TASK' AND entity_id = ? AND action = 'RECORD_PURGED'",
 				Long.class, taskId)).isEqualTo(1);
+	}
+
+	@Test
+	void restoringAndPermanentDeleteArePermissionsOfTheirOwn() throws Exception {
+		assertThat(jdbc.queryForList("""
+				SELECT r.code FROM role_permissions rp JOIN roles r ON r.id = rp.role_id
+				JOIN permissions p ON p.id = rp.permission_id
+				WHERE p.code IN ('RECYCLE_BIN_MANAGE', 'RECYCLE_BIN_PURGE')""", String.class))
+			.hasSize(2)
+			.containsOnly(RoleCodes.SUPER_ADMIN);
+
+		Long keeperId = users.create(departmentId, RoleCodes.EMPLOYEE, "RECYCLE_BIN_MANAGE");
+		String keeperToken = login(users.email(keeperId));
+		Long taskId = createTask("Keep me " + nonce);
+		as(managerToken, delete("/api/tasks/" + taskId)).andExpect(status().isNoContent());
+		Long itemId = binItem(keeperToken, "TASK", taskId);
+		String code = jdbc.queryForObject("SELECT code FROM tasks WHERE id = ?", String.class, taskId);
+
+		// Restore, yes; permanent delete, no.
+		as(keeperToken, post("/api/recycle-bin/%d/purge".formatted(itemId)).contentType(MediaType.APPLICATION_JSON)
+			.content("{\"confirm\":\"%s\"}".formatted(code))).andExpect(status().isForbidden());
+		as(keeperToken, get("/api/recycle-bin/%d/restore-check".formatted(itemId))).andExpect(status().isOk())
+			.andExpect(jsonPath("$.canRestore").value(true));
+		as(keeperToken, post("/api/recycle-bin/%d/restore".formatted(itemId))).andExpect(status().isOk());
+		as(managerToken, get("/api/tasks/" + taskId)).andExpect(status().isOk());
+	}
+
+	@Test
+	void whoeverDeletedARecordMayUndoItShortlyAfter() throws Exception {
+		Long taskId = createTask("Undo me " + nonce);
+		String undo = "{\"entityType\":\"TASK\",\"entityId\":%d}".formatted(taskId);
+		as(managerToken, delete("/api/tasks/" + taskId)).andExpect(status().isNoContent());
+
+		// Someone else can't, not even to find out it is in the bin.
+		as(employeeToken, post("/api/recycle-bin/undo").contentType(MediaType.APPLICATION_JSON).content(undo))
+			.andExpect(status().isNotFound());
+		as(managerToken, post("/api/recycle-bin/undo").contentType(MediaType.APPLICATION_JSON).content(undo))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.entityId").value(taskId));
+		as(managerToken, get("/api/tasks/" + taskId)).andExpect(status().isOk());
+
+		// After the undo window it takes the Recycle Bin.
+		as(managerToken, delete("/api/tasks/" + taskId)).andExpect(status().isNoContent());
+		jdbc.update("UPDATE recycle_bin_items SET deleted_at = TIMESTAMPADD(MINUTE, -3, UTC_TIMESTAMP(6)) "
+				+ "WHERE entity_type = 'TASK' AND entity_id = ?", taskId);
+		as(managerToken, post("/api/recycle-bin/undo").contentType(MediaType.APPLICATION_JSON).content(undo))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value("UNDO_EXPIRED"));
+		as(adminToken, post("/api/recycle-bin/undo").contentType(MediaType.APPLICATION_JSON).content(undo))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void restoringAnEmployeeWarnsWhenItsWorkEmailIsNowSomeoneElses() throws Exception {
+		String email = "bin." + nonce.toLowerCase() + "@teamops.local";
+		Long first = id(as(adminToken, post("/api/celebrations/employees").contentType(MediaType.APPLICATION_JSON)
+			.content(employee("BIN-" + nonce + "-1", email))).andExpect(status().isCreated()));
+		as(adminToken, delete("/api/celebrations/employees/" + first)).andExpect(status().isNoContent());
+		Long itemId = binItem(adminToken, "EMPLOYEE", first);
+		as(adminToken, get("/api/recycle-bin/%d/restore-check".formatted(itemId)))
+			.andExpect(jsonPath("$.canRestore").value(true))
+			.andExpect(jsonPath("$.warnings").isEmpty());
+
+		// Someone else now has the same work email: the restore still goes ahead, with a warning.
+		id(as(adminToken, post("/api/celebrations/employees").contentType(MediaType.APPLICATION_JSON)
+			.content(employee("BIN-" + nonce + "-2", email))).andExpect(status().isCreated()));
+		as(adminToken, get("/api/recycle-bin/%d/restore-check".formatted(itemId)))
+			.andExpect(jsonPath("$.canRestore").value(true))
+			.andExpect(jsonPath("$.warnings[0]").value(org.hamcrest.Matchers.containsString("BIN-" + nonce + "-2")));
+		as(adminToken, post("/api/recycle-bin/%d/restore".formatted(itemId))).andExpect(status().isOk());
+		as(adminToken, get("/api/celebrations/employees/" + first)).andExpect(status().isOk());
 	}
 
 	@Test
@@ -280,6 +355,13 @@ class RecycleBinIT {
 				""".formatted(title, departmentId, employeeId))).andExpect(status().isCreated()));
 		tasks.add(id);
 		return id;
+	}
+
+	private String employee(String code, String email) {
+		return """
+				{"employeeCode":"%s","firstName":"Bin","lastName":"Tester","dateOfBirth":"1990-04-12",
+				"designation":"Engineer","reportingManager":"Rakesh","departmentId":%d,"workEmail":"%s"}
+				""".formatted(code, departmentId, email);
 	}
 
 	private String page(String url) {

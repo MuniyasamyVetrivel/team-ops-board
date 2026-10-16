@@ -19,6 +19,7 @@ import { isSuperAdmin } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
 import { useDepartments } from '@/features/departments/api';
 import { DetailsWithHistory } from '@/features/history/DetailsWithHistory';
+import { toastDeleted } from '@/features/recycle-bin/undo-toast';
 import { errorMessage } from '@/lib/api/errors';
 import { applyServerErrors } from '@/lib/api/form-errors';
 
@@ -142,7 +143,7 @@ function EventForm({ event, day, onDone }: { event: CalendarEventDetail | null; 
     if (!event) return;
     try {
       await remove.mutateAsync(event.id);
-      toast.success('Event deleted');
+      toastDeleted('Event deleted', 'CALENDAR_EVENT', event.id);
       onDone();
     } catch (error) {
       toast.error(errorMessage(error));

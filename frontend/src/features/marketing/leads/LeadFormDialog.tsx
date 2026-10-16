@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/features/auth/use-auth';
 import { useDepartments } from '@/features/departments/api';
 import { parseLocalDate } from '@/features/tasks/task-meta';
+import { toastDeleted } from '@/features/recycle-bin/undo-toast';
 import { applyServerErrors } from '@/lib/api/form-errors';
 import { errorMessage } from '@/lib/api/errors';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
@@ -171,7 +172,7 @@ function LeadForm({ lead, today, onDone, onCreated, onDeleted }: LeadFormProps) 
     if (!lead) return;
     try {
       await remove.mutateAsync(lead.id);
-      toast.success(`${lead.code} deleted`);
+      toastDeleted(`${lead.code} deleted`, 'MARKETING_LEAD', lead.id);
       onDone();
       onDeleted?.();
     } catch (error) {

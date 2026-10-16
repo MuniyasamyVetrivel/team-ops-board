@@ -14,6 +14,7 @@ import { hasPermission } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
 import { useDepartments } from '@/features/departments/api';
 import { useMarketingContext } from '@/features/marketing/api';
+import { toastDeleted } from '@/features/recycle-bin/undo-toast';
 import { errorMessage } from '@/lib/api/errors';
 import { applyServerErrors } from '@/lib/api/form-errors';
 
@@ -106,7 +107,7 @@ function EmployeeForm({ employee, onDone, onSaved, onDeleted }: { employee?: Emp
     if (!employee) return;
     try {
       await remove.mutateAsync(employee.id);
-      toast.success('Employee deleted');
+      toastDeleted('Employee deleted', 'EMPLOYEE', employee.id);
       onDone();
       onDeleted?.();
     } catch (error) {

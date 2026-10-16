@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { hasPermission } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
+import { toastDeleted } from '@/features/recycle-bin/undo-toast';
 import { errorMessage } from '@/lib/api/errors';
 import { formatDateTime, formatRelative } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -174,7 +175,7 @@ function AnnouncementCard({ announcement: a, onEdit }: { announcement: Announcem
                 <Pencil aria-hidden />
                 Edit
               </Button>
-              <Button variant="ghost" size="sm" disabled={remove.isPending} onClick={() => void attempt(remove.mutateAsync(a.id), 'Announcement deleted')}>
+              <Button variant="ghost" size="sm" disabled={remove.isPending} onClick={() => void attempt(remove.mutateAsync(a.id).then(() => toastDeleted('Announcement deleted', 'ANNOUNCEMENT', a.id)))}>
                 <Trash2 aria-hidden />
                 Delete
               </Button>

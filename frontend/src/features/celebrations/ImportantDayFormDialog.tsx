@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { errorMessage } from '@/lib/api/errors';
 import { applyServerErrors } from '@/lib/api/form-errors';
 
+import { toastDeleted } from '@/features/recycle-bin/undo-toast';
 import { DAY_CATEGORIES, REGIONS, useDeleteImportantDay, useSaveImportantDay, type ImportantDay } from './api';
 import { DAY_CATEGORY_LABELS, RECURRENCE_LABELS, REGION_LABELS } from './celebration-meta';
 import { importantDaySchema } from './celebration-schemas';
@@ -80,7 +81,7 @@ function DayForm({ day, onDone, onSaved, onDeleted }: { day?: ImportantDay; onDo
     if (!day) return;
     try {
       await remove.mutateAsync(day.id);
-      toast.success('Important day deleted');
+      toastDeleted('Important day deleted', 'IMPORTANT_DAY', day.id);
       onDone();
       onDeleted?.();
     } catch (error) {

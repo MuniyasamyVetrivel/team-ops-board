@@ -11,6 +11,7 @@ import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, Dia
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { useAuth } from '@/features/auth/use-auth';
+import { toastDeleted } from '@/features/recycle-bin/undo-toast';
 import { applyServerErrors } from '@/lib/api/form-errors';
 import { errorMessage } from '@/lib/api/errors';
 
@@ -117,7 +118,7 @@ function KeywordForm({ keyword, page, onDone }: { keyword?: KeywordItem; page?: 
     if (!keyword) return;
     try {
       await remove.mutateAsync(keyword.id);
-      toast.success('Keyword deleted');
+      toastDeleted('Keyword deleted', 'SEO_KEYWORD', keyword.id);
       onDone();
     } catch (error) {
       setConfirmingDelete(false);

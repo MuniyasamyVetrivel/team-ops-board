@@ -15,6 +15,7 @@ import { hasPermission } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
 import { toLocalInput } from '@/features/calendar/calendar-dates';
 import { useEmailCampaigns } from '@/features/marketing/email/api';
+import { toastDeleted } from '@/features/recycle-bin/undo-toast';
 import { errorMessage } from '@/lib/api/errors';
 import { applyServerErrors } from '@/lib/api/form-errors';
 
@@ -101,7 +102,7 @@ function EventForm({ event, onDone, onSaved, onDeleted }: { event?: MarketingEve
     if (!event) return;
     try {
       await remove.mutateAsync(event.id);
-      toast.success('Event deleted');
+      toastDeleted('Event deleted', 'MARKETING_EVENT', event.id);
       onDone();
       onDeleted?.();
     } catch (error) {

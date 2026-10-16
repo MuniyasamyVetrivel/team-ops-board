@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { applyServerErrors } from '@/lib/api/form-errors';
 import { errorMessage } from '@/lib/api/errors';
 
+import { toastDeleted } from '@/features/recycle-bin/undo-toast';
 import { formatPercent } from '../marketing-format';
 import { ACTUAL_SOURCES, LEAD_SOURCES, TARGET_UNITS, useCreateTargetType, useDeleteTargetType, useTargetTypes, useUpdateTargetType, type TargetTypeItem } from './api';
 import { ACTUAL_SOURCE_LABELS, LEAD_SOURCE_LABELS, UNIT_LABELS } from './target-meta';
@@ -47,7 +48,7 @@ function TypesBody() {
   async function onDelete(type: TargetTypeItem) {
     try {
       await remove.mutateAsync(type.id);
-      toast.success(`${type.name} deleted`);
+      toastDeleted(`${type.name} deleted`, 'MARKETING_TARGET_TYPE', type.id);
     } catch (error) {
       toast.error(errorMessage(error));
     }

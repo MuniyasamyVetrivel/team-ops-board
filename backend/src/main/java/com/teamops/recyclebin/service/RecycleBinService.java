@@ -5,6 +5,8 @@ import java.lang.reflect.Method;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -29,6 +31,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.util.StringUtils;
 
 import com.teamops.common.audit.AuditCatalog;
@@ -47,6 +50,7 @@ import com.teamops.recyclebin.dto.RecycleBinDtos.DepartmentRef;
 import com.teamops.recyclebin.dto.RecycleBinDtos.Filter;
 import com.teamops.recyclebin.dto.RecycleBinDtos.Item;
 import com.teamops.recyclebin.dto.RecycleBinDtos.ModuleInfo;
+import com.teamops.recyclebin.dto.RecycleBinDtos.RestoreCheck;
 import com.teamops.recyclebin.dto.RecycleBinDtos.Restored;
 import com.teamops.recyclebin.dto.RecycleBinDtos.TypeInfo;
 import com.teamops.recyclebin.entity.RecycleBinItem;
@@ -67,8 +71,9 @@ import lombok.extern.slf4j.Slf4j;
  * (Hibernate hides it everywhere), so restoring brings it back exactly as it was, with its comments, checklist,
  * attachments and other children, which are never touched. Rules:
  * <ul>
- * <li>Only holders of RECYCLE_BIN_MANAGE (Super Admin only by default) see the bin, restore and delete permanently;
- * a permanent delete is confirmed with the item's name. Anyone else gets 403.</li>
+ * <li>Only holders of RECYCLE_BIN_MANAGE (Super Admin only by default) see the bin (every department) and restore.
+ * A permanent delete also needs RECYCLE_BIN_PURGE (Super Admin only by default) and is confirmed with the item's
+ * name. Anyone else gets 403.</li>
  * <li>Items older than the {@code recycleBin.retentionDays} setting (default 90) are deleted permanently by a daily
  * job.</li>
  * <li>Unique values (an employee ID, a page URL) stay taken until the permanent delete ({@link #requireNotInBin}).</li>
@@ -84,6 +89,9 @@ public class RecycleBinService {
 			"keyword", "referringDomain", "url");
 
 	private static final int PURGE_BATCH = 200;
+
+	/** How long the person who deleted a record may undo it without RECYCLE_BIN_MANAGE (the "Undo" toast). */
+	public static final Duration UNDO_WINDOW = Duration.ofMinutes(2);
 
 	private record BinType(String type, Class<? extends SoftDeletableEntity> entityClass, String table) {
 
@@ -238,10 +246,57 @@ public class RecycleBinService {
 
 	// --- restore and permanent delete ---------------------------------------------------------------------------
 
+	/**
+	 * What restoring an item would run into, without changing anything: the module's restore check (a clash that
+	 * blocks it) and its warnings. The record is taken out of the bin as a restore would, checked, and the transaction
+	 * is always rolled back.
+	 */
+	@Transactional
+	public RestoreCheck restoreCheck(Long itemId, AuthenticatedUser viewer) {
+		RecycleBinItem item = load(itemId, viewer);
+		TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+		SoftDeletableEntity entity = undelete(item, viewer.id());
+		if (entity == null) {
+			throw notFound();
+		}
+		Optional<RecycleBinHandler<?>> handler = handler(entity);
+		List<String> warnings = handler.map(h -> h.restoreWarnings(cast(entity))).orElse(List.of());
+		try {
+			handler.ifPresent(h -> h.checkRestore(cast(entity)));
+		}
+		catch (ApiException ex) {
+			return new RestoreCheck(false, ex.getCode(), ex.getMessage(), warnings);
+		}
+		return new RestoreCheck(true, null, null, warnings);
+	}
+
 	/** Puts a record back exactly as it was. */
 	@Transactional
 	public Restored restore(Long itemId, AuthenticatedUser actor) {
-		RecycleBinItem item = load(itemId, actor);
+		return restoreItem(load(itemId, actor), actor);
+	}
+
+	/**
+	 * The "Undo" right after a delete: the person who deleted the record may restore it within {@link #UNDO_WINDOW}
+	 * without RECYCLE_BIN_MANAGE (they could delete it, so bringing it straight back gives them nothing new). Holders
+	 * of RECYCLE_BIN_MANAGE may always undo. Anyone else gets 404, as if the item were not there.
+	 */
+	@Transactional
+	public Restored undo(String entityType, Long entityId, AuthenticatedUser actor) {
+		RecycleBinItem item = items.findByEntityTypeAndEntityId(entityType, entityId).orElseThrow(RecycleBinService::notFound);
+		if (!actor.hasPermission(PermissionCodes.RECYCLE_BIN_MANAGE)) {
+			if (!Objects.equals(item.getDeletedById(), actor.id())) {
+				throw notFound();
+			}
+			if (item.getDeletedAt().isBefore(clock.instant().minus(UNDO_WINDOW))) {
+				throw ApiException.conflict("UNDO_EXPIRED",
+						"It's too late to undo this delete. Ask a Super Admin to restore it from the Recycle Bin.");
+			}
+		}
+		return restoreItem(item, actor);
+	}
+
+	private Restored restoreItem(RecycleBinItem item, AuthenticatedUser actor) {
 		SoftDeletableEntity entity = undelete(item, actor.id());
 		if (entity == null) {
 			// The row is gone (removed outside the app): nothing to restore.
@@ -260,6 +315,9 @@ public class RecycleBinService {
 	@Transactional
 	public void purge(Long itemId, String confirm, AuthenticatedUser actor) {
 		RecycleBinItem item = load(itemId, actor);
+		if (!actor.hasPermission(PermissionCodes.RECYCLE_BIN_PURGE)) {
+			throw ApiException.forbidden("RECYCLE_BIN_PURGE_FORBIDDEN", "Only a Super Admin can delete items permanently");
+		}
 		String expected = confirmationText(item);
 		if (confirm == null || !expected.equalsIgnoreCase(confirm.trim())) {
 			throw ApiException.badRequest("CONFIRMATION_MISMATCH", "Type \"" + expected + "\" to delete it permanently");
@@ -369,15 +427,17 @@ public class RecycleBinService {
 		Map<Long, Department> departments = departmentIds.isEmpty() ? Map.of()
 				: departmentRepository.findAllById(departmentIds).stream().collect(Collectors.toMap(Department::getId, Function.identity()));
 		int retention = settings.recycleBinRetentionDays();
+		LocalDate today = calendar.today();
 		List<Item> result = new ArrayList<>(page.size());
 		for (RecycleBinItem item : page) {
 			Department department = item.getDepartmentId() == null ? null : departments.get(item.getDepartmentId());
 			AuditCatalog.Module module = parseModule(item.getModule());
+			LocalDate purgeOn = item.getDeletedAt().atZone(calendar.zone()).toLocalDate().plusDays(retention);
 			result.add(new Item(item.getId(), item.getEntityType(), RecordTypes.labelOf(item.getEntityType()),
 					item.getEntityId(), item.getLabel(), item.getModule(), module == null ? item.getModule() : module.label(),
 					department == null ? null : new DepartmentRef(department.getId(), department.getName()),
 					item.getDeletedAt(), UserSummary.of(users.get(item.getDeletedById())),
-					item.getDeletedAt().atZone(calendar.zone()).toLocalDate().plusDays(retention), confirmationText(item)));
+					purgeOn, Math.max(0, ChronoUnit.DAYS.between(today, purgeOn)), confirmationText(item)));
 		}
 		return result;
 	}
