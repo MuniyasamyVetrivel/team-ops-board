@@ -56,6 +56,7 @@ export const PERMISSION_CODES = [
   'RECYCLE_BIN_PURGE',
   'BACKUP_VIEW',
   'DATA_EXPORT',
+  'MODULE_MANAGE',
 ] as const;
 
 export type PermissionCode = (typeof PERMISSION_CODES)[number];
@@ -114,6 +115,11 @@ export function canRunBackup(user: Authorities | null | undefined): boolean {
 /** "Export all data": every table as CSV plus all uploads (Super Admin only unless granted). */
 export function canExportAllData(user: Authorities | null | undefined): boolean {
   return isSuperAdmin(user) || hasPermission(user, 'DATA_EXPORT');
+}
+
+/** Switch department tools on or off per department (Super Admin only unless granted). */
+export function canManageModules(user: Authorities | null | undefined): boolean {
+  return isSuperAdmin(user) || hasPermission(user, 'MODULE_MANAGE');
 }
 
 /** Employee IDs are set when a user is created; only a Super Admin can change them (the server enforces it). */

@@ -34,7 +34,7 @@ A department tool such as Bench Management, Vendors or Finance is a **module**. 
 
      ```sql
      INSERT INTO department_modules (module_key, department_id, enabled)
-     SELECT 'bench', d.id, TRUE FROM departments d WHERE d.code IN ('HR', 'TA');
+     SELECT 'bench', d.id, TRUE FROM departments d WHERE d.code IN ('HR', 'TALENT_ACQUISITION');
      ```
 
 2. **Definition.** Add a bean in the module's package (for example `com.teamops.bench.BenchModule`):
@@ -82,9 +82,17 @@ A department tool such as Bench Management, Vendors or Finance is a **module**. 
 
 ## Frontend
 
-The X5 frontend provides the "Department tools" sidebar section, built from `GET /api/department-tools`, and the module switches in Admin settings, built from `GET /api/admin/modules`. A new module:
+The X5 frontend provides:
+- **Sidebar.** The "Department tools" section is built from `GET /api/department-tools` (`useDepartmentTools`, `features/modules/api.ts`). It sits before Administration and is hidden when the list is empty. Each entry links to `/tools/<key>`.
+- **Admin settings → Modules.** The tab is shown with `MODULE_MANAGE` (`canManageModules`). It has one card per module, with an on/off switch for each department. It shows an empty state until a module exists.
+- **Placeholder page.** `/tools/:key` renders `DepartmentToolPage`. It names the tool, or says it isn't available.
 
-1. Adds its pages under `features/<module>/` and its routes under `/tools/<key>/...`. Register them in `IMPLEMENTED_PAGES` / `detailRoutes`.
-2. Shows the sidebar entry only when the module appears in `/api/department-tools`. The page hides edit controls unless `canEdit` is set.
-3. Treats a 403 `MODULE_DISABLED` as "This tool is not switched on for your department", not as a generic error.
-4. Follows the usual page rules: skeleton, empty and error states; a History tab; undo toast on delete.
+A new module:
+
+1. **Icon.** If its icon is not yet in `MODULE_ICONS` (`features/modules/module-icons.ts`), add it there. Only the icons listed there are bundled, and any other name falls back to a grid icon.
+2. **Pages and routes.**
+   - Add the module's pages under `features/<module>/`.
+   - Register its routes under `/tools/<key>` in `detailRoutes`, ahead of the generic `/tools/:key` route. Its landing page replaces the placeholder for that key.
+   - Each page checks that the key is in `useDepartmentTools()` and hides edit controls unless `canEdit` is set.
+3. **Disabled module.** Treats a 403 `MODULE_DISABLED` as "This tool is not switched on for your department", not as a generic error.
+4. **Page rules.** Follows the usual page rules: skeleton, empty and error states; a History tab; undo toast on delete.

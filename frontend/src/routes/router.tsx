@@ -53,6 +53,7 @@ const EmployeesPage = lazy(() => import('@/features/celebrations/EmployeesPage')
 const ImportantDaysPage = lazy(() => import('@/features/celebrations/ImportantDaysPage'));
 const EventsPage = lazy(() => import('@/features/celebrations/EventsPage'));
 const LinkedInPostsPage = lazy(() => import('@/features/celebrations/LinkedInPostsPage'));
+const DepartmentToolPage = lazy(() => import('@/features/modules/DepartmentToolPage'));
 
 /** The page for every sidebar entry, by path. */
 const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
@@ -95,6 +96,9 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
 
 /** Detail routes that are not sidebar entries. */
 const detailRoutes: RouteObject[] = [
+  // Department tools: the sidebar lists only tools switched on and permitted (/api/department-tools); the page and the
+  // server's /api/modules/{key}/ check enforce the same.
+  { path: '/tools/:key', element: <DepartmentToolPage /> },
   {
     path: '/team/:id',
     element: (

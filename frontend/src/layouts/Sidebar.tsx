@@ -2,8 +2,10 @@ import { X } from 'lucide-react';
 import { useMemo } from 'react';
 import { NavLink } from 'react-router';
 
-import { visibleNavigation } from '@/config/navigation';
+import { visibleNavigation, type NavSection } from '@/config/navigation';
 import { useAuth } from '@/features/auth/use-auth';
+import { useDepartmentTools } from '@/features/modules/api';
+import { moduleIcon, toolPath } from '@/features/modules/module-icons';
 import { cn } from '@/lib/utils';
 
 import { BrandMark } from './BrandMark';
@@ -16,7 +18,22 @@ interface SidebarProps {
 /** Navy sidebar. The active item is brand blue with a small amber indicator on its left edge. */
 export function Sidebar({ mobileOpen, onNavigate }: SidebarProps) {
   const { user } = useAuth();
-  const sections = useMemo(() => (user ? visibleNavigation(user) : []), [user]);
+  // Department tools come from the server: switched on for the user's departments and permitted to them.
+  const tools = useDepartmentTools(user !== null && !user.mustChangePassword);
+  const sections = useMemo(() => {
+    if (!user) return [];
+    const navigation = visibleNavigation(user);
+    if (!tools.data?.length) return navigation;
+    const toolsSection: NavSection = {
+      id: 'department-tools',
+      label: 'Department tools',
+      items: tools.data.map((tool) => ({ label: tool.name, path: toolPath(tool.key), icon: moduleIcon(tool.icon), description: tool.description })),
+    };
+    // Before Administration, after the everyday sections.
+    const adminIndex = navigation.findIndex((section) => section.id === 'administration');
+    const at = adminIndex < 0 ? navigation.length : adminIndex;
+    return [...navigation.slice(0, at), toolsSection, ...navigation.slice(at)];
+  }, [user, tools.data]);
 
   return (
     <>

@@ -6,6 +6,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +59,23 @@ public class ModuleRegistry {
 	/** The module, or 404 MODULE_NOT_FOUND. */
 	public ModuleDefinition require(String key) {
 		return find(key).orElseThrow(() -> ApiException.notFound("MODULE_NOT_FOUND", "Unknown module: " + key));
+	}
+
+	/**
+	 * Rejects a permission set in which a module's edit permission comes without its view permission (a person's
+	 * effective permissions: roles and direct grants). 400 VIEW_PERMISSION_REQUIRED.
+	 */
+	public void assertEditHasView(Set<String> permissions) {
+		Set<String> missing = new TreeSet<>();
+		byKey.values().forEach(module -> {
+			if (permissions.contains(module.editPermission()) && !permissions.contains(module.viewPermission())) {
+				missing.add(module.editPermission() + " needs " + module.viewPermission());
+			}
+		});
+		if (!missing.isEmpty()) {
+			throw ApiException.badRequest("VIEW_PERMISSION_REQUIRED",
+					"Department tool edit permissions need their view permission: " + String.join(", ", missing));
+		}
 	}
 
 	/** Each module's edit permission and the view permission it needs (for the permission matrix). */

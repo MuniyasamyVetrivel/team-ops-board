@@ -65,6 +65,10 @@
 - The sidebar shows a "Department tools" section with only the modules enabled for the user's department(s) and permitted to them (by default only Super Admin holds module permissions)
 - Backend enforces the module switch and permissions on every endpoint
 - Documented recipe (docs/adding-a-module.md) so new modules can be added later in a standard way
+- Decisions (agreed after the X5 backend):
+  - A user may open a module when they hold its view permission and it is switched on for their primary department or a department they are a member of. The Super Admin may open every module switched on for at least one active department, so a module switched off everywhere is off for everyone. Inactive departments do not count.
+  - A module's edit permission always needs its view permission, both on a role (permission matrix) and when granted directly to a single user (400 `VIEW_PERMISSION_REQUIRED`).
+  - Default departments, by the department codes in the `departments` table: X6 switches Bench Management on for `HR` and `TALENT_ACQUISITION`; X7 switches Vendors and X8 switches Finance on for `HR` only. Each module's own migration does this and skips a department code that does not exist. The module permissions themselves stay on SUPER_ADMIN only.
 
 ## Phase X6 — Project Allocation and Bench Management (HR, Talent Acquisition)
 - Consultants: linked to an Employee record, with skills (for example SAP S/4HANA, Tosca, test automation, performance testing), certifications, experience, location, availability date, and status (Allocated, Partially allocated, On bench, On leave of absence, Notice period, Left)

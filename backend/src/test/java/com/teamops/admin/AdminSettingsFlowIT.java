@@ -117,6 +117,23 @@ class AdminSettingsFlowIT {
 	}
 
 	@Test
+	void aPageOfSystemEntriesOnlyIsListed() throws Exception {
+		// System entries (background jobs) have no actor; a page holding only those must still load.
+		String marker = "system-only-" + System.nanoTime();
+		jdbc.update("INSERT INTO audit_logs (actor_id, action, entity_type, details) VALUES (NULL, 'SETTING_UPDATED', "
+				+ "'SETTING', JSON_OBJECT('marker', ?))", marker);
+		try {
+			get(adminToken, "/api/admin/audit-logs", "search", marker).andExpect(status().isOk())
+				.andExpect(jsonPath("$.totalElements").value(1))
+				.andExpect(jsonPath("$.content[0].action").value("SETTING_UPDATED"));
+		}
+		finally {
+			jdbc.update("DELETE FROM audit_logs WHERE actor_id IS NULL AND JSON_UNQUOTE(JSON_EXTRACT(details, '$.marker')) = ?",
+					marker);
+		}
+	}
+
+	@Test
 	@SuppressWarnings("unchecked")
 	void settingsAreValidatedLockedAppliedAndAudited() throws Exception {
 		String list = get(adminToken, "/api/admin/settings").andExpect(status().isOk())

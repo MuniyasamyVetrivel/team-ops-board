@@ -297,7 +297,9 @@ public class AuditLogService {
 			AuditLog log = logs.get(i);
 			Object parsed = details.get(i);
 			addRefLabels(parsed, labels);
-			items.add(toItem(log, actors.get(log.getActorId()), parsed, withClient));
+			// System entries have no actor (and Map.of() rejects a null key).
+			User actor = log.getActorId() == null ? null : actors.get(log.getActorId());
+			items.add(toItem(log, actor, parsed, withClient));
 		}
 		return items;
 	}

@@ -34,6 +34,7 @@ import com.teamops.common.web.PageResponse;
 import com.teamops.department.entity.Department;
 import com.teamops.department.entity.DepartmentStatus;
 import com.teamops.department.repository.DepartmentRepository;
+import com.teamops.module.service.ModuleRegistry;
 import com.teamops.user.dto.CreateUserRequest;
 import com.teamops.user.dto.ResetPasswordRequest;
 import com.teamops.user.dto.UpdateUserAccessRequest;
@@ -92,6 +93,8 @@ public class UserService {
 	private final AppSettingsService settings;
 
 	private final EmployeeUserLinks employeeLinks;
+
+	private final ModuleRegistry moduleRegistry;
 
 	@Transactional(readOnly = true)
 	public PageResponse<UserListItem> search(UserSearchCriteria criteria, Pageable pageable) {
@@ -397,11 +400,14 @@ public class UserService {
 		}
 	}
 
-	private static void assertConsistent(Set<Role> roles, Set<Permission> grants) {
-		MarketingPermissionRules.assertConsistent(
-				Stream.concat(roles.stream().flatMap(role -> role.getPermissions().stream()), grants.stream())
-					.map(Permission::getCode)
-					.collect(Collectors.toSet()));
+	/** Marketing permissions work together, and a department tool's edit permission needs its view permission. */
+	private void assertConsistent(Set<Role> roles, Set<Permission> grants) {
+		Set<String> effective = Stream
+			.concat(roles.stream().flatMap(role -> role.getPermissions().stream()), grants.stream())
+			.map(Permission::getCode)
+			.collect(Collectors.toSet());
+		MarketingPermissionRules.assertConsistent(effective);
+		moduleRegistry.assertEditHasView(effective);
 	}
 
 	private void assertNotLastActiveSuperAdmin(User user) {

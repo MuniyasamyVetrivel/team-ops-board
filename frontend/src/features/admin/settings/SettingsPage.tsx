@@ -3,17 +3,19 @@ import { useSearchParams } from 'react-router';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WorkflowsPanel } from '@/features/approvals/WorkflowsPanel';
-import { hasPermission } from '@/features/auth/permissions';
+import { canManageModules, hasPermission } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
+import { ModulesPanel } from '@/features/modules/ModulesPanel';
 
 import { GeneralSettings } from './GeneralSettings';
 import { PermissionMatrix } from './PermissionMatrix';
 
-type Tab = 'general' | 'permissions' | 'workflows';
+type Tab = 'general' | 'permissions' | 'workflows' | 'modules';
 
 /**
  * System settings (SETTINGS_MANAGE): thresholds and defaults, the role permission matrix (PERMISSION_MANAGE; only a
- * Super Admin edits it) and approval workflows (APPROVAL_CONFIGURE). The tab is kept in the URL (?tab=).
+ * Super Admin edits it), approval workflows (APPROVAL_CONFIGURE) and department tools switched on per department
+ * (MODULE_MANAGE). The tab is kept in the URL (?tab=).
  */
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -22,6 +24,7 @@ export default function SettingsPage() {
     { id: 'general', label: 'General' },
     ...(hasPermission(user, 'PERMISSION_MANAGE') ? [{ id: 'permissions' as Tab, label: 'Roles & permissions' }] : []),
     ...(hasPermission(user, 'APPROVAL_CONFIGURE') ? [{ id: 'workflows' as Tab, label: 'Approval workflows' }] : []),
+    ...(canManageModules(user) ? [{ id: 'modules' as Tab, label: 'Modules' }] : []),
   ];
   const requested = params.get('tab');
   const tab: Tab = tabs.find((t) => t.id === requested)?.id ?? 'general';
@@ -39,7 +42,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Settings" description="Thresholds and defaults, role permissions and approval workflows." />
+      <PageHeader title="Settings" description="Thresholds and defaults, role permissions, approval workflows and department tools." />
       <Tabs value={tab} onValueChange={selectTab}>
         <TabsList className="px-0">
           {tabs.map((t) => (
@@ -57,6 +60,11 @@ export default function SettingsPage() {
         <TabsContent value="workflows" className="pt-5">
           <WorkflowsPanel />
         </TabsContent>
+        {tab === 'modules' && (
+          <TabsContent value="modules" className="pt-5">
+            <ModulesPanel />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

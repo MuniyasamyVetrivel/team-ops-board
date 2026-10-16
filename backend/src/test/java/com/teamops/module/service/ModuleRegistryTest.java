@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +30,18 @@ class ModuleRegistryTest {
 		assertThat(registry.editNeedsView()).isEqualTo(Map.of("BENCH_EDIT", "BENCH_VIEW", "VENDOR_EDIT", "VENDOR_VIEW"));
 		assertThatThrownBy(() -> registry.require("finance")).isInstanceOfSatisfying(ApiException.class,
 				ex -> assertThat(ex.getCode()).isEqualTo("MODULE_NOT_FOUND"));
+	}
+
+	@Test
+	void anEditPermissionNeedsItsViewPermission() {
+		ModuleRegistry registry = new ModuleRegistry(List.of(BENCH, VENDORS));
+
+		assertThatThrownBy(() -> registry.assertEditHasView(Set.of("TASK_VIEW", "BENCH_EDIT", "VENDOR_VIEW")))
+			.isInstanceOfSatisfying(ApiException.class, ex -> {
+				assertThat(ex.getCode()).isEqualTo("VIEW_PERMISSION_REQUIRED");
+				assertThat(ex.getMessage()).contains("BENCH_EDIT needs BENCH_VIEW");
+			});
+		registry.assertEditHasView(Set.of("BENCH_VIEW", "BENCH_EDIT", "VENDOR_VIEW"));
 	}
 
 	@Test

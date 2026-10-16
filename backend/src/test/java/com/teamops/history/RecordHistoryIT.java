@@ -297,11 +297,14 @@ class RecordHistoryIT {
 		assertThat(changes(only(asAdmin, "RECORD_CREATED", "APPROVAL")).get("amount")).containsEntry("to", 42137.5)
 			.containsEntry("finance", true);
 
-		// An audit viewer without FINANCE_VIEW cannot find the amount by searching for it either.
-		String found = as(auditorToken, get("/api/admin/audit-logs").param("search", "42137"))
+		// An audit viewer without FINANCE_VIEW cannot find the amount by searching for it either. The search is narrowed
+		// to this approval: the shared IT database collects random IDs and markers that may contain the same digits.
+		String found = as(auditorToken, get("/api/admin/audit-logs").param("search", "42137")
+			.param("entityType", "APPROVAL").param("entityId", approvalId.toString()))
 			.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
 		assertThat((Integer) JsonPath.read(found, "$.totalElements")).isZero();
-		String foundByAdmin = as(adminToken, get("/api/admin/audit-logs").param("search", "42137"))
+		String foundByAdmin = as(adminToken, get("/api/admin/audit-logs").param("search", "42137")
+			.param("entityType", "APPROVAL").param("entityId", approvalId.toString()))
 			.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
 		assertThat((Integer) JsonPath.read(foundByAdmin, "$.totalElements")).isPositive();
 	}

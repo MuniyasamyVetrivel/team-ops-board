@@ -18,7 +18,7 @@ import com.teamops.user.entity.RoleCodes;
  * the people who hold them);</li>
  * <li>an editor may only add permissions they hold themselves;</li>
  * <li>a create, edit or manage permission needs the matching view permission (department tools: each module's edit
- * permission needs its view permission).</li>
+ * permission needs its view permission; the same holds for direct grants, see UserService).</li>
  * </ul>
  */
 final class RolePermissionRules {

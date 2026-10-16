@@ -38,6 +38,8 @@ import com.teamops.celebration.service.EmployeeUserLinks;
 import com.teamops.common.settings.AppSettingRepository;
 import com.teamops.common.settings.AppSettingsService;
 import com.teamops.common.web.ClientInfo;
+import com.teamops.module.service.ModuleDefinition;
+import com.teamops.module.service.ModuleRegistry;
 import com.teamops.department.entity.Department;
 import com.teamops.department.entity.DepartmentStatus;
 import com.teamops.department.repository.DepartmentRepository;
@@ -97,7 +99,9 @@ class UserServiceTest {
 		service = new UserService(userRepository, departmentRepository, roleRepository, permissionRepository,
 				refreshTokenRepository, passwordEncoder, new AuthenticatedUserFactory(permissionRepository),
 				auditService, Clock.fixed(NOW, ZoneOffset.UTC),
-				new AppSettingsService(mock(AppSettingRepository.class)), employeeLinks);
+				new AppSettingsService(mock(AppSettingRepository.class)), employeeLinks,
+				new ModuleRegistry(List.of(new ModuleDefinition("bench", "Bench Management", "Users", "", "BENCH_VIEW",
+						"BENCH_EDIT"))));
 		when(roleRepository.findByCodeIn(any())).thenAnswer(inv -> rolesFor(inv.getArgument(0)));
 		when(permissionRepository.findByCodeIn(any())).thenAnswer(inv -> ((Collection<String>) inv.getArgument(0))
 			.stream()
@@ -224,6 +228,16 @@ class UserServiceTest {
 	void actorCannotGrantDirectPermissionsTheyDoNotHold() {
 		assertError(() -> service.create(createRequest(Set.of("EMPLOYEE"), Set.of("MARKETING_VIEW")), hrAdmin, client),
 				HttpStatus.FORBIDDEN, "CANNOT_GRANT_PERMISSIONS");
+	}
+
+	@Test
+	void aDepartmentToolEditPermissionNeedsItsViewPermission() {
+		assertError(() -> service.create(createRequest(Set.of("EMPLOYEE"), Set.of("BENCH_EDIT")), null, client),
+				HttpStatus.BAD_REQUEST, "VIEW_PERMISSION_REQUIRED");
+
+		UserDetail created = service.create(createRequest(Set.of("EMPLOYEE"), Set.of("BENCH_VIEW", "BENCH_EDIT")),
+				null, client);
+		assertThat(created.directPermissions()).contains("BENCH_VIEW", "BENCH_EDIT");
 	}
 
 	@Test
