@@ -46,7 +46,7 @@ import com.teamops.user.service.UserService;
 @TestPropertySource(properties = { "app.dev-seed.enabled=false", "app.scheduling.enabled=false" })
 class UserImportFlowIT {
 
-	private static final String HEADER = "first_name,last_name,email,phone,job_title,department_code,"
+	private static final String HEADER = "employee_id,first_name,last_name,email,phone,job_title,department_code,"
 			+ "extra_department_codes,role,reports_to_email,location,time_zone,extra_permissions\n";
 
 	@Autowired
@@ -96,20 +96,21 @@ class UserImportFlowIT {
 		String member = "member-" + nonce + "@teamops.local";
 		String marketer = "marketer-" + nonce + "@teamops.local";
 		MockMultipartFile file = csv(HEADER
-				+ "Lena,Lead,%s,+61400000000,\"Head - People, Digital\",%s,,DEPARTMENT_MANAGER,,Sydney,Australia/Sydney,\n"
-					.formatted(lead, primary)
-				+ "Max,Member,%s,,Developer,%s,%s,EMPLOYEE,%s,Chennai,Asia/Kolkata,\n".formatted(member, primary,
-						secondary, lead)
-				+ "Mia,Marketer,%s,,Marketer,%s,,EMPLOYEE,%s,Chennai,Asia/Kolkata,\"MARKETING_VIEW,LEAD_VIEW,LEAD_EDIT\"\n"
-					.formatted(marketer, primary, lead)
-				// Invalid: unknown department, role, permission and zone; a manager nobody has; an existing email.
-				+ "Bad,Row,bad-%s@teamops.local,,,NOPE,,BOSS,ghost-%s@teamops.local,,Mars/Base,FLY\n".formatted(nonce,
-						nonce)
-				+ "Dup,Admin,%s,,,%s,,EMPLOYEE,,,,\n".formatted(users.email(users.create("IT", RoleCodes.EMPLOYEE)),
-						primary)
+				+ "IMP-%s-1,Lena,Lead,%s,+61400000000,\"Head - People, Digital\",%s,,DEPARTMENT_MANAGER,,Sydney,Australia/Sydney,\n"
+					.formatted(nonce, lead, primary)
+				+ "IMP-%s-2,Max,Member,%s,,Developer,%s,%s,EMPLOYEE,%s,Chennai,Asia/Kolkata,\n".formatted(nonce, member,
+						primary, secondary, lead)
+				+ "IMP-%s-3,Mia,Marketer,%s,,Marketer,%s,,EMPLOYEE,%s,Chennai,Asia/Kolkata,\"MARKETING_VIEW,LEAD_VIEW,LEAD_EDIT\"\n"
+					.formatted(nonce, marketer, primary, lead)
+				// Invalid: an employee ID already on an earlier row; unknown department, role, permission and zone; a
+				// manager nobody has; an existing email.
+				+ "imp-%s-1,Bad,Row,bad-%s@teamops.local,,,NOPE,,BOSS,ghost-%s@teamops.local,,Mars/Base,FLY\n"
+					.formatted(nonce, nonce, nonce)
+				+ "IMP-%s-5,Dup,Admin,%s,,,%s,,EMPLOYEE,,,,\n".formatted(nonce,
+						users.email(users.create("IT", RoleCodes.EMPLOYEE)), primary)
 				// Valid on its own, but reports to the invalid row above it.
-				+ "Late,Report,late-%s@teamops.local,,,%s,,EMPLOYEE,bad-%s@teamops.local,,,\n".formatted(nonce,
-						primary, nonce));
+				+ "IMP-%s-6,Late,Report,late-%s@teamops.local,,,%s,,EMPLOYEE,bad-%s@teamops.local,,,\n".formatted(nonce,
+						nonce, primary, nonce));
 
 		String preview = as(adminToken, multipart("/api/users/import/preview").file(file)).andExpect(status().isOk())
 			.andExpect(jsonPath("$.totalRows").value(6))
@@ -120,7 +121,7 @@ class UserImportFlowIT {
 			.getContentAsString();
 		List<Map<String, Object>> badErrors = JsonPath.read(preview, "$.invalidRows[0].errors");
 		assertThat(badErrors).extracting(e -> e.get("column"))
-			.contains("department_code", "role", "extra_permissions", "reports_to_email", "time_zone");
+			.contains("employee_id", "department_code", "role", "extra_permissions", "reports_to_email", "time_zone");
 		assertThat(preview).contains("A user with this email already exists")
 			.contains("Reports to a person on an earlier row that has errors");
 		assertThat(userRepository.findByEmailIgnoreCase(lead)).as("the preview saves nothing").isEmpty();
@@ -153,10 +154,13 @@ class UserImportFlowIT {
 		assertThat(content).as("UTF-8 byte order mark, for Excel").startsWith("﻿");
 		List<String> lines = content.substring(1).lines().toList();
 		assertThat(lines).hasSize(4);
-		assertThat(lines.get(0)).isEqualTo("email,name,temporary_password");
-		String[] memberLine = lines.stream().filter(l -> l.startsWith(member)).findFirst().orElseThrow().split(",");
-		String temporary = memberLine[2];
-		assertThat(memberLine[1]).isEqualTo("Max Member");
+		assertThat(lines.get(0)).isEqualTo("employee_id,email,name,temporary_password");
+		String[] memberLine = lines.stream().filter(l -> l.contains("," + member + ",")).findFirst().orElseThrow()
+			.split(",");
+		String temporary = memberLine[3];
+		assertThat(memberLine[0]).isEqualTo("IMP-" + nonce + "-2");
+		assertThat(memberLine[2]).isEqualTo("Max Member");
+		assertThat(userRepository.findByEmailIgnoreCase(member).orElseThrow().getEmployeeId()).isEqualTo("IMP-" + nonce + "-2");
 
 		String memberToken = loginBody(member, temporary);
 		assertThat((Boolean) JsonPath.read(memberToken, "$.user.mustChangePassword")).isTrue();
@@ -196,16 +200,18 @@ class UserImportFlowIT {
 	void onlyUserAdministratorsCanImportAndNobodyGainsMoreThanTheyHold() throws Exception {
 		Long employeeId = users.create("IT", RoleCodes.EMPLOYEE);
 		String employeeToken = login(users.email(employeeId), IntegrationUsers.PASSWORD);
-		MockMultipartFile file = csv(HEADER + "A,B,x-%s@teamops.local,,,%s,,EMPLOYEE,,,,\n"
-			.formatted(UUID.randomUUID(), primary));
+		MockMultipartFile file = csv(HEADER + "%s,A,B,x-%s@teamops.local,,,%s,,EMPLOYEE,,,,\n"
+			.formatted(IntegrationUsers.employeeId(), UUID.randomUUID(), primary));
 		as(employeeToken, multipart("/api/users/import/preview").file(file)).andExpect(status().isForbidden());
 
 		// A user administrator without Super Admin cannot create a Super Admin or grant what they lack.
 		Long hrAdmin = users.create("IT", RoleCodes.EMPLOYEE, "USER_MANAGE");
 		String hrToken = login(users.email(hrAdmin), IntegrationUsers.PASSWORD);
 		String escalation = as(hrToken, multipart("/api/users/import/preview").file(csv(HEADER
-				+ "S,A,sa-%s@teamops.local,,,%s,,SUPER_ADMIN,,,,\n".formatted(UUID.randomUUID(), primary)
-				+ "M,V,mv-%s@teamops.local,,,%s,,EMPLOYEE,,,,AUDIT_VIEW\n".formatted(UUID.randomUUID(), primary))))
+				+ "%s,S,A,sa-%s@teamops.local,,,%s,,SUPER_ADMIN,,,,\n".formatted(IntegrationUsers.employeeId(),
+						UUID.randomUUID(), primary)
+				+ "%s,M,V,mv-%s@teamops.local,,,%s,,EMPLOYEE,,,,AUDIT_VIEW\n".formatted(IntegrationUsers.employeeId(),
+						UUID.randomUUID(), primary))))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.validCount").value(0))
 			.andReturn()

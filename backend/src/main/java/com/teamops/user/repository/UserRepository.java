@@ -39,6 +39,12 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
 	boolean existsByEmailIgnoreCaseAndIdNot(String email, Long id);
 
+	Optional<User> findByEmployeeIdIgnoreCase(String employeeId);
+
+	boolean existsByEmployeeIdIgnoreCase(String employeeId);
+
+	boolean existsByEmployeeIdIgnoreCaseAndIdNot(String employeeId, Long id);
+
 	@EntityGraph(attributePaths = "department")
 	List<User> findByReportsToIdOrderByFirstNameAscLastNameAsc(Long managerId);
 

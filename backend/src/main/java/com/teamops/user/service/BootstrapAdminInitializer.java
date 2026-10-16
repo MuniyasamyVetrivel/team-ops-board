@@ -47,6 +47,9 @@ public class BootstrapAdminInitializer implements ApplicationRunner {
 			log.info("Bootstrap admin skipped: users already exist. You can remove BOOTSTRAP_ADMIN_* settings.");
 			return;
 		}
+		if (!StringUtils.hasText(properties.employeeId())) {
+			throw new IllegalStateException("BOOTSTRAP_ADMIN_EMPLOYEE_ID is required: every user has an employee ID");
+		}
 		if (properties.password().length() < MIN_ADMIN_PASSWORD_LENGTH) {
 			throw new IllegalStateException(
 					"BOOTSTRAP_ADMIN_PASSWORD must be at least " + MIN_ADMIN_PASSWORD_LENGTH + " characters");
@@ -57,7 +60,7 @@ public class BootstrapAdminInitializer implements ApplicationRunner {
 			.orElseThrow(() -> new IllegalStateException("BOOTSTRAP_ADMIN_DEPARTMENT_CODE not found: " + departmentCode))
 			.getId();
 		String lastName = StringUtils.hasText(properties.lastName()) ? properties.lastName() : "";
-		userService.create(new CreateUserRequest(properties.email(), properties.password(), firstName, lastName,
+		userService.create(new CreateUserRequest(properties.employeeId(), properties.email(), properties.password(), firstName, lastName,
 				null, null, null, null, null, departmentId, null, null, Set.of(RoleCodes.SUPER_ADMIN), Set.of()),
 				null, ClientInfo.unknown());
 		log.info("Bootstrap Super Admin created: {}", properties.email());

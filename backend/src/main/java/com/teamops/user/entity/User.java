@@ -31,6 +31,14 @@ import lombok.Setter;
 @Table(name = "users")
 public class User extends BaseEntity {
 
+	/**
+	 * The company's employee ID: unique, set when the user is created and changed only by a Super Admin. Links the
+	 * user to their Employee record (celebrations) with the same employee code. Null only for users created before
+	 * employee IDs existed, until a Super Admin fills it in.
+	 */
+	@Column(name = "employee_id", length = 40)
+	private String employeeId;
+
 	@Column(name = "email", nullable = false)
 	private String email;
 
@@ -62,6 +70,10 @@ public class User extends BaseEntity {
 	/** IANA zone such as Asia/Kolkata; display information only (business dates use APP_TIME_ZONE). */
 	@Column(name = "time_zone", length = 64)
 	private String timeZone;
+
+	/** The profile photo (a square JPEG in the files table); also its version, as a new upload is a new file. */
+	@Column(name = "photo_file_id")
+	private Long photoFileId;
 
 	/** Primary department. Secondary memberships live in department_members. */
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)

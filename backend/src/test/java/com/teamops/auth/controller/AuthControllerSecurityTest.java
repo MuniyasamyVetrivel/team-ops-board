@@ -279,7 +279,8 @@ class AuthControllerSecurityTest {
 	private static MeResponse me(AuthenticatedUser user) {
 		return new MeResponse(user.id(), user.email(), "Test", "User", user.fullName(), "Engineer",
 				new DepartmentSummary(user.departmentId(), "Web Development", "WEBDEV"),
-				List.copyOf(user.roles()), user.permissions().stream().sorted().toList(), user.passwordChangeRequired());
+				List.copyOf(user.roles()), user.permissions().stream().sorted().toList(), user.passwordChangeRequired(),
+				"E-" + user.id(), null);
 	}
 
 	/** Test-only endpoint that proves method security (@PreAuthorize) is active. */

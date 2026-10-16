@@ -100,10 +100,13 @@ List endpoints return `{ content, page, size, totalElements, totalPages }` and a
 
 | Method | Path | Permission | Description |
 |---|---|---|---|
-| GET | `/api/users` | `USER_MANAGE` | Search. Filters: `search` (name, email or job title), `departmentId`, `status` (`ACTIVE`/`DISABLED`), `role`. Sort fields: `name`, `email`, `department`, `lastLogin`, `created` |
+| GET | `/api/users` | `USER_MANAGE` | Search. Filters: `search` (name, email, job title or employee ID), `departmentId`, `status` (`ACTIVE`/`DISABLED`), `role`, `missingEmployeeId=true` (users from before employee IDs that still need one). Sort fields: `name`, `email`, `department`, `lastLogin`, `created`, `employeeId` |
 | GET | `/api/users/{id}` | `USER_MANAGE` | Full record, including roles, direct grants and effective permissions |
-| POST | `/api/users` | `USER_MANAGE` | Create. The body includes `password` (10+ characters with letters and numbers; the user must change it at first sign-in), `roles` and `permissions`. Returns `201` |
-| PUT | `/api/users/{id}` | `USER_MANAGE` | Edit profile fields: email, names, job title, contact details, `timeZone` (IANA, e.g. `Asia/Kolkata`), department, `reportsToId`, `weeklyCapacityHours` |
+| POST | `/api/users` | `USER_MANAGE` | Create. The body includes `employeeId` (required, unique ignoring case; letters, digits, `.` `-` `_` `/`, up to 40 characters), `password` (10+ characters with letters and numbers; the user must change it at first sign-in), `roles` and `permissions`. Returns `201`; 409 `EMPLOYEE_ID_IN_USE` |
+| PUT | `/api/users/{id}` | `USER_MANAGE` | Edit profile fields: email, names, job title, contact details, `timeZone` (IANA, e.g. `Asia/Kolkata`), department, `reportsToId`, `weeklyCapacityHours`, and `employeeId` (omit or send the same to keep it; a different one needs the Super Admin, else 403 `EMPLOYEE_ID_SUPER_ADMIN_ONLY`) |
+| PUT | `/api/users/me/photo`, `/api/users/{id}/photo` | Signed in; someone else's photo needs the Super Admin (403 `PHOTO_FORBIDDEN`) | Multipart `file`: JPG, PNG or WebP (checked by content), up to 2 MB, at least 64 × 64 pixels. Stored as a square JPEG of at most 512 pixels (EXIF removed); the previous photo is deleted. Returns the user's `UserSummary`. Errors: `PHOTO_TYPE_NOT_ALLOWED`, `PHOTO_TOO_LARGE`, `PHOTO_TOO_SMALL`, `PHOTO_TOO_MANY_PIXELS`, `PHOTO_UNREADABLE`. Audited as `USER_PHOTO_CHANGED` |
+| DELETE | `/api/users/me/photo`, `/api/users/{id}/photo` | As above | Removes the photo |
+| GET | `/api/users/{id}/photo` | Signed in | The photo as an attachment (`image/jpeg`, `nosniff`, private cache for a day); 404 `PHOTO_NOT_FOUND`. Fetch it with the token and cache it by `photoVersion` |
 | PUT | `/api/users/{id}/access` | `PERMISSION_MANAGE` | Replace `roles` and direct `permissions`. Audited with before and after values |
 | POST | `/api/users/{id}/disable` / `enable` | `USER_MANAGE` | Disabling revokes every session immediately |
 | POST | `/api/users/{id}/reset-password` | `USER_MANAGE` | `{ "newPassword": "…" }`. Signs the user out everywhere; they must change it at their next sign-in. Returns `204` |
@@ -112,6 +115,8 @@ List endpoints return `{ content, page, size, totalElements, totalPages }` and a
 | POST | `/api/users/import/preview` | `USER_MANAGE` | Multipart `file`. Validates every row and returns valid rows, invalid rows and errors. Saves nothing |
 | POST | `/api/users/import/commit` | `USER_MANAGE` | Multipart `file` + `checksum` (from the preview) + `skipInvalid`. Creates the users, each with a random temporary password, and returns them once in `resultFile` (`Cache-Control: no-store`). Audited as `USERS_IMPORTED` and `CSV_IMPORTED` |
 | GET | `/api/roles`, `/api/permissions` | `USER_MANAGE` or `PERMISSION_MANAGE` | Role and permission catalogue |
+
+Every user reference (`UserSummary`: assignees, owners, members, team directory rows, `/api/auth/me`) carries `employeeId` and `photoVersion` (null without a photo; it changes with every new photo), so both are visible to everyone signed in. A user and the Employee record (`/api/celebrations/employees`) whose `employeeCode` equals the user's `employeeId` are linked automatically, from either side; an Employee without its own photo shows the linked user's photo, and an explicit `userId` with another employee ID is refused (400 `EMPLOYEE_ID_MISMATCH`). Global search matches employee IDs (the employee hit's `code`), and the task and workload report exports have an "Employee ID" column.
 
 These rules are enforced by the service, so they apply even to someone who holds the permission:
 

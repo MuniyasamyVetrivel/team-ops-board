@@ -11,7 +11,9 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+/** A new user. The employee ID is required; once set, only a Super Admin can change it. */
 public record CreateUserRequest(
+		@NotBlank(message = "Employee ID is required") @Size(max = 40) String employeeId,
 		@NotBlank(message = "Email is required") @Email(message = "Enter a valid email address") @Size(max = 255) String email,
 		@NotBlank(message = "Password is required") @Size(max = 128) String password,
 		@NotBlank(message = "First name is required") @Size(max = 100) String firstName,
@@ -34,7 +36,8 @@ public record CreateUserRequest(
 
 	@Override
 	public String toString() {
-		return "CreateUserRequest[email=" + email + ", departmentId=" + departmentId + ", roles=" + roles + "]";
+		return "CreateUserRequest[employeeId=" + employeeId + ", email=" + email + ", departmentId=" + departmentId
+				+ ", roles=" + roles + "]";
 	}
 
 }

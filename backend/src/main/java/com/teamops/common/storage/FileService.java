@@ -1,5 +1,6 @@
 package com.teamops.common.storage;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.DigestInputStream;
@@ -40,14 +41,32 @@ public class FileService {
 	public StoredFile store(MultipartFile upload, Long uploadedBy) {
 		UploadPolicy.Checked checked = UploadPolicy.check(upload.getOriginalFilename(), upload.getSize(),
 				settings.uploadMaxBytes(properties.maxFileSizeMb()));
+		try (InputStream in = upload.getInputStream()) {
+			return save(in, checked, upload.getSize(), uploadedBy);
+		}
+		catch (IOException ex) {
+			throw uploadFailed();
+		}
+	}
+
+	/**
+	 * Stores content the server produced itself (for example a resized profile photo), with the same checks on its
+	 * name and type and the same clean-up if the transaction rolls back.
+	 */
+	public StoredFile storeBytes(byte[] content, String fileName, Long uploadedBy) {
+		UploadPolicy.Checked checked = UploadPolicy.check(fileName, content.length,
+				settings.uploadMaxBytes(properties.maxFileSizeMb()));
+		return save(new ByteArrayInputStream(content), checked, content.length, uploadedBy);
+	}
+
+	private StoredFile save(InputStream content, UploadPolicy.Checked checked, long size, Long uploadedBy) {
 		String key;
 		MessageDigest digest = sha256();
-		try (InputStream in = new DigestInputStream(upload.getInputStream(), digest)) {
+		try (InputStream in = new DigestInputStream(content, digest)) {
 			key = storage.put(in, checked.extension());
 		}
 		catch (IOException ex) {
-			throw new ApiException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "UPLOAD_FAILED",
-					"The file could not be stored");
+			throw uploadFailed();
 		}
 		afterRollback(() -> storage.delete(key));
 
@@ -56,10 +75,15 @@ public class FileService {
 		file.setStorageKey(key);
 		file.setOriginalName(checked.fileName());
 		file.setContentType(checked.contentType());
-		file.setSizeBytes(upload.getSize());
+		file.setSizeBytes(size);
 		file.setChecksumSha256(HexFormat.of().formatHex(digest.digest()));
 		file.setUploadedBy(uploadedBy);
 		return repository.save(file);
+	}
+
+	private static ApiException uploadFailed() {
+		return new ApiException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "UPLOAD_FAILED",
+				"The file could not be stored");
 	}
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)

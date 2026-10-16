@@ -40,8 +40,11 @@ departments, are reset to the Flyway defaults. Write them down first if you want
 ## Before you start
 
 - The team CSV is ready in `private/team.csv`. It uses the columns of the import template:
-  `first_name, last_name, email, phone, job_title, department_code, extra_department_codes, role, reports_to_email,
-  location, time_zone, extra_permissions`.
+  `employee_id, first_name, last_name, email, phone, job_title, department_code, extra_department_codes, role,
+  reports_to_email, location, time_zone, extra_permissions`.
+  - `employee_id` is required and unique (letters, digits, `.`, `-`, `_` or `/`, up to 40 characters). Only a Super
+    Admin can change it afterwards. Use the same ID as the person's Employee record (Calendar → Employees) so the two
+    are linked automatically.
   - `department_code` and `extra_department_codes` must use the codes listed above.
   - Separate several extra departments or permissions with commas, and quote the cell (`"A,B"`).
   - Digital Marketing access means listing each permission. For example, full marketing access is
@@ -98,6 +101,7 @@ BOOTSTRAP_ADMIN_PASSWORD=<a temporary password of at least 12 characters>
 BOOTSTRAP_ADMIN_FIRST_NAME=<first name>
 BOOTSTRAP_ADMIN_LAST_NAME=<last name>
 BOOTSTRAP_ADMIN_DEPARTMENT_CODE=<their department code, e.g. HR>
+BOOTSTRAP_ADMIN_EMPLOYEE_ID=<their employee ID, the same as in the team CSV>
 ```
 
 The bootstrap password is temporary. The Super Admin must replace it at first sign-in, and after that it no longer

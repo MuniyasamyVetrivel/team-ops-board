@@ -41,7 +41,7 @@ public class UserController {
 
 	static final Map<String, List<String>> SORT_FIELDS = Map.of("name", List.of("firstName", "lastName"), "email",
 			List.of("email"), "department", List.of("department.name"), "lastLogin", List.of("lastLoginAt"),
-			"created", List.of("createdAt"));
+			"created", List.of("createdAt"), "employeeId", List.of("employeeId", "id"));
 
 	private final UserService userService;
 
@@ -49,9 +49,10 @@ public class UserController {
 	@PreAuthorize("hasAuthority('USER_MANAGE')")
 	public PageResponse<UserListItem> search(@RequestParam(required = false) String search,
 			@RequestParam(required = false) Long departmentId, @RequestParam(required = false) UserStatus status,
-			@RequestParam(required = false) String role, @RequestParam(defaultValue = "0") int page,
-			@RequestParam(defaultValue = "20") int size, @RequestParam(required = false) String sort) {
-		return userService.search(new UserSearchCriteria(search, departmentId, status, role),
+			@RequestParam(required = false) String role, @RequestParam(defaultValue = "false") boolean missingEmployeeId,
+			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size,
+			@RequestParam(required = false) String sort) {
+		return userService.search(new UserSearchCriteria(search, departmentId, status, role, missingEmployeeId),
 				PageRequests.of(page, size, sort, SORT_FIELDS, "name,asc"));
 	}
 

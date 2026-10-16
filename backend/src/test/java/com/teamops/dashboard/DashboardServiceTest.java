@@ -154,7 +154,7 @@ class DashboardServiceTest {
 
 	private static WorkloadDtos.Row row(Long userId, String remaining, String capacity) {
 		int percent = DashboardMath.percent(new BigDecimal(remaining), new BigDecimal(capacity));
-		return new WorkloadDtos.Row(new UserSummary(userId, "Person " + userId, userId + "@teamops.local", null, null),
+		return new WorkloadDtos.Row(new UserSummary(userId, "Person " + userId, userId + "@teamops.local", null, null, null, null),
 				WEBDEV, 0, 0, 0, 0, 0, 0, 0, 0, 0, new BigDecimal(remaining), new BigDecimal(capacity), percent,
 				WorkloadLevel.of(percent));
 	}

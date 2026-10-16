@@ -62,11 +62,11 @@ public class BreakGlassService {
 	}
 
 	@Transactional
-	public Result createSuperAdmin(String email, String firstName, String lastName, String departmentCode,
-			String password, Operator operator) {
+	public Result createSuperAdmin(String employeeId, String email, String firstName, String lastName,
+			String departmentCode, String password, Operator operator) {
 		validatePassword(password);
-		if (!StringUtils.hasText(email) || !StringUtils.hasText(firstName)) {
-			throw ApiException.badRequest("BREAK_GLASS_INPUT", "Email and first name are required");
+		if (!StringUtils.hasText(employeeId) || !StringUtils.hasText(email) || !StringUtils.hasText(firstName)) {
+			throw ApiException.badRequest("BREAK_GLASS_INPUT", "Employee ID, email and first name are required");
 		}
 		String code = StringUtils.hasText(departmentCode) ? departmentCode.trim() : "IT";
 		Long departmentId = departmentRepository.findByCode(code)
@@ -76,7 +76,7 @@ public class BreakGlassService {
 			throw ApiException.conflict("EMAIL_IN_USE",
 					"A user with this email already exists; use reset-password for an existing Super Admin");
 		}
-		UserDetail created = userService.create(new CreateUserRequest(email.trim(), password, firstName.trim(),
+		UserDetail created = userService.create(new CreateUserRequest(employeeId, email.trim(), password, firstName.trim(),
 				lastName == null ? "" : lastName.trim(), null, null, null, null, null, departmentId, null, null,
 				Set.of(RoleCodes.SUPER_ADMIN), Set.of()), null, operator.client());
 		audit("create-super-admin", created.id(), created.email(), false, operator);

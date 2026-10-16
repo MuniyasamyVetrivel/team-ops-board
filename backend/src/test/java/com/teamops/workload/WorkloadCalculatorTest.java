@@ -75,7 +75,7 @@ class WorkloadCalculatorTest {
 	}
 
 	private static Row row(String name, int percent, long overdue, long completed) {
-		return new Row(new UserSummary((long) name.hashCode(), name, name + "@teamops.local", null, UserStatus.ACTIVE),
+		return new Row(new UserSummary((long) name.hashCode(), name, name + "@teamops.local", null, UserStatus.ACTIVE, null, null),
 				new DepartmentSummary(1L, "IT", "IT"), 5, 1, 1, 0, 0, completed, overdue, 0, 3, BigDecimal.ONE,
 				new BigDecimal("80"), percent, WorkloadLevel.of(percent));
 	}

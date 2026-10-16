@@ -34,6 +34,7 @@ import com.teamops.common.audit.AuditService;
 import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.security.AuthenticatedUserFactory;
+import com.teamops.celebration.service.EmployeeUserLinks;
 import com.teamops.common.settings.AppSettingRepository;
 import com.teamops.common.settings.AppSettingsService;
 import com.teamops.common.web.ClientInfo;
@@ -72,6 +73,8 @@ class UserServiceTest {
 
 	private final AuditService auditService = mock(AuditService.class);
 
+	private final EmployeeUserLinks employeeLinks = mock(EmployeeUserLinks.class);
+
 	private final ClientInfo client = new ClientInfo("10.0.0.1", "JUnit");
 
 	private final Role superAdminRole = TestFixtures.role(1L, "SUPER_ADMIN");
@@ -94,7 +97,7 @@ class UserServiceTest {
 		service = new UserService(userRepository, departmentRepository, roleRepository, permissionRepository,
 				refreshTokenRepository, passwordEncoder, new AuthenticatedUserFactory(permissionRepository),
 				auditService, Clock.fixed(NOW, ZoneOffset.UTC),
-				new AppSettingsService(mock(AppSettingRepository.class)));
+				new AppSettingsService(mock(AppSettingRepository.class)), employeeLinks);
 		when(roleRepository.findByCodeIn(any())).thenAnswer(inv -> rolesFor(inv.getArgument(0)));
 		when(permissionRepository.findByCodeIn(any())).thenAnswer(inv -> ((Collection<String>) inv.getArgument(0))
 			.stream()
@@ -122,6 +125,54 @@ class UserServiceTest {
 	}
 
 	@Test
+	void createStoresTheEmployeeIdAndLinksTheEmployeeRecord() {
+		UserDetail created = service.create(createRequest(Set.of("EMPLOYEE"), Set.of()), hrAdmin, client);
+
+		assertThat(created.employeeId()).isEqualTo("E-1042");
+		verify(employeeLinks).linkUser(argThat(u -> "E-1042".equals(u.getEmployeeId())));
+		verify(auditService).record(eq(AuditAction.USER_CREATED), eq(50L), eq("USER"), any(),
+				argThat(d -> "E-1042".equals(d.get("employeeId"))), eq(client));
+	}
+
+	@Test
+	void createNeedsAUniqueWellFormedEmployeeId() {
+		when(userRepository.existsByEmployeeIdIgnoreCase("E-1042")).thenReturn(true);
+		assertError(() -> service.create(createRequest(Set.of("EMPLOYEE"), Set.of()), SliceAuth.SUPER_ADMIN, client),
+				HttpStatus.CONFLICT, "EMPLOYEE_ID_IN_USE");
+
+		CreateUserRequest blank = new CreateUserRequest(" ", "b@teamops.local", "Welcome123", "B", null, null, null,
+				null, null, null, 5L, null, null, Set.of("EMPLOYEE"), Set.of());
+		assertError(() -> service.create(blank, SliceAuth.SUPER_ADMIN, client), HttpStatus.BAD_REQUEST,
+				"EMPLOYEE_ID_REQUIRED");
+		verify(userRepository, never()).save(any());
+	}
+
+	@Test
+	void onlyASuperAdminChangesAnEmployeeId() {
+		User employee = TestFixtures.user(21L, "employee@teamops.local", employeeRole);
+		employee.setEmployeeId("E-7");
+		when(userRepository.findWithAuthoritiesById(21L)).thenReturn(Optional.of(employee));
+
+		// The same ID (any case or spacing), or none, is no change: allowed for anyone with USER_MANAGE.
+		service.update(21L, updateRequest(null, " E-7 "), hrAdmin, client);
+		service.update(21L, updateRequest(null, null), hrAdmin, client);
+		assertError(() -> service.update(21L, updateRequest(null, "E-8"), hrAdmin, client), HttpStatus.FORBIDDEN,
+				"EMPLOYEE_ID_SUPER_ADMIN_ONLY");
+		assertThat(employee.getEmployeeId()).isEqualTo("E-7");
+		verify(employeeLinks, never()).linkUser(any());
+
+		when(userRepository.existsByEmployeeIdIgnoreCaseAndIdNot("E-9", 21L)).thenReturn(true);
+		assertError(() -> service.update(21L, updateRequest(null, "E-9"), SliceAuth.SUPER_ADMIN, client),
+				HttpStatus.CONFLICT, "EMPLOYEE_ID_IN_USE");
+
+		service.update(21L, updateRequest(null, "E-8"), SliceAuth.SUPER_ADMIN, client);
+		assertThat(employee.getEmployeeId()).isEqualTo("E-8");
+		verify(employeeLinks).linkUser(employee);
+		verify(auditService).record(eq(AuditAction.USER_UPDATED), eq(1L), eq("USER"), eq(21L),
+				argThat(details -> changes(details).containsKey("employeeId")), eq(client));
+	}
+
+	@Test
 	void createRejectsDuplicateEmail() {
 		when(userRepository.existsByEmailIgnoreCase("new.user@teamops.local")).thenReturn(true);
 
@@ -131,7 +182,7 @@ class UserServiceTest {
 
 	@Test
 	void createRejectsWeakPassword() {
-		CreateUserRequest weak = new CreateUserRequest("a@teamops.local", "password", "A", null, null, null, null,
+		CreateUserRequest weak = new CreateUserRequest("E-9", "a@teamops.local", "password", "A", null, null, null, null,
 				null, null, 5L, null, null, Set.of("EMPLOYEE"), Set.of());
 
 		assertError(() -> service.create(weak, SliceAuth.SUPER_ADMIN, client), HttpStatus.BAD_REQUEST, "WEAK_PASSWORD");
@@ -347,13 +398,17 @@ class UserServiceTest {
 	}
 
 	private static CreateUserRequest createRequest(Set<String> roles, Set<String> permissions) {
-		return new CreateUserRequest(" New.User@TeamOps.local ", "Welcome123", "New", "User", "Developer", null, null,
+		return new CreateUserRequest(" E-1042 ", " New.User@TeamOps.local ", "Welcome123", "New", "User", "Developer", null, null,
 				null, null, 5L, null, null, roles, permissions);
 	}
 
 	private static UpdateUserRequest updateRequest(Long reportsToId) {
+		return updateRequest(reportsToId, null);
+	}
+
+	private static UpdateUserRequest updateRequest(Long reportsToId, String employeeId) {
 		return new UpdateUserRequest("employee@teamops.local", "New", "Surname", "Lead", null, null, null, null, 7L,
-				reportsToId, new BigDecimal("40"));
+				reportsToId, new BigDecimal("40"), employeeId);
 	}
 
 	@SuppressWarnings("unchecked")

@@ -57,7 +57,7 @@ class BreakGlassRunnerTest {
 		assertThat(runner().execute(args("--break-glass=create-super-admin", "--email=a@b.c"), terminal, OPERATOR))
 			.isEqualTo(2);
 		assertThat(terminal.output).anyMatch(line -> line.startsWith("Usage:"))
-			.anyMatch(line -> line.contains("--first-name is required"));
+			.anyMatch(line -> line.contains("--employee-id and --first-name are required"));
 		verifyNoInteractions(service);
 	}
 
@@ -97,13 +97,15 @@ class BreakGlassRunnerTest {
 	@Test
 	void createsASuperAdminWithAGeneratedPasswordShownOnce() {
 		terminal.lines.add("it.admin@b.c");
-		when(service.createSuperAdmin(eq("it.admin@b.c"), eq("IT"), eq("Admin"), eq("OPS"), any(), eq(OPERATOR)))
+		when(service.createSuperAdmin(eq("E-0002"), eq("it.admin@b.c"), eq("IT"), eq("Admin"), eq("OPS"), any(),
+				eq(OPERATOR)))
 			.thenReturn(new Result(5L, "it.admin@b.c", false));
 
-		assertThat(runner().execute(args("--break-glass=create-super-admin", "--email=it.admin@b.c", "--first-name=IT",
+		assertThat(runner().execute(args("--break-glass=create-super-admin", "--employee-id=E-0002", "--email=it.admin@b.c",
+				"--first-name=IT",
 				"--last-name=Admin", "--department=OPS", "--generate-password"), terminal, OPERATOR))
 			.isZero();
-		verify(service).createSuperAdmin(eq("it.admin@b.c"), eq("IT"), eq("Admin"), eq("OPS"),
+		verify(service).createSuperAdmin(eq("E-0002"), eq("it.admin@b.c"), eq("IT"), eq("Admin"), eq("OPS"),
 				argThat(p -> p.length() >= BreakGlassService.MIN_PASSWORD_LENGTH), eq(OPERATOR));
 		assertThat(terminal.output).anyMatch(line -> line.startsWith("Temporary password (shown once): "));
 		assertThat(terminal.passwordPrompts).isZero();

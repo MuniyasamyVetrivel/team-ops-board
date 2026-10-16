@@ -31,6 +31,7 @@ import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.storage.FileService;
 import com.teamops.common.storage.StoredFile;
+import com.teamops.common.storage.StoredFileRepository;
 import com.teamops.common.storage.UploadPolicy;
 import com.teamops.common.web.ClientInfo;
 import com.teamops.common.web.PageResponse;
@@ -69,6 +70,10 @@ public class EmployeeService {
 	private final DepartmentRepository departmentRepository;
 
 	private final UserRepository userRepository;
+
+	private final EmployeeUserLinks userLinks;
+
+	private final StoredFileRepository storedFiles;
 
 	private final FileService fileService;
 
@@ -203,10 +208,17 @@ public class EmployeeService {
 		return toDto(employee, actor, calendar.today());
 	}
 
-	/** The photo of an employee the viewer can see; 404 {@code PHOTO_NOT_FOUND} without one. */
+	/**
+	 * The photo of an employee the viewer can see: their own, or else the profile photo of the app user linked by
+	 * employee ID (Phase X4: a person's photo is kept once). 404 {@code PHOTO_NOT_FOUND} without either.
+	 */
 	@Transactional(readOnly = true)
 	public Download photo(Long id, AuthenticatedUser viewer) {
-		StoredFile photo = loadVisible(id, viewer).getPhoto();
+		Employee employee = loadVisible(id, viewer);
+		StoredFile photo = employee.getPhoto();
+		if (photo == null && linkedUserPhoto(employee) != null) {
+			photo = storedFiles.findById(linkedUserPhoto(employee)).orElse(null);
+		}
 		if (photo == null) {
 			throw ApiException.notFound("PHOTO_NOT_FOUND", "This employee has no photo");
 		}
@@ -215,21 +227,42 @@ public class EmployeeService {
 
 	// --- helpers ----------------------------------------------------------------------------------------------
 
+	private static Long linkedUserPhoto(Employee employee) {
+		return employee.getUser() == null ? null : employee.getUser().getPhotoFileId();
+	}
+
 	/**
-	 * Applies the request: a linked app user fills blank fields (names, designation, reporting manager, department,
-	 * work email), then the required fields, unique employee ID and dates are checked.
+	 * Applies the request: the app user with the same employee ID is linked (Phase X4; an explicit {@code userId} must
+	 * agree with it) and fills blank fields (names, designation, reporting manager, department, work email), then the
+	 * required fields, unique employee ID and dates are checked.
 	 */
 	private void apply(Employee employee, SaveEmployee request) {
-		User user = null;
+		String code = request.employeeCode().trim();
+		User byEmployeeId = userLinks.userFor(code);
+		User user = byEmployeeId;
 		if (request.userId() != null) {
 			user = userRepository.findWithDepartmentById(request.userId())
 				.orElseThrow(() -> ApiException.badRequest("UNKNOWN_USER", "User not found"));
-			repository.findByUserId(user.getId())
-				.filter(other -> !other.getId().equals(employee.getId()))
-				.ifPresent(other -> {
+			if (!EmployeeUserLinks.matches(code, user)
+					|| (byEmployeeId != null && !byEmployeeId.getId().equals(user.getId()))) {
+				throw ApiException.badRequest("EMPLOYEE_ID_MISMATCH", "This app user's employee ID is "
+						+ (user.getEmployeeId() == null ? "not set" : user.getEmployeeId())
+						+ "; an employee is linked to the user with the same employee ID");
+			}
+		}
+		if (user != null) {
+			Employee other = repository.findByUserId(user.getId())
+				.filter(linked -> !linked.getId().equals(employee.getId()))
+				.orElse(null);
+			if (other != null) {
+				if (user != byEmployeeId) {
 					throw ApiException.conflict("EMPLOYEE_USER_TAKEN",
 							"This user is already linked to employee " + other.getEmployeeCode());
-				});
+				}
+				// Linked by hand to another record before employee IDs existed: the matching employee ID wins.
+				other.setUser(null);
+				repository.flush();
+			}
 			recycleBin.requireNotInBin(Employee.class, Map.of("user_id", user.getId()), "This user");
 		}
 		String firstName = fill(request.firstName(), user == null ? null : user.getFirstName());
@@ -243,7 +276,6 @@ public class EmployeeService {
 		require(designation, "Designation");
 		require(manager, "Reporting manager");
 
-		String code = request.employeeCode().trim();
 		boolean taken = employee.getId() == null ? repository.existsByEmployeeCode(code)
 				: repository.existsByEmployeeCodeAndIdNot(code, employee.getId());
 		if (taken) {
@@ -315,7 +347,8 @@ public class EmployeeService {
 		return new EmployeeDto(e.getId(), e.getEmployeeCode(), e.getFirstName(), e.getLastName(), e.getFullName(),
 				e.getDesignation(), e.getReportingManager(),
 				e.getDepartment() == null ? null : DepartmentSummary.of(e.getDepartment()), e.getWorkEmail(),
-				e.getOfficeLocation(), e.getPhoto() != null, UserSummary.of(e.getUser()), e.getStatus(),
+				e.getOfficeLocation(), e.getPhoto() != null || linkedUserPhoto(e) != null, UserSummary.of(e.getUser()),
+				e.getStatus(),
 				born.getMonthValue(), born.getDayOfMonth(), full ? born : null, joined,
 				AnnualDates.next(born, AnnualDates.firstBirthdayYear(born), today), nextAnniversary,
 				nextAnniversary == null ? null : AnnualDates.years(joined, nextAnniversary), e.getVersion(),

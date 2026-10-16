@@ -84,9 +84,9 @@ class AdminFlowIT {
 		String email = "it-" + UUID.randomUUID() + "@teamops.local";
 
 		String created = as(adminToken, post("/api/users").contentType(MediaType.APPLICATION_JSON).content("""
-				{"email":"%s","password":"Welcome123","firstName":"Asha","lastName":"Iyer","jobTitle":"Analyst",
-				 "departmentId":%d,"reportsToId":%d,"roles":["EMPLOYEE"],"permissions":[]}
-				""".formatted(email, itId, adminId)))
+				{"employeeId":"%s","email":"%s","password":"Welcome123","firstName":"Asha","lastName":"Iyer",
+				 "jobTitle":"Analyst","departmentId":%d,"reportsToId":%d,"roles":["EMPLOYEE"],"permissions":[]}
+				""".formatted(IntegrationUsers.employeeId(), email, itId, adminId)))
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.reportsTo.id").value(adminId))
 			.andExpect(jsonPath("$.weeklyCapacityHours").value(40.0))

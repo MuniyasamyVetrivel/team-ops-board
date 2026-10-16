@@ -206,13 +206,14 @@ next to the usual `USER_CREATED`, `USER_PASSWORD_RESET` or `USER_ENABLED` entry.
    sudo -u teamops scripts/break-glass.sh reset-password --email rakesh@example.com
    ```
 
-   **The Super Admin left, or the account is unusable** (creates a new Super Admin; the email must not be in use):
+   **The Super Admin left, or the account is unusable** (creates a new Super Admin; the employee ID and email must not
+   be in use):
 
    ```powershell
-   .\scripts\break-glass.ps1 -Command create-super-admin -Email it.admin@example.com -FirstName IT -LastName Admin -Department IT
+   .\scripts\break-glass.ps1 -Command create-super-admin -EmployeeId E-0002 -Email it.admin@example.com -FirstName IT -LastName Admin -Department IT
    ```
    ```bash
-   sudo -u teamops scripts/break-glass.sh create-super-admin --email it.admin@example.com --first-name IT --last-name Admin --department IT
+   sudo -u teamops scripts/break-glass.sh create-super-admin --employee-id E-0002 --email it.admin@example.com --first-name IT --last-name Admin --department IT
    ```
 
    Exit codes: 0 done; 1 refused (email typed differently, passwords differ, not a Super Admin, email in use); 2 wrong

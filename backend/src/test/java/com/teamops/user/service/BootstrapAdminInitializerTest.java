@@ -29,7 +29,7 @@ class BootstrapAdminInitializerTest {
 	private final UserService userService = mock(UserService.class);
 
 	private BootstrapAdminInitializer initializer(String email, String password) {
-		return new BootstrapAdminInitializer(new BootstrapAdminProperties(email, password, "Ada", "Admin", "HR"),
+		return new BootstrapAdminInitializer(new BootstrapAdminProperties(email, password, "Ada", "Admin", "HR", "E-0001"),
 				userRepository, departmentRepository, userService);
 	}
 

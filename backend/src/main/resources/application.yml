@@ -127,3 +127,4 @@ app:
     first-name: ${BOOTSTRAP_ADMIN_FIRST_NAME:Admin}
     last-name: ${BOOTSTRAP_ADMIN_LAST_NAME:}
     department-code: ${BOOTSTRAP_ADMIN_DEPARTMENT_CODE:IT}
+    employee-id: ${BOOTSTRAP_ADMIN_EMPLOYEE_ID:}

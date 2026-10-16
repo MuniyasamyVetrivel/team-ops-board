@@ -33,7 +33,10 @@ public record UserDetail(
 		Instant createdAt,
 		List<String> roles,
 		List<String> directPermissions,
-		List<String> effectivePermissions) {
+		List<String> effectivePermissions,
+		/** Null only for users created before employee IDs existed. */
+		String employeeId,
+		Long photoVersion) {
 
 	/** The user must have roles, role permissions and direct permissions loaded. */
 	public static UserDetail of(User user, AuthenticatedUser effective) {
@@ -44,7 +47,7 @@ public record UserDetail(
 				user.getCreatedAt(),
 				user.getRoles().stream().map(Role::getCode).sorted().toList(),
 				user.getDirectPermissions().stream().map(Permission::getCode).sorted().toList(),
-				effective.permissions().stream().sorted().toList());
+				effective.permissions().stream().sorted().toList(), user.getEmployeeId(), user.getPhotoFileId());
 	}
 
 }

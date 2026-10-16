@@ -33,6 +33,9 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
 
 	boolean existsByEmployeeCode(String employeeCode);
 
+	/** Case-insensitive under the table collation, like the unique key. */
+	Optional<Employee> findByEmployeeCode(String employeeCode);
+
 	boolean existsByEmployeeCodeAndIdNot(String employeeCode, Long id);
 
 	/** Another live employee with this work email (restore warnings). */

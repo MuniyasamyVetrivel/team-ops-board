@@ -29,7 +29,8 @@ import lombok.RequiredArgsConstructor;
  * does one thing and exits.
  *
  * <pre>
- * --break-glass=create-super-admin --email=... --first-name=... [--last-name=...] [--department=IT] [--generate-password]
+ * --break-glass=create-super-admin --employee-id=... --email=... --first-name=... [--last-name=...] [--department=IT]
+ *                                  [--generate-password]
  * --break-glass=reset-password     --email=...                                                  [--generate-password]
  * </pre>
  */
@@ -103,14 +104,15 @@ class BreakGlassRunner implements ApplicationRunner {
 		String command = option(args, "break-glass");
 		String email = option(args, "email");
 		if ((!CREATE.equals(command) && !RESET.equals(command)) || email == null) {
-			terminal.println("Usage: --break-glass=" + CREATE + " --email=... --first-name=... [--last-name=...] "
-					+ "[--department=IT] [--generate-password]");
+			terminal.println("Usage: --break-glass=" + CREATE + " --employee-id=... --email=... --first-name=... "
+					+ "[--last-name=...] [--department=IT] [--generate-password]");
 			terminal.println("       --break-glass=" + RESET + " --email=... [--generate-password]");
 			return 2;
 		}
 		String firstName = option(args, "first-name");
-		if (CREATE.equals(command) && firstName == null) {
-			terminal.println("--first-name is required to create a Super Admin.");
+		String employeeId = option(args, "employee-id");
+		if (CREATE.equals(command) && (firstName == null || employeeId == null)) {
+			terminal.println("--employee-id and --first-name are required to create a Super Admin.");
 			return 2;
 		}
 
@@ -144,7 +146,7 @@ class BreakGlassRunner implements ApplicationRunner {
 
 		try {
 			Result result = CREATE.equals(command)
-					? breakGlass.createSuperAdmin(email, firstName, option(args, "last-name"),
+					? breakGlass.createSuperAdmin(employeeId, email, firstName, option(args, "last-name"),
 							option(args, "department"), password, operator)
 					: breakGlass.resetSuperAdminPassword(email, password, operator);
 			terminal.println("");

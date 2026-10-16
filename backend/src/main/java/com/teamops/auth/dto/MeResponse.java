@@ -20,13 +20,15 @@ public record MeResponse(
 		DepartmentSummary department,
 		List<String> roles,
 		List<String> permissions,
-		boolean mustChangePassword) {
+		boolean mustChangePassword,
+		String employeeId,
+		Long photoVersion) {
 
 	public static MeResponse of(User user, AuthenticatedUser principal) {
 		return new MeResponse(user.getId(), user.getEmail(), user.getFirstName(), user.getLastName(),
 				user.getFullName(), user.getJobTitle(), DepartmentSummary.of(user.getDepartment()),
 				principal.roles().stream().sorted().toList(), principal.permissions().stream().sorted().toList(),
-				user.isMustChangePassword());
+				user.isMustChangePassword(), user.getEmployeeId(), user.getPhotoFileId());
 	}
 
 }

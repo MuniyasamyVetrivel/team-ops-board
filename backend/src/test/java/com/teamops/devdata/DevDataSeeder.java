@@ -136,7 +136,8 @@ public class DevDataSeeder implements ApplicationRunner {
 				Long reportsToId = seed.reportsToEmail() == null ? null
 						: userRepository.findByEmailIgnoreCase(seed.reportsToEmail()).map(User::getId).orElse(null);
 				userId = userService
-					.create(new CreateUserRequest(seed.email(), properties.password(), seed.firstName(),
+					.create(new CreateUserRequest("DEV-%03d".formatted(USERS.indexOf(seed) + 1), seed.email(),
+							properties.password(), seed.firstName(),
 							seed.lastName(), seed.jobTitle(), null, "Chennai", "09:30 - 18:30 IST", null, departmentId,
 							reportsToId, null, Set.of(seed.role()), seed.permissions()), null, ClientInfo.unknown())
 					.id();

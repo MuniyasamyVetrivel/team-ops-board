@@ -76,7 +76,7 @@ class MarketingDashboardServiceTest {
 	private static final AuthenticatedUser MARKETING_ONLY = new AuthenticatedUser(9L, "viewer@teamops.local", "Viewer", 7L,
 			Set.of("EMPLOYEE"), Set.of("MARKETING_VIEW"));
 
-	private static final UserSummary PRIYA = new UserSummary(5L, "Priya Menon", "priya.menon@teamops.local", null, null);
+	private static final UserSummary PRIYA = new UserSummary(5L, "Priya Menon", "priya.menon@teamops.local", null, null, null, null);
 
 	@Mock
 	private SeoPageRepository pageRepository;

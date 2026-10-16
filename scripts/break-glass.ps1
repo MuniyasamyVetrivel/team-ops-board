@@ -15,12 +15,13 @@
   .\scripts\break-glass.ps1 -Command reset-password -Email rakesh@example.com
 
 .EXAMPLE
-  .\scripts\break-glass.ps1 -Command create-super-admin -Email it.admin@example.com -FirstName IT -LastName Admin
+  .\scripts\break-glass.ps1 -Command create-super-admin -EmployeeId E-0002 -Email it.admin@example.com -FirstName IT -LastName Admin
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)] [ValidateSet('create-super-admin', 'reset-password')] [string] $Command,
     [Parameter(Mandatory = $true)] [string] $Email,
+    [string] $EmployeeId = '',
     [string] $FirstName = '',
     [string] $LastName = '',
     [string] $Department = '',
@@ -47,6 +48,7 @@ $arguments = @(
     '--logging.level.root=WARN',
     "--break-glass=$Command", "--email=$Email"
 )
+if ($EmployeeId) { $arguments += "--employee-id=$EmployeeId" }
 if ($FirstName) { $arguments += "--first-name=$FirstName" }
 if ($LastName) { $arguments += "--last-name=$LastName" }
 if ($Department) { $arguments += "--department=$Department" }

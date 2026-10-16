@@ -34,6 +34,7 @@ import com.teamops.common.config.BusinessCalendar;
 import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.storage.FileService;
+import com.teamops.common.storage.StoredFileRepository;
 import com.teamops.common.web.ClientInfo;
 import com.teamops.department.entity.Department;
 import com.teamops.department.repository.DepartmentRepository;
@@ -65,7 +66,8 @@ class EmployeeServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		service = new EmployeeService(repository, departments, users, mock(FileService.class), linkedInPosts, audit,
+		service = new EmployeeService(repository, departments, users, new EmployeeUserLinks(repository, users),
+				mock(StoredFileRepository.class), mock(FileService.class), linkedInPosts, audit,
 				new BusinessCalendar(Clock.fixed(Instant.parse("2026-10-12T06:00:00Z"), ZoneOffset.UTC), "Asia/Kolkata"),
 				mock(RecycleBinService.class));
 		when(repository.saveAndFlush(any())).thenAnswer(inv -> {

@@ -102,15 +102,18 @@ public class TaskReportQuery {
 		List<AssigneeSums> rows = new ArrayList<>();
 		jdbc.query("""
 				select u.id as u_id, u.first_name, u.last_name, u.email, u.job_title, u.status as u_status,
+				  u.employee_id as u_employee_id, u.photo_file_id as u_photo,
 				  d.id as d_id, d.name as d_name, d.code as d_code, %s
 				from tasks t join users u on u.id = t.assignee_id join departments d on d.id = u.department_id
 				where %s
-				group by u.id, u.first_name, u.last_name, u.email, u.job_title, u.status, d.id, d.name, d.code
+				group by u.id, u.first_name, u.last_name, u.email, u.job_title, u.status, u.employee_id, u.photo_file_id,
+				  d.id, d.name, d.code
 				order by completed desc, u.first_name, u.last_name
 				""".formatted(SUMS, where(f)), params(f), rs -> {
 			String name = (rs.getString("first_name") + " " + (rs.getString("last_name") == null ? "" : rs.getString("last_name"))).trim();
 			rows.add(new AssigneeSums(new UserSummary(rs.getLong("u_id"), name, rs.getString("email"), rs.getString("job_title"),
-					UserStatus.valueOf(rs.getString("u_status"))),
+					UserStatus.valueOf(rs.getString("u_status")), rs.getString("u_employee_id"),
+					rs.getObject("u_photo", Long.class)),
 					new DepartmentSummary(rs.getLong("d_id"), rs.getString("d_name"), rs.getString("d_code")), sums(rs)));
 		});
 		return rows;

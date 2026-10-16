@@ -9,7 +9,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-/** Profile fields an administrator may edit. Roles, permissions, status and password have their own endpoints. */
+/**
+ * Profile fields an administrator may edit. Roles, permissions, status and password have their own endpoints.
+ * {@code employeeId} null keeps the current one; a different one needs a Super Admin (403 otherwise).
+ */
 public record UpdateUserRequest(
 		@NotBlank(message = "Email is required") @Email(message = "Enter a valid email address") @Size(max = 255) String email,
 		@NotBlank(message = "First name is required") @Size(max = 100) String firstName,
@@ -21,6 +24,7 @@ public record UpdateUserRequest(
 		@Size(max = 64) String timeZone,
 		@NotNull(message = "Department is required") Long departmentId,
 		Long reportsToId,
-		@NotNull(message = "Weekly capacity is required") @DecimalMin(value = "1", message = "Capacity must be at least 1 hour") @DecimalMax(value = "80", message = "Capacity cannot exceed 80 hours") BigDecimal weeklyCapacityHours) {
+		@NotNull(message = "Weekly capacity is required") @DecimalMin(value = "1", message = "Capacity must be at least 1 hour") @DecimalMax(value = "80", message = "Capacity cannot exceed 80 hours") BigDecimal weeklyCapacityHours,
+		@Size(max = 40) String employeeId) {
 
 }

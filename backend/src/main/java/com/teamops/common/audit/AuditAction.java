@@ -26,6 +26,8 @@ public enum AuditAction {
 	USER_DISABLED,
 	USER_ENABLED,
 	USER_PASSWORD_RESET,
+	/** A profile photo was added, replaced or removed ({@code change}; {@code self} when the owner did it). */
+	USER_PHOTO_CHANGED,
 	/** A user replaced their password (required after an admin set it). */
 	PASSWORD_CHANGED,
 	/** Users created from a CSV file (one USER_CREATED entry per person as well). */

@@ -143,7 +143,7 @@ public class GlobalSearchService {
 			case EMPLOYEES -> result(group,
 					teamService.directory(new UserSearchCriteria(q, null, UserStatus.ACTIVE, null),
 							PageRequest.of(0, size, Sort.by("firstName", "lastName", "id"))),
-					u -> new Hit(ResultType.EMPLOYEE, u.id(), null, u.fullName(),
+					u -> new Hit(ResultType.EMPLOYEE, u.id(), u.employeeId(), u.fullName(),
 							join(u.jobTitle(), u.department() == null ? null : u.department().name()),
 							u.status().name(), null));
 			case KNOWLEDGE_BASE -> result(group,

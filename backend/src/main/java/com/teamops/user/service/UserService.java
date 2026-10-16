@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import com.teamops.auth.repository.RefreshTokenRepository;
+import com.teamops.celebration.service.EmployeeUserLinks;
 import com.teamops.common.audit.AuditAction;
 import com.teamops.common.audit.AuditChanges;
 import com.teamops.common.audit.AuditService;
@@ -90,12 +91,15 @@ public class UserService {
 
 	private final AppSettingsService settings;
 
+	private final EmployeeUserLinks employeeLinks;
+
 	@Transactional(readOnly = true)
 	public PageResponse<UserListItem> search(UserSearchCriteria criteria, Pageable pageable) {
 		var spec = UserSpecifications.matches(criteria.search())
 			.and(UserSpecifications.inDepartment(criteria.departmentId()))
 			.and(UserSpecifications.withStatus(criteria.status()))
-			.and(UserSpecifications.withRole(criteria.role()));
+			.and(UserSpecifications.withRole(criteria.role()))
+			.and(UserSpecifications.missingEmployeeId(criteria.missingEmployeeId()));
 		return PageResponse.of(userRepository.findAll(spec, pageable).map(UserListItem::of));
 	}
 
@@ -110,6 +114,10 @@ public class UserService {
 		if (userRepository.existsByEmailIgnoreCase(email)) {
 			throw ApiException.conflict("EMAIL_IN_USE", "A user with this email already exists");
 		}
+		String employeeId = EmployeeIds.normalise(request.employeeId());
+		if (userRepository.existsByEmployeeIdIgnoreCase(employeeId)) {
+			throw employeeIdInUse(employeeId);
+		}
 		PasswordPolicy.validate(request.password());
 		Set<Role> roles = resolveRoles(request.roles());
 		Set<Permission> grants = resolvePermissions(request.permissions());
@@ -117,6 +125,7 @@ public class UserService {
 		assertConsistent(roles, grants);
 
 		User user = new User();
+		user.setEmployeeId(employeeId);
 		user.setEmail(email);
 		user.setPasswordHash(passwordEncoder.encode(request.password()));
 		user.setMustChangePassword(true);
@@ -134,10 +143,11 @@ public class UserService {
 		user.setRoles(new HashSet<>(roles));
 		user.setDirectPermissions(new HashSet<>(grants));
 		User saved = userRepository.save(user);
+		employeeLinks.linkUser(saved);
 
 		auditService.record(AuditAction.USER_CREATED, actorId(actor), "USER", saved.getId(),
-				Map.of("email", email, "departmentId", saved.getDepartment().getId(), "roles", roleCodes(roles),
-						"permissions", permissionCodes(grants)),
+				Map.of("employeeId", employeeId, "email", email, "departmentId", saved.getDepartment().getId(), "roles",
+						roleCodes(roles), "permissions", permissionCodes(grants)),
 				client);
 		return toDetail(saved);
 	}
@@ -153,8 +163,10 @@ public class UserService {
 				? user.getDepartment() : resolveActiveDepartment(request.departmentId());
 		User reportsTo = resolveReportsTo(request.reportsToId(), id);
 		String timeZone = timeZone(request.timeZone());
+		String employeeId = changedEmployeeId(user, request.employeeId(), actor);
 
 		AuditChanges changes = new AuditChanges();
+		changes.track("employeeId", user.getEmployeeId(), employeeId == null ? user.getEmployeeId() : employeeId);
 		changes.track("email", user.getEmail(), email);
 		changes.track("firstName", user.getFirstName(), request.firstName().trim());
 		changes.track("lastName", user.getLastName(), trimToEmpty(request.lastName()));
@@ -179,11 +191,40 @@ public class UserService {
 		user.setDepartment(department);
 		user.setReportsTo(reportsTo);
 		user.setWeeklyCapacityHours(request.weeklyCapacityHours());
+		if (employeeId != null) {
+			user.setEmployeeId(employeeId);
+			employeeLinks.linkUser(user);
+		}
 
 		if (!changes.isEmpty()) {
 			auditService.record(AuditAction.USER_UPDATED, actorId(actor), "USER", id, changes.toDetails(), client);
 		}
 		return toDetail(user);
+	}
+
+	/**
+	 * The new employee ID when the request changes it, else null. Changing it (or setting one a user never had) is
+	 * the Super Admin's alone; it must stay unique.
+	 */
+	private String changedEmployeeId(User user, String requested, AuthenticatedUser actor) {
+		if (requested == null) {
+			return null;
+		}
+		String employeeId = EmployeeIds.normalise(requested);
+		if (employeeId.equals(user.getEmployeeId())) {
+			return null;
+		}
+		if (actor != null && !actor.isSuperAdmin()) {
+			throw ApiException.forbidden("EMPLOYEE_ID_SUPER_ADMIN_ONLY", "Only a Super Admin can change an employee ID");
+		}
+		if (userRepository.existsByEmployeeIdIgnoreCaseAndIdNot(employeeId, user.getId())) {
+			throw employeeIdInUse(employeeId);
+		}
+		return employeeId;
+	}
+
+	private static ApiException employeeIdInUse(String employeeId) {
+		return ApiException.conflict("EMPLOYEE_ID_IN_USE", "Another user already has the employee ID " + employeeId);
 	}
 
 	@Transactional

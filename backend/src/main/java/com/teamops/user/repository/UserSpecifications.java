@@ -34,7 +34,13 @@ public final class UserSpecifications {
 				cb.like(cb.lower(cb.concat(cb.concat(root.get("firstName"), " "), root.get("lastName"))), pattern,
 						'\\'),
 				cb.like(cb.lower(root.get("email")), pattern, '\\'),
-				cb.like(cb.lower(root.get("jobTitle")), pattern, '\\'));
+				cb.like(cb.lower(root.get("jobTitle")), pattern, '\\'),
+				cb.like(cb.lower(root.get("employeeId")), pattern, '\\'));
+	}
+
+	/** Users still without an employee ID (created before Phase X4). */
+	public static Specification<User> missingEmployeeId(boolean only) {
+		return only ? (root, query, cb) -> cb.isNull(root.get("employeeId")) : all();
 	}
 
 	public static Specification<User> inDepartment(Long departmentId) {

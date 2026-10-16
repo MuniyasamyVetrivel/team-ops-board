@@ -226,7 +226,7 @@ class AdminApiSecurityTest {
 
 	private static String validCreateBody() {
 		return """
-				{"email":"new.person@teamops.local","password":"Welcome123","firstName":"New",
+				{"employeeId":"E-2001","email":"new.person@teamops.local","password":"Welcome123","firstName":"New",
 				 "departmentId":5,"roles":["EMPLOYEE"],"permissions":[]}
 				""";
 	}

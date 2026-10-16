@@ -37,8 +37,8 @@ public final class ReportDocuments {
 								r.departments().stream().map(d -> List.of(d.department().name(), of(d.created()), of(d.completed()),
 										of(d.onTimePct()), of(d.open()), of(d.overdue()), of(d.overduePct()))).toList()),
 						new Section("Employee productivity",
-								List.of("Employee", "Department", "Completed", "On time %", "Open", "Overdue", "Hours logged"),
-								r.employees().stream().map(e -> List.of(e.user().fullName(), e.department().name(), of(e.completed()),
+								List.of("Employee", "Employee ID", "Department", "Completed", "On time %", "Open", "Overdue", "Hours logged"),
+								r.employees().stream().map(e -> List.of(e.user().fullName(), of(e.user().employeeId()), e.department().name(), of(e.completed()),
 										of(e.onTimePct()), of(e.open()), of(e.overdue()), of(e.hoursLogged()))).toList()),
 						new Section("Weekly trend", List.of("Week starting", "Created", "Completed"),
 								r.trend().stream().map(w -> List.of(of(w.weekStart()), of(w.created()), of(w.completed()))).toList())));
@@ -54,8 +54,8 @@ public final class ReportDocuments {
 						r.departments().stream().map(d -> List.of(d.department().name(), of(d.people()), of(d.activeTasks()),
 								of(d.overdue()), of(d.remainingHours()), of(d.capacityHours()), of(d.workloadPercent()), of(d.level()))).toList()),
 						new Section("Employee workload",
-								List.of("Employee", "Department", "Active tasks", "Overdue", "Due today", "Remaining hours", "Capacity hours", "Workload %", "Level"),
-								r.employees().rows().stream().map(e -> List.of(e.user().fullName(), e.department().name(), of(e.activeTasks()),
+								List.of("Employee", "Employee ID", "Department", "Active tasks", "Overdue", "Due today", "Remaining hours", "Capacity hours", "Workload %", "Level"),
+								r.employees().rows().stream().map(e -> List.of(e.user().fullName(), of(e.user().employeeId()), e.department().name(), of(e.activeTasks()),
 										of(e.overdue()), of(e.dueToday()), of(e.remainingHours()), of(e.capacityHours()),
 										of(e.workloadPercent()), of(e.level()))).toList())));
 	}

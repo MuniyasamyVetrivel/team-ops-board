@@ -76,7 +76,8 @@ class BreakGlassIT {
 	@Test
 	void createsANewSuperAdminWhoMustChangeThePassword() throws Exception {
 		String email = "break.glass." + System.nanoTime() + "@teamops.local";
-		Result result = breakGlass.createSuperAdmin(email, "Break", "Glass", "IT", PASSWORD, OPERATOR);
+		Result result = breakGlass.createSuperAdmin(IntegrationUsers.employeeId(), email, "Break", "Glass", "IT", PASSWORD,
+				OPERATOR);
 		users.track(result.userId(), email);
 
 		login(email, PASSWORD).andExpect(status().isOk())
@@ -87,10 +88,12 @@ class BreakGlassIT {
 				+ " AND user_agent = 'break-glass CLI (it-ops@it-server)'", Long.class, result.userId())).isEqualTo(1);
 
 		// The same email again is refused: an existing Super Admin is reset instead.
-		assertThatThrownBy(() -> breakGlass.createSuperAdmin(email, "Again", "", "IT", PASSWORD, OPERATOR))
+		assertThatThrownBy(() -> breakGlass.createSuperAdmin(IntegrationUsers.employeeId(), email, "Again", "", "IT",
+				PASSWORD, OPERATOR))
 			.isInstanceOfSatisfying(ApiException.class, ex -> assertThat(ex.getCode()).isEqualTo("EMAIL_IN_USE"));
 		// Super Admin passwords need 12+ characters.
-		assertThatThrownBy(() -> breakGlass.createSuperAdmin("x" + email, "X", "", "IT", "Short1pass", OPERATOR))
+		assertThatThrownBy(() -> breakGlass.createSuperAdmin(IntegrationUsers.employeeId(), "x" + email, "X", "", "IT",
+				"Short1pass", OPERATOR))
 			.isInstanceOfSatisfying(ApiException.class, ex -> assertThat(ex.getCode()).isEqualTo("WEAK_PASSWORD"));
 	}
 

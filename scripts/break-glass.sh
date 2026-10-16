@@ -2,7 +2,7 @@
 # Break-glass recovery on the server: create a new Super Admin, or reset a Super Admin's password.
 #
 #   scripts/break-glass.sh reset-password --email rakesh@example.com
-#   scripts/break-glass.sh create-super-admin --email it.admin@example.com --first-name IT --last-name Admin
+#   scripts/break-glass.sh create-super-admin --employee-id E-0002 --email it.admin@example.com --first-name IT --last-name Admin
 #
 # For when nobody can sign in as Super Admin (see "Break-glass access" in docs/backup-and-restore.md). Runs the
 # backend jar once as a command-line tool, without the web server, against the database in the app's .env (or the
@@ -12,8 +12,8 @@
 # with your Linux user and the host name. Run it in an interactive terminal on the server itself, as the user the app
 # runs as (for example: sudo -u teamops scripts/break-glass.sh ...). Needs Java 21 and the built backend jar.
 #
-# Options: --email E [--first-name F] [--last-name L] [--department CODE] [--generate-password]
-#          [--jar PATH] [--app-dir DIR (folder with .env; default backend/)] [--java PATH]
+# Options: --email E [--employee-id ID (required to create)] [--first-name F] [--last-name L] [--department CODE]
+#          [--generate-password] [--jar PATH] [--app-dir DIR (folder with .env; default backend/)] [--java PATH]
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -21,10 +21,11 @@ command="${1:-}"
 [[ "$command" == "create-super-admin" || "$command" == "reset-password" ]] || {
   echo "Usage: $0 create-super-admin|reset-password --email E [options] (see the top of this file)" >&2; exit 2; }
 shift
-email="" first="" last="" department="" generate=0 jar="" app_dir="$script_dir/../backend" java_bin=""
+email="" employee_id="" first="" last="" department="" generate=0 jar="" app_dir="$script_dir/../backend" java_bin=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --email) email="$2"; shift 2 ;;
+    --employee-id) employee_id="$2"; shift 2 ;;
     --first-name) first="$2"; shift 2 ;;
     --last-name) last="$2"; shift 2 ;;
     --department) department="$2"; shift 2 ;;
@@ -50,6 +51,7 @@ args=(-jar "$jar"
   --spring.main.web-application-type=none --app.scheduling.enabled=false --spring.main.banner-mode=off
   --logging.level.root=WARN
   "--break-glass=$command" "--email=$email")
+[[ -n "$employee_id" ]] && args+=("--employee-id=$employee_id")
 [[ -n "$first" ]] && args+=("--first-name=$first")
 [[ -n "$last" ]] && args+=("--last-name=$last")
 [[ -n "$department" ]] && args+=("--department=$department")

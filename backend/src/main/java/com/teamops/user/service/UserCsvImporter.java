@@ -56,6 +56,7 @@ public class UserCsvImporter implements CsvImporter<UserCsvImporter.Row> {
 	public static final String TYPE = "users";
 
 	private static final List<CsvColumn> COLUMNS = List.of(
+			CsvColumn.required("employee_id", "Employee ID, unique; " + EmployeeIds.DESCRIPTION, "E-1042"),
 			CsvColumn.required("first_name", "First name", "Asha"),
 			CsvColumn.optional("last_name", "Last name", "Iyer"),
 			CsvColumn.required("email", "Work email; also the sign-in name", "asha.iyer@example.com"),
@@ -71,7 +72,7 @@ public class UserCsvImporter implements CsvImporter<UserCsvImporter.Row> {
 			CsvColumn.optional("extra_permissions",
 					"Permissions on top of the role, comma separated, e.g. MARKETING_VIEW,LEAD_EDIT", ""));
 
-	private static final List<String> RESULT_HEADER = List.of("email", "name", "temporary_password");
+	private static final List<String> RESULT_HEADER = List.of("employee_id", "email", "name", "temporary_password");
 
 	private final UserService userService;
 
@@ -91,7 +92,7 @@ public class UserCsvImporter implements CsvImporter<UserCsvImporter.Row> {
 
 	private final BusinessCalendar calendar;
 
-	public record Row(String email, String firstName, String lastName, String phone, String jobTitle,
+	public record Row(String employeeId, String email, String firstName, String lastName, String phone, String jobTitle,
 			Long departmentId, Set<Long> extraDepartmentIds, String role, String reportsToEmail, String location,
 			String timeZone, Set<String> permissions) {
 	}
@@ -139,11 +140,13 @@ public class UserCsvImporter implements CsvImporter<UserCsvImporter.Row> {
 		// Emails of earlier rows: all of them, and those that were valid (and will be created before later rows).
 		Set<String> emailsInFile = new HashSet<>();
 		Set<String> validEmailsInFile = new HashSet<>();
+		Set<String> employeeIdsInFile = new HashSet<>();
 		List<String[]> created = new ArrayList<>();
 		return new ImportSession<>() {
 
 			@Override
 			public Row parse(RowReader row) {
+				String employeeId = row.text("employee_id", EmployeeIds.MAX_LENGTH);
 				String firstName = row.text("first_name", 100);
 				String lastName = row.text("last_name", 100);
 				String email = row.email("email");
@@ -159,6 +162,21 @@ public class UserCsvImporter implements CsvImporter<UserCsvImporter.Row> {
 
 				if (email != null && userRepository.existsByEmailIgnoreCase(email)) {
 					row.error("email", "A user with this email already exists");
+				}
+				if (employeeId != null) {
+					try {
+						employeeId = EmployeeIds.normalise(employeeId);
+						String key = employeeId.toUpperCase(Locale.ROOT);
+						if (userRepository.existsByEmployeeIdIgnoreCase(employeeId)) {
+							row.error("employee_id", "Another user already has this employee ID");
+						}
+						else if (!employeeIdsInFile.add(key)) {
+							row.error("employee_id", "This employee ID is on an earlier row too");
+						}
+					}
+					catch (ApiException ex) {
+						row.error("employee_id", ex.getMessage());
+					}
 				}
 				Department department = department(row, "department_code", departmentCode);
 				Set<Long> extraDepartmentIds = new LinkedHashSet<>();
@@ -220,7 +238,7 @@ public class UserCsvImporter implements CsvImporter<UserCsvImporter.Row> {
 					return null;
 				}
 				validEmailsInFile.add(email);
-				return new Row(email, firstName, lastName, phone, jobTitle, department.getId(), extraDepartmentIds,
+				return new Row(employeeId, email, firstName, lastName, phone, jobTitle, department.getId(), extraDepartmentIds,
 						role, reportsTo, location, zone, grants);
 			}
 
@@ -253,7 +271,7 @@ public class UserCsvImporter implements CsvImporter<UserCsvImporter.Row> {
 					Long reportsToId = record.reportsToEmail() == null ? null
 							: userRepository.findByEmailIgnoreCase(record.reportsToEmail()).orElseThrow().getId();
 					Long userId = userService
-						.create(new CreateUserRequest(record.email(), password, record.firstName(), record.lastName(),
+						.create(new CreateUserRequest(record.employeeId(), record.email(), password, record.firstName(), record.lastName(),
 								record.jobTitle(), record.phone(), record.location(), null, record.timeZone(),
 								record.departmentId(), reportsToId, null, Set.of(record.role()), record.permissions()),
 								actor, ClientInfo.unknown())
@@ -263,10 +281,10 @@ public class UserCsvImporter implements CsvImporter<UserCsvImporter.Row> {
 						departmentMemberRepository.save(DepartmentMember.of(departmentRepository.getReferenceById(departmentId),
 								user, DepartmentMemberRole.MEMBER));
 					}
-					created.add(new String[] { record.email(), fullName(record), password });
+					created.add(new String[] { record.employeeId(), record.email(), fullName(record), password });
 				}
 				auditService.record(AuditAction.USERS_IMPORTED, actor.id(), "USER", null,
-						Map.of("count", created.size(), "emails", created.stream().map(c -> c[0]).toList()),
+						Map.of("count", created.size(), "emails", created.stream().map(c -> c[1]).toList()),
 						ClientInfo.unknown());
 				return records.size();
 			}

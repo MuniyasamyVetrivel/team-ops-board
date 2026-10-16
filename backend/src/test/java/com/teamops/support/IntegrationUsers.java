@@ -47,7 +47,7 @@ public class IntegrationUsers {
 
 	public Long create(Long departmentId, String role, String... permissions) {
 		String email = "it-" + UUID.randomUUID() + "@teamops.local";
-		Long id = userService.create(new CreateUserRequest(email, PASSWORD, "Integration", role, "QA", null, null,
+		Long id = userService.create(new CreateUserRequest(employeeId(), email, PASSWORD, "Integration", role, "QA", null, null,
 				null, null, departmentId, null, null, Set.of(role), Set.of(permissions)), null, ClientInfo.unknown()).id();
 		created.add(id);
 		emails.put(id, email);
@@ -70,6 +70,11 @@ public class IntegrationUsers {
 	public void track(Long id, String email) {
 		created.add(id);
 		emails.put(id, email);
+	}
+
+	/** A unique throwaway employee ID ("IT-" and random hex). */
+	public static String employeeId() {
+		return "IT-" + UUID.randomUUID().toString().replace("-", "").substring(0, 20).toUpperCase();
 	}
 
 	public String email(Long id) {
