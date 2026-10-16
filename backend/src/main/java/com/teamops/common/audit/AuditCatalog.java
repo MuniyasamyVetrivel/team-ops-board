@@ -22,7 +22,7 @@ public final class AuditCatalog {
 		IMPORTS("CSV imports"), SEO("SEO"), TARGETS("Marketing targets"), ACTIVITIES("Marketing activities"),
 		CAMPAIGNS("Campaigns"), LEADS("Leads"), BACKLINKS("Backlinks"), CONTENT("Content"),
 		CELEBRATIONS("Celebrations and events"), REPORTS("Reports"), SETTINGS("Settings"),
-		BACKUPS("Backups and exports"), MODULES("Department tools"),
+		BACKUPS("Backups and exports"), MODULES("Department tools"), BENCH("Bench management"),
 		/** The automatic record changes of every module (each entry also belongs to its record's module). */
 		RECORDS("Record changes");
 
@@ -157,6 +157,9 @@ public final class AuditCatalog {
 			case SETTING_UPDATED -> Module.SETTINGS;
 			case BACKUP_COMPLETED, BACKUP_COPY_FAILED, BACKUP_FAILED, BACKUP_REMOVED, BACKUP_RESTORED, DATA_EXPORTED -> Module.BACKUPS;
 			case MODULE_ENABLED, MODULE_DISABLED -> Module.MODULES;
+			case CONSULTANT_CREATED, CONSULTANT_UPDATED, CONSULTANT_DELETED, CLIENT_CREATED, CLIENT_UPDATED,
+					CLIENT_DELETED, ENGAGEMENT_CREATED, ENGAGEMENT_UPDATED, ENGAGEMENT_DELETED ->
+				Module.BENCH;
 		};
 	}
 

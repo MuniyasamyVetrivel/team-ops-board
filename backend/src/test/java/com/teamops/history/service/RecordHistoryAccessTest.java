@@ -13,6 +13,9 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 import com.teamops.approval.service.ApprovalService;
+import com.teamops.bench.service.ClientService;
+import com.teamops.bench.service.ConsultantService;
+import com.teamops.bench.service.EngagementService;
 import com.teamops.calendar.service.CalendarService;
 import com.teamops.celebration.service.EmployeeService;
 import com.teamops.celebration.service.ImportantDayService;
@@ -28,6 +31,7 @@ import com.teamops.marketing.email.service.EmailCampaignService;
 import com.teamops.marketing.lead.service.LeadService;
 import com.teamops.marketing.paid.service.PaidCampaignService;
 import com.teamops.marketing.target.service.TargetService;
+import com.teamops.module.service.ModuleAccessService;
 import com.teamops.project.service.ProjectService;
 import com.teamops.support.SliceAuth;
 import com.teamops.task.service.TaskService;
@@ -48,7 +52,8 @@ class RecordHistoryAccessTest {
 			mock(DocumentService.class), mock(CalendarService.class), mock(EmployeeService.class),
 			mock(ImportantDayService.class), mock(MarketingEventService.class), mock(ActivityService.class),
 			mock(BacklinkService.class), mock(ContentService.class), leads, mock(PaidCampaignService.class),
-			mock(EmailCampaignService.class), mock(TargetService.class));
+			mock(EmailCampaignService.class), mock(TargetService.class), mock(ModuleAccessService.class),
+			mock(ConsultantService.class), mock(ClientService.class), mock(EngagementService.class));
 
 	@Test
 	void aTaskUsesTheTaskReadCheck() {

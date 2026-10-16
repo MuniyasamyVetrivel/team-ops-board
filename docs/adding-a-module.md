@@ -46,7 +46,7 @@ A department tool such as Bench Management, Vendors or Finance is a **module**. 
    	public static final String KEY = "bench";
 
    	@Bean
-   	ModuleDefinition benchModule() {
+   	ModuleDefinition benchModuleDefinition() {
    		return new ModuleDefinition(KEY, "Bench Management", "Users",
    				"Consultants, client engagements, allocations and the bench", "BENCH_VIEW", "BENCH_EDIT");
    	}
@@ -54,6 +54,7 @@ A department tool such as Bench Management, Vendors or Finance is a **module**. 
    }
    ```
 
+   - Don't name the `@Bean` method after the configuration class (`benchModule` in `BenchModule`): both would register as the bean `benchModule` and startup fails.
    - The key is lower case with dashes. It appears in URLs, so never change it once data exists.
    - The icon is a Lucide v1 icon name.
    - Add the permission codes to `PermissionCodes` when Java code references them.

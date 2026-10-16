@@ -13,6 +13,13 @@ import com.teamops.approval.entity.ApprovalType;
 import com.teamops.approval.service.ApprovalService;
 import com.teamops.calendar.entity.CalendarEvent;
 import com.teamops.calendar.service.CalendarService;
+import com.teamops.bench.BenchModule;
+import com.teamops.bench.entity.Client;
+import com.teamops.bench.entity.ClientEngagement;
+import com.teamops.bench.entity.Consultant;
+import com.teamops.bench.service.ClientService;
+import com.teamops.bench.service.ConsultantService;
+import com.teamops.bench.service.EngagementService;
 import com.teamops.celebration.entity.Employee;
 import com.teamops.celebration.entity.ImportantDay;
 import com.teamops.celebration.entity.MarketingEvent;
@@ -46,6 +53,7 @@ import com.teamops.marketing.target.entity.MarketingTarget;
 import com.teamops.marketing.target.entity.TargetType;
 import com.teamops.marketing.target.service.TargetService;
 import com.teamops.module.entity.DepartmentModule;
+import com.teamops.module.service.ModuleAccessService;
 import com.teamops.project.entity.Project;
 import com.teamops.project.service.ProjectService;
 import com.teamops.sla.entity.SlaPolicy;
@@ -82,7 +90,8 @@ public class RecordHistoryAccess {
 			CalendarService calendar, EmployeeService employees, ImportantDayService importantDays,
 			MarketingEventService events, ActivityService activities, BacklinkService backlinks,
 			ContentService content, LeadService leads, PaidCampaignService paidCampaigns,
-			EmailCampaignService emailCampaigns, TargetService targets) {
+			EmailCampaignService emailCampaigns, TargetService targets, ModuleAccessService moduleAccess,
+			ConsultantService consultants, ClientService clients, EngagementService engagements) {
 		register(Task.class, (id, u) -> {
 			require(u, "TASK_VIEW");
 			tasks.get(id, u);
@@ -158,6 +167,18 @@ public class RecordHistoryAccess {
 			require(u, "MARKETING_VIEW", "CONTENT_VIEW");
 			content.get(id, u);
 		});
+		register(Consultant.class, (id, u) -> {
+			requireModule(moduleAccess, u, BenchModule.KEY);
+			consultants.get(id);
+		});
+		register(Client.class, (id, u) -> {
+			requireModule(moduleAccess, u, BenchModule.KEY);
+			clients.get(id);
+		});
+		register(ClientEngagement.class, (id, u) -> {
+			requireModule(moduleAccess, u, BenchModule.KEY);
+			engagements.get(id);
+		});
 	}
 
 	/** Record types whose history ordinary users can open (audit viewers can open any). */
@@ -186,6 +207,13 @@ public class RecordHistoryAccess {
 			if (!viewer.hasPermission(permission)) {
 				throw notFound();
 			}
+		}
+	}
+
+	/** A department tool's record: the viewer may open the module (its view permission and its switch). */
+	private static void requireModule(ModuleAccessService moduleAccess, AuthenticatedUser viewer, String key) {
+		if (moduleAccess.toolsFor(viewer).stream().noneMatch(tool -> tool.key().equals(key))) {
+			throw notFound();
 		}
 	}
 

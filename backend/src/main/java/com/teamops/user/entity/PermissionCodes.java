@@ -31,6 +31,12 @@ public final class PermissionCodes {
 	/** Switch department tools (modules) on or off per department (Super Admin only by default). */
 	public static final String MODULE_MANAGE = "MODULE_MANAGE";
 
+	/** Bench Management: consultants, clients, engagements (Super Admin only by default; a department tool). */
+	public static final String BENCH_VIEW = "BENCH_VIEW";
+
+	/** Change Bench Management records (with BENCH_VIEW). */
+	public static final String BENCH_EDIT = "BENCH_EDIT";
+
 	/** See money amounts (budgets, spend, approval amounts), including in audit history. */
 	public static final String FINANCE_VIEW = "FINANCE_VIEW";
 

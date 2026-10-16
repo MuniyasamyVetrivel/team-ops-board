@@ -19,7 +19,9 @@ public interface CsvImporter<T> {
 		/** {@code /api/marketing/imports}: marketing figures, employees and important days. */
 		MARKETING,
 		/** {@code /api/users/import}: user administration. */
-		USERS
+		USERS,
+		/** {@code /api/modules/bench/imports}: Bench Management, behind its module switch. */
+		BENCH
 
 	}
 

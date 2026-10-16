@@ -157,6 +157,20 @@ public enum AuditAction {
 	/** A department tool was switched on for a department (module, moduleName, departmentId, department). */
 	MODULE_ENABLED,
 	/** A department tool was switched off for a department (module, moduleName, departmentId, department). */
-	MODULE_DISABLED
+	MODULE_DISABLED,
+	/** A consultant was added to Bench Management (employeeId, employeeCode, name). */
+	CONSULTANT_CREATED,
+	/** Details, skills, certifications or employment status changed ({@code changes} holds from/to). */
+	CONSULTANT_UPDATED,
+	CONSULTANT_DELETED,
+	CLIENT_CREATED,
+	/** Name, location, status or notes changed ({@code changes} holds from/to). */
+	CLIENT_UPDATED,
+	CLIENT_DELETED,
+	/** A client engagement was created (name, clientId, client). */
+	ENGAGEMENT_CREATED,
+	/** Client, name, dates, location, account manager or notes changed ({@code changes} holds from/to). */
+	ENGAGEMENT_UPDATED,
+	ENGAGEMENT_DELETED
 
 }
