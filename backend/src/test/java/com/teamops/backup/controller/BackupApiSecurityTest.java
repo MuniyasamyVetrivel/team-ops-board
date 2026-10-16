@@ -24,6 +24,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.teamops.backup.dto.BackupDtos.CopyStatus;
+import com.teamops.backup.dto.BackupDtos.Problem;
 import com.teamops.backup.dto.BackupDtos.Run;
 import com.teamops.backup.dto.BackupDtos.Status;
 import com.teamops.backup.service.BackupService;
@@ -80,14 +82,19 @@ class BackupApiSecurityTest {
 
 	@Test
 	void theSuperAdminSeesTheStatusAndHistory() throws Exception {
-		when(backups.status()).thenReturn(new Status(false, List.of(new com.teamops.backup.dto.BackupDtos.Problem(
-				"STALE", "The last successful backup is older than 26 hours")), null, null, false, true,
-				"0 0 2 * * *", "Asia/Kolkata", Instant.parse("2026-10-16T20:30:00Z"), "LOCAL D:\\team-ops-backups", 30,
-				12, 26));
+		Problem stale = new Problem("SECONDARY_STALE", "The last second copy is older than 26 hours");
+		when(backups.status()).thenReturn(new Status(false, List.of(stale),
+				List.of(new CopyStatus("PRIMARY", "LOCAL D:\\team-ops-backups", true, List.of(), null, "SUCCESS", null),
+						new CopyStatus("SECONDARY", "S3 copy/backups/", false, List.of(stale), null, "FAILED", "denied")),
+				null, null, false, true, "0 0 2 * * *", "Asia/Kolkata", Instant.parse("2026-10-16T20:30:00Z"),
+				"LOCAL D:\\team-ops-backups", "S3 copy/backups/", 30, 12, 26));
 		mvc.perform(get("/api/admin/backups/status").header(HttpHeaders.AUTHORIZATION, bearer(SliceAuth.SUPER_ADMIN)))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.healthy").value(false))
-			.andExpect(jsonPath("$.problems[0].code").value("STALE"))
+			.andExpect(jsonPath("$.problems[0].code").value("SECONDARY_STALE"))
+			.andExpect(jsonPath("$.copies[1].copy").value("SECONDARY"))
+			.andExpect(jsonPath("$.copies[1].healthy").value(false))
+			.andExpect(jsonPath("$.secondaryTarget").value("S3 copy/backups/"))
 			.andExpect(jsonPath("$.keepDaily").value(30));
 
 		when(backups.history(any())).thenReturn(new PageResponse<>(List.of(), 0, 30, 0, 0));
@@ -100,7 +107,7 @@ class BackupApiSecurityTest {
 	@Test
 	void theSuperAdminStartsABackup() throws Exception {
 		when(backups.startNow(1L)).thenReturn(new Run(5L, "MANUAL", "RUNNING", Instant.parse("2026-10-16T10:00:00Z"),
-				null, null, null, null, "LOCAL D:\\team-ops-backups", null, null, 1L, null));
+				null, null, null, null, "LOCAL D:\\team-ops-backups", null, null, 1L, null, null));
 		mvc.perform(post("/api/admin/backups/run").header(HttpHeaders.AUTHORIZATION, bearer(SliceAuth.SUPER_ADMIN)))
 			.andExpect(status().isAccepted())
 			.andExpect(jsonPath("$.status").value("RUNNING"));

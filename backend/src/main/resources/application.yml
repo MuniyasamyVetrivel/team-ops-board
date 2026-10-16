@@ -87,6 +87,19 @@ app:
       access-key: ${BACKUP_S3_ACCESS_KEY:}
       secret-key: ${BACKUP_S3_SECRET_KEY:}
       path-style: ${BACKUP_S3_PATH_STYLE:false}
+    # Optional second copy of every backup: LOCAL or S3, blank for none. Stored, verified and kept the same way.
+    secondary:
+      target: ${BACKUP_SECONDARY_TARGET:}
+      local:
+        path: ${BACKUP_SECONDARY_LOCAL_PATH:}
+      s3:
+        bucket: ${BACKUP_SECONDARY_S3_BUCKET:}
+        prefix: ${BACKUP_SECONDARY_S3_PREFIX:backups}
+        region: ${BACKUP_SECONDARY_S3_REGION:}
+        endpoint: ${BACKUP_SECONDARY_S3_ENDPOINT:}
+        access-key: ${BACKUP_SECONDARY_S3_ACCESS_KEY:}
+        secret-key: ${BACKUP_SECONDARY_S3_SECRET_KEY:}
+        path-style: ${BACKUP_SECONDARY_S3_PATH_STYLE:false}
     keep-daily: ${BACKUP_KEEP_DAILY:30}
     keep-monthly: ${BACKUP_KEEP_MONTHLY:12}
     # The health check and status page flag a problem when the last successful backup is older than this.

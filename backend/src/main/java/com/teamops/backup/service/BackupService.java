@@ -25,13 +25,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import javax.crypto.SecretKey;
 
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -41,12 +41,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 
+import com.teamops.backup.dto.BackupDtos.CopyStatus;
 import com.teamops.backup.dto.BackupDtos.Problem;
 import com.teamops.backup.dto.BackupDtos.Run;
 import com.teamops.backup.dto.BackupDtos.Status;
 import com.teamops.backup.entity.BackupRun;
 import com.teamops.backup.entity.BackupRun.Trigger;
 import com.teamops.backup.repository.BackupRunRepository;
+import com.teamops.backup.service.BackupTargets.Copy;
 import com.teamops.common.audit.AuditAction;
 import com.teamops.common.audit.AuditService;
 import com.teamops.common.exception.ApiException;
@@ -60,9 +62,11 @@ import tools.jackson.databind.ObjectMapper;
 /**
  * Backups of the database and the uploads folder. A run dumps the database (mysqldump), zips the dump with every
  * uploaded file and a manifest, encrypts the ZIP ({@link BackupCrypto}, key from BACKUP_ENCRYPTION_KEY) and records
- * the SHA-256 of the encrypted file. The file and a {@code .sha256} sidecar go to the {@link BackupTarget}; the stored
- * copy is then read back, its checksum compared and its contents decrypted and opened, before the run counts as a
- * success. Afterwards the retention policy ({@link BackupRetention}) deletes old backups. One run at a time.
+ * the SHA-256 of the encrypted file. The file and a {@code .sha256} sidecar then go to each target
+ * ({@link BackupTargets}: the first, and the optional second copy). Each stored copy is read back, its checksum
+ * compared and its contents decrypted and opened; the copies succeed or fail on their own, so a broken first target
+ * does not stop the second copy. Afterwards the retention policy ({@link BackupRetention}) deletes old backups on each
+ * target. One run at a time.
  */
 @Slf4j
 @Service
@@ -79,11 +83,13 @@ public class BackupService {
 
 	private static final int MAX_ERROR = 2000;
 
+	private static final List<BackupRun.Status> FINISHED = List.of(BackupRun.Status.SUCCESS, BackupRun.Status.FAILED);
+
 	private final BackupProperties properties;
 
 	private final BackupRunRepository runs;
 
-	private final ObjectProvider<BackupTarget> targets;
+	private final BackupTargets targets;
 
 	private final DatabaseDumper dumper;
 
@@ -103,7 +109,7 @@ public class BackupService {
 
 	private final AtomicBoolean running = new AtomicBoolean();
 
-	public BackupService(BackupProperties properties, BackupRunRepository runs, ObjectProvider<BackupTarget> targets,
+	public BackupService(BackupProperties properties, BackupRunRepository runs, BackupTargets targets,
 			DatabaseDumper dumper, StorageProperties storage, AuditService auditService, ObjectMapper objectMapper,
 			@Qualifier("applicationTaskExecutor") TaskExecutor executor, Clock clock,
 			@Value("${app.time-zone:Asia/Kolkata}") String zone,
@@ -167,22 +173,55 @@ public class BackupService {
 	}
 
 	public Status status() {
+		Instant now = clock.instant();
 		BackupRun lastSuccess = runs.findFirstByStatusOrderByStartedAtDesc(BackupRun.Status.SUCCESS).orElse(null);
-		BackupRun lastFinished = runs
-			.findFirstByStatusInOrderByStartedAtDesc(List.of(BackupRun.Status.SUCCESS, BackupRun.Status.FAILED))
-			.orElse(null);
-		List<Problem> problems = BackupHealth.problems(lastSuccess, lastFinished, configurationError(),
-				clock.instant(), properties.maxAgeHours());
+		BackupRun lastFinished = runs.findFirstByStatusInOrderByStartedAtDesc(FINISHED).orElse(null);
+		List<CopyStatus> copies = new ArrayList<>();
+		copies.add(copyStatus(Copy.PRIMARY, targets.describe(Copy.PRIMARY),
+				new BackupHealth.CopyState(lastSuccess == null ? null : finishedAt(lastSuccess),
+						lastFinished != null && lastFinished.getStatus() == BackupRun.Status.FAILED,
+						lastFinished == null ? null : lastFinished.getErrorMessage()),
+				lastFinished == null ? null : lastFinished.getStatus(), now));
+		String secondaryTarget = null;
+		if (targets.hasSecondary()) {
+			secondaryTarget = targets.describe(Copy.SECONDARY);
+			BackupRun secondSuccess = runs.findFirstBySecondaryStatusOrderByStartedAtDesc(BackupRun.Status.SUCCESS)
+				.orElse(null);
+			BackupRun secondFinished = runs.findFirstBySecondaryStatusInOrderByStartedAtDesc(FINISHED).orElse(null);
+			copies.add(copyStatus(Copy.SECONDARY, secondaryTarget,
+					new BackupHealth.CopyState(secondSuccess == null ? null : finishedAt(secondSuccess),
+							secondFinished != null && secondFinished.getSecondaryStatus() == BackupRun.Status.FAILED,
+							secondFinished == null ? null : secondFinished.getSecondaryError()),
+					secondFinished == null ? null : secondFinished.getSecondaryStatus(), now));
+		}
+		List<Problem> problems = new ArrayList<>();
+		String configurationError = configurationError();
+		if (configurationError != null) {
+			problems.add(BackupHealth.notConfigured(configurationError));
+		}
+		copies.forEach(c -> problems.addAll(c.problems()));
+
 		boolean scheduled = properties.enabled() && schedulingEnabled;
 		Instant nextRun = null;
 		if (scheduled) {
-			ZonedDateTime next = CronExpression.parse(properties.cron()).next(ZonedDateTime.now(clock).withZoneSameInstant(zone));
+			ZonedDateTime next = CronExpression.parse(properties.cron()).next(now.atZone(zone));
 			nextRun = next == null ? null : next.toInstant();
 		}
-		return new Status(problems.isEmpty(), problems, Run.of(lastSuccess), Run.of(lastFinished),
+		return new Status(problems.isEmpty(), problems, copies, Run.of(lastSuccess), Run.of(lastFinished),
 				running.get() || runs.existsByStatus(BackupRun.Status.RUNNING), scheduled, properties.cron(),
-				zone.getId(), nextRun, describeTarget(), properties.keepDaily(), properties.keepMonthly(),
-				properties.maxAgeHours());
+				zone.getId(), nextRun, copies.get(0).target(), secondaryTarget, properties.keepDaily(),
+				properties.keepMonthly(), properties.maxAgeHours());
+	}
+
+	private CopyStatus copyStatus(Copy copy, String target, BackupHealth.CopyState state, BackupRun.Status lastStatus,
+			Instant now) {
+		List<Problem> problems = BackupHealth.problems(copy, state, now, properties.maxAgeHours());
+		return new CopyStatus(copy.name(), target, problems.isEmpty(), problems, state.lastSuccessAt(),
+				lastStatus == null ? null : lastStatus.name(), state.lastFailed() ? state.lastError() : null);
+	}
+
+	private static Instant finishedAt(BackupRun run) {
+		return run.getFinishedAt() == null ? run.getStartedAt() : run.getFinishedAt();
 	}
 
 	/** Why a backup cannot run at all, or null. */
@@ -196,15 +235,6 @@ public class BackupService {
 		}
 	}
 
-	private String describeTarget() {
-		try {
-			return targets.getObject().describe();
-		}
-		catch (RuntimeException ex) {
-			return properties.target().name() + " (not available: " + rootMessage(ex) + ")";
-		}
-	}
-
 	private BackupRun begin(Trigger trigger, Long actorId) {
 		if (!running.compareAndSet(false, true)) {
 			throw ApiException.conflict("BACKUP_RUNNING", "A backup is already running");
@@ -213,7 +243,12 @@ public class BackupService {
 			if (runs.existsByStatus(BackupRun.Status.RUNNING)) {
 				throw ApiException.conflict("BACKUP_RUNNING", "A backup is already running");
 			}
-			return runs.save(new BackupRun(trigger, clock.instant(), describeTarget(), actorId));
+			BackupRun run = new BackupRun(trigger, clock.instant(), targets.describe(Copy.PRIMARY), actorId);
+			if (targets.hasSecondary()) {
+				run.setSecondaryTarget(targets.describe(Copy.SECONDARY));
+				run.setSecondaryStatus(BackupRun.Status.RUNNING);
+			}
+			return runs.save(run);
 		}
 		catch (RuntimeException ex) {
 			running.set(false);
@@ -221,21 +256,89 @@ public class BackupService {
 		}
 	}
 
+	/** The encrypted file waiting in the work folder, ready to be copied to each target. */
+	private record Archive(Path file, Path workDir, String name, String checksum, long size, int uploadFiles,
+			SecretKey key) {
+
+	}
+
 	private BackupRun execute(Long runId) {
 		BackupRun run = runs.findById(runId).orElseThrow();
-		Path staging = null;
-		BackupTarget target = null;
-		String name = "team-ops-backup-" + FILE_TIME.format(run.getStartedAt()) + EXTENSION;
-		boolean stored = false;
+		Archive archive = null;
 		try {
-			SecretKey key = BackupCrypto.key(properties.encryptionKey());
-			target = targets.getObject();
-			run.setTarget(target.describe());
-			Path workDir = BackupProperties.blank(properties.workDir()) ? Path.of(System.getProperty("java.io.tmpdir"))
-					: Path.of(properties.workDir());
-			Files.createDirectories(workDir);
-			staging = Files.createTempFile(workDir, "tob-backup-", ".tmp");
+			try {
+				archive = build(run);
+			}
+			catch (Exception | LinkageError ex) {
+				log.error("Backup run {} failed", runId, ex);
+				return fail(run, rootMessage(ex));
+			}
+			run.setFileName(archive.name());
+			run.setSizeBytes(archive.size());
+			run.setChecksum(archive.checksum());
+			run.setUploadFiles(archive.uploadFiles());
 
+			String primaryError = storeCopy(Copy.PRIMARY, archive, run::setTarget);
+			run.setStatus(primaryError == null ? BackupRun.Status.SUCCESS : BackupRun.Status.FAILED);
+			run.setErrorMessage(truncate(primaryError));
+			String secondaryError = null;
+			boolean secondary = targets.hasSecondary();
+			if (secondary) {
+				String second = targets.describe(Copy.SECONDARY);
+				if (second.equals(targets.describe(Copy.PRIMARY))) {
+					run.setSecondaryTarget(second);
+					secondaryError = "The second backup target is the same as the first";
+				}
+				else {
+					secondaryError = storeCopy(Copy.SECONDARY, archive, run::setSecondaryTarget);
+				}
+				run.setSecondaryStatus(secondaryError == null ? BackupRun.Status.SUCCESS : BackupRun.Status.FAILED);
+				run.setSecondaryError(truncate(secondaryError));
+			}
+			run.setFinishedAt(clock.instant());
+			run = runs.save(run);
+
+			AuditAction action = primaryError != null ? AuditAction.BACKUP_FAILED
+					: secondaryError != null ? AuditAction.BACKUP_COPY_FAILED : AuditAction.BACKUP_COMPLETED;
+			Map<String, Object> details = details(run);
+			details.put("fileName", archive.name());
+			details.put("sizeBytes", archive.size());
+			details.put("checksum", archive.checksum());
+			details.put("uploadFiles", archive.uploadFiles());
+			if (primaryError != null) {
+				details.put("error", run.getErrorMessage());
+			}
+			if (secondaryError != null) {
+				details.put("secondaryError", run.getSecondaryError());
+			}
+			auditService.record(action, run.getRequestedById(), ENTITY_TYPE, run.getId(), details, ClientInfo.unknown());
+			log.info("Backup {} ({} bytes): first copy {}, second copy {}", archive.name(), archive.size(),
+					run.getStatus(), secondary ? run.getSecondaryStatus() : "not configured");
+
+			if (primaryError == null) {
+				applyRetention(Copy.PRIMARY);
+			}
+			if (secondary && secondaryError == null) {
+				applyRetention(Copy.SECONDARY);
+			}
+			return run;
+		}
+		finally {
+			running.set(false);
+			if (archive != null) {
+				deleteQuietly(archive.file());
+			}
+		}
+	}
+
+	/** Dumps, zips and encrypts into the work folder. */
+	private Archive build(BackupRun run) throws IOException {
+		SecretKey key = BackupCrypto.key(properties.encryptionKey());
+		Path workDir = BackupProperties.blank(properties.workDir()) ? Path.of(System.getProperty("java.io.tmpdir"))
+				: Path.of(properties.workDir());
+		Files.createDirectories(workDir);
+		Path staging = Files.createTempFile(workDir, "tob-backup-", ".tmp");
+		try {
 			MessageDigest sha = sha256();
 			int uploadFiles;
 			try (ZipOutputStream zip = new ZipOutputStream(BackupCrypto
@@ -248,64 +351,59 @@ public class BackupService {
 				zip.write(manifest(run, uploadFiles));
 				zip.closeEntry();
 			}
-			String checksum = HexFormat.of().formatHex(sha.digest());
-			long size = Files.size(staging);
+			String name = "team-ops-backup-" + FILE_TIME.format(run.getStartedAt()) + EXTENSION;
+			return new Archive(staging, workDir, name, HexFormat.of().formatHex(sha.digest()), Files.size(staging),
+					uploadFiles, key);
+		}
+		catch (IOException | RuntimeException ex) {
+			deleteQuietly(staging);
+			throw ex;
+		}
+	}
 
-			stored = true;
-			target.store(staging, name);
-			Path sidecar = Files.createTempFile(workDir, "tob-backup-", ".sha256");
+	/**
+	 * Stores the file and its checksum file on one target and reads the stored copy back. Returns null on success, or
+	 * why the copy failed (the half-written copy is removed).
+	 */
+	private String storeCopy(Copy copy, Archive archive, Consumer<String> describedAs) {
+		BackupTarget target = null;
+		try {
+			target = targets.get(copy);
+			describedAs.accept(target.describe());
+			target.store(archive.file(), archive.name());
+			Path sidecar = Files.createTempFile(archive.workDir(), "tob-backup-", ".sha256");
 			try {
-				Files.writeString(sidecar, checksum + "  " + name + "\n", StandardCharsets.US_ASCII);
-				target.store(sidecar, name + ".sha256");
+				Files.writeString(sidecar, archive.checksum() + "  " + archive.name() + "\n", StandardCharsets.US_ASCII);
+				target.store(sidecar, archive.name() + ".sha256");
 			}
 			finally {
 				Files.deleteIfExists(sidecar);
 			}
-			verify(target, name, checksum, key);
-
-			run.setStatus(BackupRun.Status.SUCCESS);
-			run.setFinishedAt(clock.instant());
-			run.setFileName(name);
-			run.setSizeBytes(size);
-			run.setChecksum(checksum);
-			run.setUploadFiles(uploadFiles);
-			run = runs.save(run);
-			Map<String, Object> details = details(run);
-			details.put("fileName", name);
-			details.put("sizeBytes", size);
-			details.put("checksum", checksum);
-			details.put("uploadFiles", uploadFiles);
-			auditService.record(AuditAction.BACKUP_COMPLETED, run.getRequestedById(), ENTITY_TYPE, run.getId(), details,
-					ClientInfo.unknown());
-			log.info("Backup {} stored on {} ({} bytes)", name, run.getTarget(), size);
-			applyRetention(target);
-			return run;
+			verify(target, archive.name(), archive.checksum(), archive.key());
+			return null;
 		}
 		catch (Exception | LinkageError ex) {
-			log.error("Backup run {} failed", runId, ex);
-			if (stored && target != null) {
-				removeQuietly(target, name);
+			log.error("Storing the {} copy of {} failed", copy, archive.name(), ex);
+			if (target != null) {
+				removeQuietly(target, archive.name());
 			}
-			return fail(run, rootMessage(ex));
-		}
-		finally {
-			running.set(false);
-			if (staging != null) {
-				try {
-					Files.deleteIfExists(staging);
-				}
-				catch (IOException ex) {
-					log.warn("Could not delete the backup staging file {}", staging);
-				}
+			else {
+				describedAs.accept(targets.describe(copy));
 			}
+			return rootMessage(ex);
 		}
 	}
 
+	/** The whole run failed before any copy could be stored (or the app stopped): every copy is marked failed. */
 	private BackupRun fail(BackupRun run, String message) {
-		String error = message == null || message.isBlank() ? "Unknown error" : message;
+		String error = truncate(message == null || message.isBlank() ? "Unknown error" : message);
 		run.setStatus(BackupRun.Status.FAILED);
 		run.setFinishedAt(clock.instant());
-		run.setErrorMessage(error.length() > MAX_ERROR ? error.substring(0, MAX_ERROR) : error);
+		run.setErrorMessage(error);
+		if (run.getSecondaryStatus() != null) {
+			run.setSecondaryStatus(BackupRun.Status.FAILED);
+			run.setSecondaryError(error);
+		}
 		BackupRun saved = runs.save(run);
 		Map<String, Object> details = details(saved);
 		details.put("error", saved.getErrorMessage());
@@ -318,6 +416,11 @@ public class BackupService {
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("trigger", run.getTrigger().name());
 		details.put("target", run.getTarget());
+		details.put("status", run.getStatus().name());
+		if (run.getSecondaryStatus() != null) {
+			details.put("secondaryTarget", run.getSecondaryTarget());
+			details.put("secondaryStatus", run.getSecondaryStatus().name());
+		}
 		return details;
 	}
 
@@ -361,10 +464,15 @@ public class BackupService {
 		}
 	}
 
-	private void applyRetention(BackupTarget target) {
+	/** Deletes old backups from one target; each copy has its own history columns. */
+	private void applyRetention(Copy copy) {
 		try {
-			List<BackupRun> kept = runs.findByStatusAndTargetAndRemovedAtIsNull(BackupRun.Status.SUCCESS,
-					target.describe());
+			BackupTarget target = targets.get(copy);
+			String described = target.describe();
+			List<BackupRun> kept = copy == Copy.PRIMARY
+					? runs.findByStatusAndTargetAndRemovedAtIsNull(BackupRun.Status.SUCCESS, described)
+					: runs.findBySecondaryStatusAndSecondaryTargetAndSecondaryRemovedAtIsNull(BackupRun.Status.SUCCESS,
+							described);
 			Set<Long> remove = BackupRetention.toDelete(
 					kept.stream().map(r -> new BackupRetention.Candidate(r.getId(), r.getStartedAt())).toList(),
 					properties.keepDaily(), properties.keepMonthly(), zone);
@@ -375,22 +483,28 @@ public class BackupService {
 				}
 				target.delete(old.getFileName());
 				target.delete(old.getFileName() + ".sha256");
-				old.setRemovedAt(clock.instant());
+				if (copy == Copy.PRIMARY) {
+					old.setRemovedAt(clock.instant());
+				}
+				else {
+					old.setSecondaryRemovedAt(clock.instant());
+				}
 				runs.save(old);
 				removed.add(old.getFileName());
 			}
 			if (!removed.isEmpty()) {
 				Map<String, Object> details = new LinkedHashMap<>();
-				details.put("target", target.describe());
+				details.put("copy", copy.name());
+				details.put("target", described);
 				details.put("files", removed);
 				details.put("keepDaily", properties.keepDaily());
 				details.put("keepMonthly", properties.keepMonthly());
 				auditService.record(AuditAction.BACKUP_REMOVED, null, ENTITY_TYPE, null, details, ClientInfo.unknown());
-				log.info("Retention removed {} old backups", removed.size());
+				log.info("Retention removed {} old backups from the {} target", removed.size(), copy);
 			}
 		}
 		catch (IOException | RuntimeException ex) {
-			log.warn("Backup retention could not finish: {}", ex.getMessage());
+			log.warn("Backup retention on the {} target could not finish: {}", copy, ex.getMessage());
 		}
 	}
 
@@ -402,6 +516,19 @@ public class BackupService {
 		catch (IOException | RuntimeException ex) {
 			log.warn("Could not remove the failed backup {}: {}", name, ex.getMessage());
 		}
+	}
+
+	private static void deleteQuietly(Path file) {
+		try {
+			Files.deleteIfExists(file);
+		}
+		catch (IOException ex) {
+			log.warn("Could not delete the backup staging file {}", file);
+		}
+	}
+
+	private static String truncate(String message) {
+		return message == null || message.length() <= MAX_ERROR ? message : message.substring(0, MAX_ERROR);
 	}
 
 	private static MessageDigest sha256() {

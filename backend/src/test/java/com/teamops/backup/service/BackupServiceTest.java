@@ -38,7 +38,6 @@ import java.util.zip.ZipInputStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.task.SyncTaskExecutor;
 
 import com.teamops.backup.dto.BackupDtos.Run;
@@ -192,15 +191,146 @@ class BackupServiceTest {
 		verify(audit).record(eq(AuditAction.BACKUP_REMOVED), isNull(), eq("BACKUP"), isNull(), anyMap(), any());
 	}
 
+	@Test
+	void everyBackupIsStoredAndVerifiedOnBothTargets() throws Exception {
+		Path copyDir = temp.resolve("copy");
+		Run run = service(KEY, 30, 12, new LocalBackupTarget(targetDir), new LocalBackupTarget(copyDir))
+			.runNow(BackupRun.Trigger.SCHEDULED, null);
+
+		assertThat(run.status()).isEqualTo("SUCCESS");
+		assertThat(run.secondary().status()).isEqualTo("SUCCESS");
+		assertThat(run.secondary().target()).isEqualTo("LOCAL " + copyDir.toAbsolutePath().normalize());
+		assertThat(files(copyDir)).containsExactly(run.fileName(), run.fileName() + ".sha256");
+		assertThat(sha256(copyDir.resolve(run.fileName()))).isEqualTo(run.checksum());
+		assertThat(Files.readAllBytes(copyDir.resolve(run.fileName())))
+			.isEqualTo(Files.readAllBytes(targetDir.resolve(run.fileName())));
+		verify(audit).record(eq(AuditAction.BACKUP_COMPLETED), isNull(), eq("BACKUP"), eq(run.id()),
+				argThat(d -> "SUCCESS".equals(d.get("secondaryStatus"))), any());
+	}
+
+	@Test
+	void aBrokenFirstTargetDoesNotStopTheSecondCopy() throws Exception {
+		Path copyDir = temp.resolve("copy");
+		Run run = service(KEY, 30, 12, broken("S3 primary-bucket/backups/"), new LocalBackupTarget(copyDir))
+			.runNow(BackupRun.Trigger.SCHEDULED, null);
+
+		assertThat(run.status()).isEqualTo("FAILED");
+		assertThat(run.errorMessage()).isEqualTo("Upload to S3 failed: Access Denied");
+		assertThat(run.target()).isEqualTo("S3 primary-bucket/backups/");
+		assertThat(run.secondary().status()).isEqualTo("SUCCESS");
+		assertThat(files(copyDir)).containsExactly(run.fileName(), run.fileName() + ".sha256");
+		verify(audit).record(eq(AuditAction.BACKUP_FAILED), isNull(), eq("BACKUP"), eq(run.id()),
+				argThat(d -> "SUCCESS".equals(d.get("secondaryStatus"))), any());
+	}
+
+	@Test
+	void aFailedSecondCopyIsRecordedSeparately() throws Exception {
+		Run run = service(KEY, 30, 12, new LocalBackupTarget(targetDir), broken("S3 copy-bucket/backups/"))
+			.runNow(BackupRun.Trigger.SCHEDULED, null);
+
+		assertThat(run.status()).isEqualTo("SUCCESS");
+		assertThat(run.secondary().status()).isEqualTo("FAILED");
+		assertThat(run.secondary().errorMessage()).isEqualTo("Upload to S3 failed: Access Denied");
+		assertThat(files(targetDir)).containsExactly(run.fileName(), run.fileName() + ".sha256");
+		verify(audit).record(eq(AuditAction.BACKUP_COPY_FAILED), isNull(), eq("BACKUP"), eq(run.id()),
+				argThat(d -> d.get("secondaryError").toString().contains("Access Denied")), any());
+	}
+
+	@Test
+	void theSecondTargetMustDifferFromTheFirst() {
+		Run run = service(KEY, 30, 12, new LocalBackupTarget(targetDir), new LocalBackupTarget(targetDir))
+			.runNow(BackupRun.Trigger.SCHEDULED, null);
+		assertThat(run.status()).isEqualTo("SUCCESS");
+		assertThat(run.secondary().status()).isEqualTo("FAILED");
+		assertThat(run.secondary().errorMessage()).isEqualTo("The second backup target is the same as the first");
+	}
+
+	@Test
+	void aRunThatCannotBuildTheArchiveFailsBothCopies() throws Exception {
+		doThrow(new IOException("mysqldump failed (exit 2)")).when(dumper).dump(any());
+		Run run = service(KEY, 30, 12, new LocalBackupTarget(targetDir), new LocalBackupTarget(temp.resolve("copy")))
+			.runNow(BackupRun.Trigger.SCHEDULED, null);
+		assertThat(run.status()).isEqualTo("FAILED");
+		assertThat(run.secondary().status()).isEqualTo("FAILED");
+		assertThat(run.secondary().errorMessage()).isEqualTo("mysqldump failed (exit 2)");
+	}
+
+	@Test
+	void retentionRunsOnEachTargetOnItsOwn() throws Exception {
+		Path copyDir = temp.resolve("copy");
+		Files.createDirectories(copyDir);
+		String copyTarget = "LOCAL " + copyDir.toAbsolutePath().normalize();
+		BackupRun old = new BackupRun(BackupRun.Trigger.SCHEDULED, Instant.parse("2026-09-30T20:30:00Z"),
+				"LOCAL elsewhere", null);
+		old.setStatus(BackupRun.Status.FAILED);
+		old.setSecondaryTarget(copyTarget);
+		old.setSecondaryStatus(BackupRun.Status.SUCCESS);
+		old.setFileName("team-ops-backup-20260930T203000Z.tobk");
+		Files.writeString(copyDir.resolve(old.getFileName()), "old");
+		Long oldId = repository.save(old).getId();
+		when(repository.findBySecondaryStatusAndSecondaryTargetAndSecondaryRemovedAtIsNull(
+				eq(BackupRun.Status.SUCCESS), any()))
+			.thenAnswer(inv -> rows.values()
+				.stream()
+				.filter(r -> r.getSecondaryStatus() == BackupRun.Status.SUCCESS && r.getSecondaryRemovedAt() == null
+						&& inv.getArgument(1).equals(r.getSecondaryTarget()))
+				.toList());
+
+		Run latest = service(KEY, 1, 1, new LocalBackupTarget(targetDir), new LocalBackupTarget(copyDir))
+			.runNow(BackupRun.Trigger.SCHEDULED, null);
+
+		assertThat(rows.get(oldId).getSecondaryRemovedAt()).isEqualTo(NOW);
+		assertThat(rows.get(oldId).getRemovedAt()).isNull();
+		assertThat(files(copyDir)).containsExactly(latest.fileName(), latest.fileName() + ".sha256");
+		verify(audit).record(eq(AuditAction.BACKUP_REMOVED), isNull(), eq("BACKUP"), isNull(),
+				argThat(d -> "SECONDARY".equals(d.get("copy"))), any());
+	}
+
 	private BackupService service(String key, int keepDaily, int keepMonthly) {
+		return service(key, keepDaily, keepMonthly, new LocalBackupTarget(targetDir), null);
+	}
+
+	private BackupService service(String key, int keepDaily, int keepMonthly, BackupTarget primary,
+			BackupTarget secondary) {
 		BackupProperties properties = new BackupProperties(true, null, key, null, BackupProperties.TargetType.LOCAL,
-				new BackupProperties.Local(targetDir.toString()), null, keepDaily, keepMonthly, 0, workDir.toString());
-		@SuppressWarnings("unchecked")
-		ObjectProvider<BackupTarget> targets = mock(ObjectProvider.class);
-		when(targets.getObject()).thenReturn(new LocalBackupTarget(targetDir));
-		return new BackupService(properties, repository, targets, dumper,
+				new BackupProperties.Local(targetDir.toString()), null, null, keepDaily, keepMonthly, 0,
+				workDir.toString());
+		return new BackupService(properties, repository, BackupTargets.of(properties, primary, secondary), dumper,
 				new StorageProperties(temp.resolve("uploads").toString(), 20), audit, JsonMapper.builder().build(),
 				new SyncTaskExecutor(), Clock.fixed(NOW, ZoneOffset.UTC), "Asia/Kolkata", true);
+	}
+
+	/** A target whose uploads always fail, like an unreachable bucket. */
+	private static BackupTarget broken(String description) {
+		return new BackupTarget() {
+			@Override
+			public String describe() {
+				return description;
+			}
+
+			@Override
+			public void store(Path file, String name) throws IOException {
+				throw new IOException("Upload to S3 failed: Access Denied");
+			}
+
+			@Override
+			public InputStream open(String name) throws IOException {
+				throw new IOException("not stored");
+			}
+
+			@Override
+			public void delete(String name) {
+			}
+		};
+	}
+
+	private static List<String> files(Path dir) throws IOException {
+		if (!Files.exists(dir)) {
+			return List.of();
+		}
+		try (Stream<Path> files = Files.list(dir)) {
+			return files.map(p -> p.getFileName().toString()).sorted().toList();
+		}
 	}
 
 	private List<Path> workDirFiles() throws IOException {

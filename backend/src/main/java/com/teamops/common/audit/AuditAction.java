@@ -137,13 +137,20 @@ public enum AuditAction {
 	LINKEDIN_POST_UPDATED,
 	/** A backup was written, verified and stored (trigger, file, size, checksum, target). */
 	BACKUP_COMPLETED,
-	/** A backup run failed (trigger, target, error). */
+	/** The first copy was stored but the second copy (BACKUP_SECONDARY_TARGET) failed (secondaryError). */
+	BACKUP_COPY_FAILED,
+	/** A backup run failed: the first copy could not be stored (trigger, target, error, second copy status). */
 	BACKUP_FAILED,
 	/** The retention policy deleted old backup files (30 daily, 12 monthly by default). */
 	BACKUP_REMOVED,
 	/** A backup was restored into a database with the restore script (file, checksum, target database). */
 	BACKUP_RESTORED,
 	/** "Export all data" was downloaded (tables, rows, files); {@code completed} false when it broke off. */
-	DATA_EXPORTED
+	DATA_EXPORTED,
+	/**
+	 * The break-glass command-line tool was used on the server: a Super Admin was created or a Super Admin's password
+	 * reset ({@code command}, {@code email}, operating system user and host).
+	 */
+	BREAK_GLASS_USED
 
 }

@@ -11,6 +11,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param encryptionKey base64 of 32 random bytes (AES-256)
  * @param mysqldumpPath the mysqldump executable
  * @param target where finished backups are kept: LOCAL or S3
+ * @param secondary an optional second copy of every backup (BACKUP_SECONDARY_TARGET; blank: none)
  * @param keepDaily newest backup of each of this many most recent days is kept
  * @param keepMonthly newest backup of each of this many most recent months is kept
  * @param maxAgeHours the health check flags a problem when the last successful backup is older than this
@@ -18,7 +19,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @ConfigurationProperties(prefix = "app.backup")
 public record BackupProperties(boolean enabled, String cron, String encryptionKey, String mysqldumpPath,
-		TargetType target, Local local, S3 s3, int keepDaily, int keepMonthly, int maxAgeHours, String workDir) {
+		TargetType target, Local local, S3 s3, Secondary secondary, int keepDaily, int keepMonthly, int maxAgeHours,
+		String workDir) {
 
 	public enum TargetType {
 
@@ -42,12 +44,30 @@ public record BackupProperties(boolean enabled, String cron, String encryptionKe
 
 	}
 
+	/**
+	 * A second place every backup is copied to (another folder or bucket), checked and kept the same way as the first.
+	 *
+	 * @param target LOCAL or S3; null (BACKUP_SECONDARY_TARGET blank) for no second copy
+	 */
+	public record Secondary(TargetType target, Local local, S3 s3) {
+
+		public Secondary {
+			s3 = s3 == null ? new S3(null, null, null, null, null, null, false) : s3;
+		}
+
+		public boolean enabled() {
+			return target != null;
+		}
+
+	}
+
 	public BackupProperties {
 		cron = blank(cron) ? "0 0 2 * * *" : cron;
 		mysqldumpPath = blank(mysqldumpPath) ? "mysqldump" : mysqldumpPath;
 		target = target == null ? TargetType.LOCAL : target;
 		local = local == null || blank(local.path()) ? new Local("../team-ops-backups") : local;
 		s3 = s3 == null ? new S3(null, null, null, null, null, null, false) : s3;
+		secondary = secondary == null ? new Secondary(null, null, null) : secondary;
 		keepDaily = keepDaily <= 0 ? 30 : keepDaily;
 		keepMonthly = keepMonthly <= 0 ? 12 : keepMonthly;
 		maxAgeHours = maxAgeHours <= 0 ? 26 : maxAgeHours;

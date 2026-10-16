@@ -54,7 +54,7 @@ import com.teamops.user.service.UserService;
 
 /**
  * Phase X3 against MySQL: "Run backup now" dumps the integration test database with the real mysqldump
- * (MYSQLDUMP_PATH), stores an encrypted, checksummed, verified file in a throwaway folder, records it in the history
+ * (MYSQLDUMP_PATH), stores an encrypted, checksummed, verified file in a throwaway folder and a second copy in another, records it in the history
  * and the audit log; the status page and /actuator/health flag a failed last run; "Export all data" streams every
  * table as CSV with recycle bin rows marked and password hashes redacted. All Super Admin only (403 otherwise).
  */
@@ -62,12 +62,15 @@ import com.teamops.user.service.UserService;
 @AutoConfigureMockMvc
 @TestPropertySource(properties = { "app.dev-seed.enabled=false", "app.storage.dir=target/it-uploads",
 		"app.scheduling.enabled=false", "app.backup.local.path=target/it-backups",
-		"app.backup.work-dir=target/it-backup-work", "app.backup.encryption-key=" + BackupIT.KEY })
+		"app.backup.work-dir=target/it-backup-work", "app.backup.encryption-key=" + BackupIT.KEY,
+		"app.backup.secondary.target=LOCAL", "app.backup.secondary.local.path=target/it-backups-copy" })
 class BackupIT {
 
 	static final String KEY = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=";
 
 	private static final Path BACKUPS = Path.of("target/it-backups");
+
+	private static final Path COPIES = Path.of("target/it-backups-copy");
 
 	@Autowired
 	private MockMvc mvc;
@@ -120,10 +123,12 @@ class BackupIT {
 		if (departmentId != null) {
 			departmentRepository.deleteById(departmentId);
 		}
-		if (Files.isDirectory(BACKUPS)) {
-			try (Stream<Path> files = Files.list(BACKUPS)) {
-				for (Path file : files.toList()) {
-					Files.deleteIfExists(file);
+		for (Path dir : List.of(BACKUPS, COPIES)) {
+			if (Files.isDirectory(dir)) {
+				try (Stream<Path> files = Files.list(dir)) {
+					for (Path file : files.toList()) {
+						Files.deleteIfExists(file);
+					}
 				}
 			}
 		}
@@ -147,6 +152,12 @@ class BackupIT {
 		assertThat(run.getStatus()).as("backup failed: " + run.getErrorMessage()).isEqualTo(BackupRun.Status.SUCCESS);
 		assertThat(run.getRequestedById()).isEqualTo(adminId);
 		assertThat(run.getTarget()).isEqualTo("LOCAL " + BACKUPS.toAbsolutePath().normalize());
+		// The second copy: same file, stored and verified on its own.
+		assertThat(run.getSecondaryStatus()).as("second copy: " + run.getSecondaryError())
+			.isEqualTo(BackupRun.Status.SUCCESS);
+		assertThat(run.getSecondaryTarget()).isEqualTo("LOCAL " + COPIES.toAbsolutePath().normalize());
+		assertThat(sha256(COPIES.resolve(run.getFileName()))).isEqualTo(run.getChecksum());
+		assertThat(Files.exists(COPIES.resolve(run.getFileName() + ".sha256"))).isTrue();
 
 		// The file and its checksum file are in the target; the checksum matches; the dump is inside.
 		Path file = BACKUPS.resolve(run.getFileName());
@@ -166,23 +177,47 @@ class BackupIT {
 				Long.class, runId, adminId)).isEqualTo(1);
 		as(adminToken, get("/api/admin/backups")).andExpect(status().isOk())
 			.andExpect(jsonPath("$.content[0].id").value(runId))
-			.andExpect(jsonPath("$.content[0].checksum").value(run.getChecksum()));
+			.andExpect(jsonPath("$.content[0].checksum").value(run.getChecksum()))
+			.andExpect(jsonPath("$.content[0].secondary.status").value("SUCCESS"));
 		as(adminToken, get("/api/admin/backups/status")).andExpect(status().isOk())
 			.andExpect(jsonPath("$.healthy").value(true))
 			.andExpect(jsonPath("$.lastSuccess.id").value(runId))
+			.andExpect(jsonPath("$.copies[0].copy").value("PRIMARY"))
+			.andExpect(jsonPath("$.copies[1].copy").value("SECONDARY"))
+			.andExpect(jsonPath("$.copies[1].healthy").value(true))
 			.andExpect(jsonPath("$.running").value(false))
 			.andExpect(jsonPath("$.scheduleEnabled").value(false));
 		mvc.perform(get("/actuator/health")).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("UP"));
 
-		// A failed last run: flagged on the status page and as WARNING (still HTTP 200) on the health check.
-		BackupRun failed = new BackupRun(BackupRun.Trigger.SCHEDULED, Instant.now(), run.getTarget(), null);
+		// A run whose second copy failed: only the second copy is flagged, as WARNING (still HTTP 200) on the health
+		// check.
+		BackupRun copyFailed = new BackupRun(BackupRun.Trigger.SCHEDULED, Instant.now(), run.getTarget(), null);
+		copyFailed.setStatus(BackupRun.Status.SUCCESS);
+		copyFailed.setFinishedAt(Instant.now());
+		copyFailed.setSecondaryTarget(run.getSecondaryTarget());
+		copyFailed.setSecondaryStatus(BackupRun.Status.FAILED);
+		copyFailed.setSecondaryError("Upload to S3 failed: Access Denied");
+		runIds.add(backupRuns.save(copyFailed).getId());
+		as(adminToken, get("/api/admin/backups/status")).andExpect(jsonPath("$.healthy").value(false))
+			.andExpect(jsonPath("$.problems.length()").value(1))
+			.andExpect(jsonPath("$.problems[0].code").value("SECONDARY_LAST_FAILED"))
+			.andExpect(jsonPath("$.copies[0].healthy").value(true))
+			.andExpect(jsonPath("$.copies[1].healthy").value(false))
+			.andExpect(jsonPath("$.copies[1].lastError").value("Upload to S3 failed: Access Denied"));
+		mvc.perform(get("/actuator/health")).andExpect(status().isOk())
+			.andExpect(jsonPath("$.status").value("WARNING"));
+
+		// A failed last run: the first copy is flagged too.
+		BackupRun failed = new BackupRun(BackupRun.Trigger.SCHEDULED, Instant.now().plusSeconds(1), run.getTarget(),
+				null);
 		failed.setStatus(BackupRun.Status.FAILED);
 		failed.setFinishedAt(Instant.now());
 		failed.setErrorMessage("mysqldump failed (exit 2)");
 		runIds.add(backupRuns.save(failed).getId());
 		as(adminToken, get("/api/admin/backups/status")).andExpect(jsonPath("$.healthy").value(false))
 			.andExpect(jsonPath("$.problems[0].code").value("LAST_FAILED"))
-			.andExpect(jsonPath("$.lastSuccess.id").value(runId));
+			.andExpect(jsonPath("$.copies[0].healthy").value(false))
+			.andExpect(jsonPath("$.lastSuccess.id").value(copyFailed.getId()));
 		mvc.perform(get("/actuator/health")).andExpect(status().isOk())
 			.andExpect(jsonPath("$.status").value("WARNING"));
 	}

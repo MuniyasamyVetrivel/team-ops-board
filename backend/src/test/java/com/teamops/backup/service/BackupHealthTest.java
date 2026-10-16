@@ -8,52 +8,61 @@ import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
 import com.teamops.backup.dto.BackupDtos.Problem;
-import com.teamops.backup.entity.BackupRun;
+import com.teamops.backup.service.BackupHealth.CopyState;
+import com.teamops.backup.service.BackupTargets.Copy;
 
-/** The alert rule: last success older than 26 hours, last run failed, never backed up, or not configured. */
+/**
+ * The alert rule, per copy: last success older than 26 hours, last run failed, or never stored. The second copy's
+ * problems carry a SECONDARY_ prefix.
+ */
 class BackupHealthTest {
 
 	private static final Instant NOW = Instant.parse("2026-10-16T12:00:00Z");
 
 	@Test
 	void aRecentSuccessIsHealthy() {
-		BackupRun ok = run(BackupRun.Status.SUCCESS, NOW.minus(Duration.ofHours(10)));
-		assertThat(BackupHealth.problems(ok, ok, null, NOW, 26)).isEmpty();
+		assertThat(BackupHealth.problems(Copy.PRIMARY, success(Duration.ofHours(10)), NOW, 26)).isEmpty();
 	}
 
 	@Test
 	void olderThan26HoursIsStale() {
-		BackupRun exactly = run(BackupRun.Status.SUCCESS, NOW.minus(Duration.ofHours(26)));
-		assertThat(BackupHealth.problems(exactly, exactly, null, NOW, 26)).isEmpty();
-		BackupRun old = run(BackupRun.Status.SUCCESS, NOW.minus(Duration.ofHours(26)).minusSeconds(1));
-		assertThat(BackupHealth.problems(old, old, null, NOW, 26)).extracting(Problem::code)
+		assertThat(BackupHealth.problems(Copy.PRIMARY, success(Duration.ofHours(26)), NOW, 26)).isEmpty();
+		assertThat(BackupHealth.problems(Copy.PRIMARY, success(Duration.ofHours(26).plusSeconds(1)), NOW, 26))
+			.extracting(Problem::code)
 			.containsExactly(BackupHealth.STALE);
 	}
 
 	@Test
 	void aFailedLastRunIsAProblemEvenAfterARecentSuccess() {
-		BackupRun ok = run(BackupRun.Status.SUCCESS, NOW.minus(Duration.ofHours(5)));
-		BackupRun failed = run(BackupRun.Status.FAILED, NOW.minus(Duration.ofHours(1)));
-		failed.setErrorMessage("mysqldump failed (exit 2)");
-		assertThat(BackupHealth.problems(ok, failed, null, NOW, 26)).singleElement()
-			.satisfies(p -> {
-				assertThat(p.code()).isEqualTo(BackupHealth.LAST_FAILED);
-				assertThat(p.message()).contains("mysqldump failed");
-			});
+		CopyState state = new CopyState(NOW.minus(Duration.ofHours(5)), true, "mysqldump failed (exit 2)");
+		assertThat(BackupHealth.problems(Copy.PRIMARY, state, NOW, 26)).singleElement().satisfies(p -> {
+			assertThat(p.code()).isEqualTo(BackupHealth.LAST_FAILED);
+			assertThat(p.message()).isEqualTo("The last backup failed: mysqldump failed (exit 2)");
+		});
 	}
 
 	@Test
-	void neverBackedUpAndMissingKeyAreProblems() {
-		assertThat(BackupHealth.problems(null, null, "BACKUP_ENCRYPTION_KEY is not set", NOW, 26))
+	void neverBackedUpIsAProblem() {
+		assertThat(BackupHealth.problems(Copy.PRIMARY, new CopyState(null, false, null), NOW, 26))
 			.extracting(Problem::code)
-			.containsExactly(BackupHealth.NOT_CONFIGURED, BackupHealth.NO_BACKUP);
+			.containsExactly(BackupHealth.NO_BACKUP);
 	}
 
-	private static BackupRun run(BackupRun.Status status, Instant finished) {
-		BackupRun run = new BackupRun(BackupRun.Trigger.SCHEDULED, finished.minusSeconds(60), "LOCAL x", null);
-		run.setStatus(status);
-		run.setFinishedAt(finished);
-		return run;
+	@Test
+	void theSecondCopyIsJudgedOnItsOwnWithItsOwnCodes() {
+		CopyState stale = new CopyState(NOW.minus(Duration.ofHours(30)), true, "Upload to S3 failed: Access Denied");
+		assertThat(BackupHealth.problems(Copy.SECONDARY, stale, NOW, 26)).extracting(Problem::code, Problem::message)
+			.containsExactly(
+					org.assertj.core.groups.Tuple.tuple("SECONDARY_STALE", "The last second copy is older than 26 hours"),
+					org.assertj.core.groups.Tuple.tuple("SECONDARY_LAST_FAILED",
+							"The second copy of the last backup failed: Upload to S3 failed: Access Denied"));
+		assertThat(BackupHealth.problems(Copy.SECONDARY, new CopyState(null, false, null), NOW, 26))
+			.extracting(Problem::code)
+			.containsExactly("SECONDARY_NO_BACKUP");
+	}
+
+	private static CopyState success(Duration ago) {
+		return new CopyState(NOW.minus(ago), false, null);
 	}
 
 }

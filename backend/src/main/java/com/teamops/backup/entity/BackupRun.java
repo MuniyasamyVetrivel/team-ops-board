@@ -20,7 +20,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * One backup attempt. A log, not an editable record: its business audit entries (BACKUP_COMPLETED, BACKUP_FAILED,
+ * One backup attempt. {@code target}, {@code status}, {@code errorMessage} and {@code removedAt} describe the first
+ * copy; the {@code secondary*} fields the optional second copy of the same file (null when none was configured).
+ * A log, not an editable record: its business audit entries (BACKUP_COMPLETED, BACKUP_COPY_FAILED, BACKUP_FAILED,
  * BACKUP_REMOVED) tell the story, so the automatic record history leaves it out.
  */
 @Getter
@@ -80,6 +82,20 @@ public class BackupRun {
 
 	@Column(name = "error_message", length = 2000)
 	private String errorMessage;
+
+	@Column(name = "secondary_target", length = 500)
+	private String secondaryTarget;
+
+	@Enumerated(EnumType.STRING)
+	@JdbcTypeCode(SqlTypes.VARCHAR)
+	@Column(name = "secondary_status", length = 20)
+	private Status secondaryStatus;
+
+	@Column(name = "secondary_error", length = 2000)
+	private String secondaryError;
+
+	@Column(name = "secondary_removed_at")
+	private Instant secondaryRemovedAt;
 
 	@Column(name = "requested_by")
 	private Long requestedById;

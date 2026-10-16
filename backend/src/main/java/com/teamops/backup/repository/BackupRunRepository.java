@@ -26,4 +26,12 @@ public interface BackupRunRepository extends JpaRepository<BackupRun, Long> {
 	/** Successful backups whose file is still kept on this target, for the retention policy. */
 	List<BackupRun> findByStatusAndTargetAndRemovedAtIsNull(Status status, String target);
 
+	Optional<BackupRun> findFirstBySecondaryStatusOrderByStartedAtDesc(Status status);
+
+	/** The newest run whose second copy finished (success or failure). */
+	Optional<BackupRun> findFirstBySecondaryStatusInOrderByStartedAtDesc(List<Status> statuses);
+
+	/** Successful second copies still kept on this target, for the retention policy. */
+	List<BackupRun> findBySecondaryStatusAndSecondaryTargetAndSecondaryRemovedAtIsNull(Status status, String target);
+
 }
