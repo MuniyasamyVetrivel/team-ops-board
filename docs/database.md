@@ -53,6 +53,7 @@ change is a new migration. See [architecture.md](architecture.md) for how the ap
 | V27 recycle_bin | Phase X2: `deleted_at`, `deleted_by` and a `deleted_at` index on the 17 recycle-bin tables (`tasks`, `announcements`, `calendar_events`, `employees`, `important_days`, `marketing_events`, `documents`, `marketing_activities`, `backlinks`, `content_items`, `email_campaigns`, `marketing_leads`, `paid_campaigns`, `marketing_keywords`, `marketing_pages`, `marketing_targets`, `marketing_target_types`); `recycle_bin_items`; the `recycleBin.retentionDays` setting (90) |
 | V30 backups | Phase X3: `backup_runs` (backup history: trigger, status, start and end, file, size, SHA-256 checksum, target, error, who asked, when retention removed the file); the `BACKUP_VIEW` and `DATA_EXPORT` permissions (Super Admin) |
 | V32 employee_id_and_profile_photo | Phase X4: `users.employee_id` (unique; backfilled from the Employee record linked to the user, NULL for anyone else until a Super Admin sets it) and `users.photo_file_id` (the profile photo, a square JPEG in `files`) |
+| V33 department_modules | Phase X5: `department_modules` (the switch of a department tool for a department: `module_key`, `department_id`, `enabled`; unique `(module_key, department_id)`, deleted with the department); the `MODULE_MANAGE` permission (Super Admin) |
 | V31 backup_second_copy | Phase X3: `backup_runs.secondary_target`, `secondary_status`, `secondary_error`, `secondary_removed_at` (the optional second copy, `BACKUP_SECONDARY_TARGET`) and a `(secondary_status, started_at)` index |
 
 Never edit an applied migration; add `V{n+1}__description.sql` instead, in the phase that first needs it.
@@ -116,6 +117,7 @@ otherwise); occurrences are never stored.
 | `announcements`, `announcement_reads` | Announcements and per-person read and acknowledgement receipts | — |
 | `knowledge_categories`, `knowledge_articles`, `article_tags`, `article_attachments` | Knowledge base (FULLTEXT search) | Unique slug and name |
 | `documents`, `document_versions` | Documents with numbered versions | Unique `(document_id, version_no)` |
+| `department_modules` | Which department tools (modules defined in code) are switched on for which department (Phase X5, docs/adding-a-module.md); switching off keeps the row with `enabled` false | Unique `(module_key, department_id)` |
 | `backup_runs` | Backup history (Phase X3, docs/backup-and-restore.md); a log, so not in record history | — |
 
 ### Digital Marketing

@@ -27,7 +27,8 @@ public final class RecordTypes {
 			Map.entry("marketing.activity", Module.ACTIVITIES), Map.entry("marketing.email", Module.CAMPAIGNS),
 			Map.entry("marketing.paid", Module.CAMPAIGNS), Map.entry("marketing.lead", Module.LEADS),
 			Map.entry("marketing.backlink", Module.BACKLINKS), Map.entry("marketing.content", Module.CONTENT),
-			Map.entry("marketing.report", Module.REPORTS), Map.entry("celebration", Module.CELEBRATIONS));
+			Map.entry("marketing.report", Module.REPORTS), Map.entry("celebration", Module.CELEBRATIONS),
+			Map.entry("module", Module.MODULES));
 
 	private RecordTypes() {
 	}

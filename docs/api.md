@@ -417,6 +417,17 @@ Nightly encrypted backups of the database and the uploads folder, kept 30 daily 
 | POST | `/api/admin/backups/run` | Super Admin role | "Run backup now": 202 with the RUNNING run; the backup continues in the background. 409 `BACKUP_RUNNING` while one is running |
 | GET | `/api/admin/data-export` | `DATA_EXPORT` (Super Admin only by default) | "Export all data": a streamed ZIP attachment (`nosniff`) with `tables/<table>.csv` for every table (rows in the recycle bin included, marked `_in_recycle_bin` = yes; password and token hashes redacted), `tables.csv` (row counts), `uploads/` (every uploaded file) and `README.txt` |
 
+### Department tools (modules): `/api/department-tools`, `/api/admin/modules` and `/api/modules/{key}/**`
+
+Department tools (Bench Management, Vendors, Finance, ...) are modules registered in code, each with a key, name, icon and its own VIEW and EDIT permissions (Super Admin only by default), switched on or off per department. See [adding-a-module.md](adding-a-module.md). A user may use a module when they hold its view permission and it is switched on for their primary department or a department they are a member of; the Super Admin may use every module switched on for at least one active department. Inactive departments do not count. Switch changes are audited (`MODULE_ENABLED`, `MODULE_DISABLED`; module "Department tools").
+
+| Method | Path | Permission | Description |
+|---|---|---|---|
+| GET | `/api/department-tools` | Any signed-in user | The sidebar's "Department tools": the modules switched on for the user and permitted to them, by name: `key`, `name`, `icon` (Lucide name), `description`, `canEdit` (holds the edit permission). Usually empty |
+| GET | `/api/admin/modules` | `MODULE_MANAGE` (Super Admin only by default; 403 otherwise) | Every registered module by name: `key`, `name`, `icon`, `description`, `viewPermission`, `editPermission`, `departments` (`id`, `name`, `code` of the departments it is switched on for, by name) |
+| PUT | `/api/admin/modules/{key}/departments/{departmentId}` | `MODULE_MANAGE` | `{enabled}` switches the module on or off for the department and returns the module as above. Setting the state it already has changes and records nothing. 404 `MODULE_NOT_FOUND`, 404 `DEPARTMENT_NOT_FOUND`, 400 `DEPARTMENT_INACTIVE` (switching on for an inactive department) |
+| any | `/api/modules/{key}/**` | The module's view permission for GET and HEAD, its view and edit permissions for every other method, and the module switched on for the user | Every module's own API. Checked before the controller on every request (`ModuleAccessInterceptor`), on top of the endpoints' own `@PreAuthorize`: 404 `MODULE_NOT_FOUND`, 403 `FORBIDDEN` (missing permission), 403 `MODULE_DISABLED` (not switched on for any of the user's departments) |
+
 ### Record history: `/api/history`
 
 | Method | Path | Permission | Description |

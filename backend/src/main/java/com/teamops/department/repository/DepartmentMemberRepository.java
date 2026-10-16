@@ -1,5 +1,6 @@
 package com.teamops.department.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -16,6 +17,12 @@ public interface DepartmentMemberRepository extends JpaRepository<DepartmentMemb
 
 	@Query("select m.id.departmentId from DepartmentMember m where m.id.userId = :userId and m.memberRole = :role")
 	Set<Long> findDepartmentIds(@Param("userId") Long userId, @Param("role") DepartmentMemberRole role);
+
+	/** Which of the users are members of any of the departments. */
+	@Query("select distinct m.id.userId from DepartmentMember m "
+			+ "where m.id.userId in :userIds and m.id.departmentId in :departmentIds")
+	Set<Long> findMembersAmong(@Param("userIds") Collection<Long> userIds,
+			@Param("departmentIds") Collection<Long> departmentIds);
 
 	@EntityGraph(attributePaths = { "user", "user.department" })
 	List<DepartmentMember> findByIdDepartmentId(Long departmentId);

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.BiConsumer;
 
 import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AuthenticatedUser;
@@ -16,7 +17,8 @@ import com.teamops.user.entity.RoleCodes;
  * <li>Digital Marketing permissions are granted to people, never to a whole role (the module must stay limited to
  * the people who hold them);</li>
  * <li>an editor may only add permissions they hold themselves;</li>
- * <li>a create, edit or manage permission needs the matching view permission.</li>
+ * <li>a create, edit or manage permission needs the matching view permission (department tools: each module's edit
+ * permission needs its view permission).</li>
  * </ul>
  */
 final class RolePermissionRules {
@@ -45,6 +47,12 @@ final class RolePermissionRules {
 	 */
 	static void check(String roleCode, Set<String> requested, Set<String> current, Map<String, String> moduleByCode,
 			AuthenticatedUser actor) {
+		check(roleCode, requested, current, moduleByCode, Map.of(), actor);
+	}
+
+	/** @param moduleNeedsView each department tool's edit permission and the view permission it needs */
+	static void check(String roleCode, Set<String> requested, Set<String> current, Map<String, String> moduleByCode,
+			Map<String, String> moduleNeedsView, AuthenticatedUser actor) {
 		if (RoleCodes.SUPER_ADMIN.equals(roleCode)) {
 			throw ApiException.conflict("ROLE_LOCKED", "The Super Admin role always holds every permission");
 		}
@@ -69,11 +77,13 @@ final class RolePermissionRules {
 					"You can only grant permissions you hold: " + String.join(", ", notHeld));
 		}
 		Set<String> missing = new TreeSet<>();
-		NEEDS_VIEW.forEach((action, view) -> {
+		BiConsumer<String, String> needsView = (action, view) -> {
 			if (requested.contains(action) && !requested.contains(view)) {
 				missing.add(action + " needs " + view);
 			}
-		});
+		};
+		NEEDS_VIEW.forEach(needsView);
+		moduleNeedsView.forEach(needsView);
 		if (!missing.isEmpty()) {
 			throw ApiException.badRequest("VIEW_PERMISSION_REQUIRED",
 					"Permissions need their view permission: " + String.join(", ", missing));

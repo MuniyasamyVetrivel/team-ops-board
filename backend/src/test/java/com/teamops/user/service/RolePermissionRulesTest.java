@@ -3,6 +3,7 @@ package com.teamops.user.service;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -50,6 +51,19 @@ class RolePermissionRulesTest {
 				"VIEW_PERMISSION_REQUIRED");
 		assertThatCode(() -> check(RoleCodes.EMPLOYEE, Set.of("TASK_VIEW", "TASK_EDIT", "WORKLOAD_VIEW"),
 				SliceAuth.SUPER_ADMIN))
+			.doesNotThrowAnyException();
+	}
+
+	@Test
+	void departmentToolEditPermissionsNeedTheirViewPermission() {
+		Map<String, String> catalogue = new HashMap<>(CATALOGUE);
+		catalogue.put("TOOL_VIEW", "ADMIN");
+		catalogue.put("TOOL_EDIT", "ADMIN");
+		Map<String, String> moduleNeedsView = Map.of("TOOL_EDIT", "TOOL_VIEW");
+		assertCode(() -> RolePermissionRules.check(RoleCodes.EMPLOYEE, Set.of("TOOL_EDIT"), Set.of(), catalogue,
+				moduleNeedsView, SliceAuth.SUPER_ADMIN), "VIEW_PERMISSION_REQUIRED");
+		assertThatCode(() -> RolePermissionRules.check(RoleCodes.EMPLOYEE, Set.of("TOOL_VIEW", "TOOL_EDIT"), Set.of(),
+				catalogue, moduleNeedsView, SliceAuth.SUPER_ADMIN))
 			.doesNotThrowAnyException();
 	}
 

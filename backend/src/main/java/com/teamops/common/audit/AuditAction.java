@@ -153,6 +153,10 @@ public enum AuditAction {
 	 * The break-glass command-line tool was used on the server: a Super Admin was created or a Super Admin's password
 	 * reset ({@code command}, {@code email}, operating system user and host).
 	 */
-	BREAK_GLASS_USED
+	BREAK_GLASS_USED,
+	/** A department tool was switched on for a department (module, moduleName, departmentId, department). */
+	MODULE_ENABLED,
+	/** A department tool was switched off for a department (module, moduleName, departmentId, department). */
+	MODULE_DISABLED
 
 }

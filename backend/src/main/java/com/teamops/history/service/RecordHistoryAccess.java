@@ -45,6 +45,7 @@ import com.teamops.marketing.seo.entity.SeoPage;
 import com.teamops.marketing.target.entity.MarketingTarget;
 import com.teamops.marketing.target.entity.TargetType;
 import com.teamops.marketing.target.service.TargetService;
+import com.teamops.module.entity.DepartmentModule;
 import com.teamops.project.entity.Project;
 import com.teamops.project.service.ProjectService;
 import com.teamops.sla.entity.SlaPolicy;
@@ -112,6 +113,7 @@ public class RecordHistoryAccess {
 		});
 		register(Role.class, (id, u) -> require(u, PermissionCodes.PERMISSION_MANAGE));
 		register(AppSetting.class, (id, u) -> require(u, "SETTINGS_MANAGE"));
+		register(DepartmentModule.class, (id, u) -> require(u, PermissionCodes.MODULE_MANAGE));
 		register(Document.class, (id, u) -> {
 			require(u, "DOCUMENT_VIEW");
 			documents.get(id, u);

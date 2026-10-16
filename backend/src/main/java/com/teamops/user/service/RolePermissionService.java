@@ -16,6 +16,7 @@ import com.teamops.common.audit.AuditService;
 import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.web.ClientInfo;
+import com.teamops.module.service.ModuleRegistry;
 import com.teamops.user.dto.RoleResponse;
 import com.teamops.user.dto.UpdateRolePermissionsRequest;
 import com.teamops.user.entity.Permission;
@@ -39,6 +40,8 @@ public class RolePermissionService {
 
 	private final AuditService auditService;
 
+	private final ModuleRegistry moduleRegistry;
+
 	@Transactional
 	public RoleResponse update(String roleCode, UpdateRolePermissionsRequest request, AuthenticatedUser actor,
 			ClientInfo client) {
@@ -49,7 +52,8 @@ public class RolePermissionService {
 			.collect(Collectors.toMap(Permission::getCode, Permission::getModule));
 		Set<String> current = codes(role.getPermissions());
 		Set<String> requested = new TreeSet<>(request.permissions());
-		RolePermissionRules.check(role.getCode(), requested, current, moduleByCode, actor);
+		RolePermissionRules.check(role.getCode(), requested, current, moduleByCode, moduleRegistry.editNeedsView(),
+				actor);
 		if (!Objects.equals(role.getVersion(), request.version())) {
 			throw ApiException.conflict("STALE_UPDATE", "Someone else changed this role just now. Reload and try again.");
 		}

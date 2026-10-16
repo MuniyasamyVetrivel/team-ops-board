@@ -28,6 +28,9 @@ public final class PermissionCodes {
 	/** "Export all data": every table as CSV plus all uploads (Super Admin only by default). */
 	public static final String DATA_EXPORT = "DATA_EXPORT";
 
+	/** Switch department tools (modules) on or off per department (Super Admin only by default). */
+	public static final String MODULE_MANAGE = "MODULE_MANAGE";
+
 	/** See money amounts (budgets, spend, approval amounts), including in audit history. */
 	public static final String FINANCE_VIEW = "FINANCE_VIEW";
 

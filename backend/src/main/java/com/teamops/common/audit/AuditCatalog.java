@@ -22,7 +22,7 @@ public final class AuditCatalog {
 		IMPORTS("CSV imports"), SEO("SEO"), TARGETS("Marketing targets"), ACTIVITIES("Marketing activities"),
 		CAMPAIGNS("Campaigns"), LEADS("Leads"), BACKLINKS("Backlinks"), CONTENT("Content"),
 		CELEBRATIONS("Celebrations and events"), REPORTS("Reports"), SETTINGS("Settings"),
-		BACKUPS("Backups and exports"),
+		BACKUPS("Backups and exports"), MODULES("Department tools"),
 		/** The automatic record changes of every module (each entry also belongs to its record's module). */
 		RECORDS("Record changes");
 
@@ -156,6 +156,7 @@ public final class AuditCatalog {
 			case MARKETING_REPORT_FROZEN -> Module.REPORTS;
 			case SETTING_UPDATED -> Module.SETTINGS;
 			case BACKUP_COMPLETED, BACKUP_COPY_FAILED, BACKUP_FAILED, BACKUP_REMOVED, BACKUP_RESTORED, DATA_EXPORTED -> Module.BACKUPS;
+			case MODULE_ENABLED, MODULE_DISABLED -> Module.MODULES;
 		};
 	}
 
@@ -177,6 +178,8 @@ public final class AuditCatalog {
 			case DATA_EXPORTED -> "All data exported";
 			case BACKUP_COPY_FAILED -> "Backup second copy failed";
 			case BREAK_GLASS_USED -> "Break-glass access used (server command line)";
+			case MODULE_ENABLED -> "Department tool switched on";
+			case MODULE_DISABLED -> "Department tool switched off";
 			case RECORD_CREATED -> "Created";
 			case RECORD_UPDATED -> "Edited";
 			case RECORD_DELETED -> "Deleted";
