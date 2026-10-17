@@ -48,6 +48,9 @@ public class NotificationService {
 	/** A Vendor Management contract (renewal reminders). */
 	public static final String ENTITY_VENDOR_CONTRACT = "VENDOR_CONTRACT";
 
+	/** A Finance Tracker tool or licence (renewal reminders). */
+	public static final String ENTITY_FINANCE_LICENCE = "FINANCE_LICENCE";
+
 	private final NotificationRepository repository;
 
 	private final BusinessCalendar calendar;

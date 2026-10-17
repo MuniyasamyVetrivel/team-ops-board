@@ -26,6 +26,8 @@ import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.department.service.DepartmentService;
 import com.teamops.document.service.DocumentService;
+import com.teamops.finance.service.ExchangeRateService;
+import com.teamops.finance.service.LicenceService;
 import com.teamops.marketing.activity.service.ActivityService;
 import com.teamops.marketing.backlink.service.BacklinkService;
 import com.teamops.marketing.content.service.ContentService;
@@ -63,7 +65,8 @@ class RecordHistoryAccessTest {
 			mock(BacklinkService.class), mock(ContentService.class), leads, mock(PaidCampaignService.class),
 			mock(EmailCampaignService.class), mock(TargetService.class), moduleAccess,
 			mock(ConsultantService.class), mock(ClientService.class), mock(EngagementService.class),
-			mock(AllocationService.class), vendors, mock(VendorContractService.class));
+			mock(AllocationService.class), vendors, mock(VendorContractService.class),
+			mock(LicenceService.class), mock(ExchangeRateService.class));
 
 	@Test
 	void aTaskUsesTheTaskReadCheck() {
@@ -108,7 +111,7 @@ class RecordHistoryAccessTest {
 				"CALENDAR_EVENT", "EMPLOYEE", "IMPORTANT_DAY", "MARKETING_EVENT", "SEO_PAGE", "SEO_KEYWORD",
 				"MARKETING_TARGET", "MARKETING_ACTIVITY", "EMAIL_CAMPAIGN", "PAID_CAMPAIGN", "MARKETING_LEAD",
 				"BACKLINK", "CONTENT_ITEM", "ARTICLE", "ANNOUNCEMENT", "SETTING", "CONSULTANT", "ALLOCATION", "VENDOR",
-				"VENDOR_CONTRACT");
+				"VENDOR_CONTRACT", "FINANCE_LICENCE", "EXCHANGE_RATE");
 	}
 
 	@Test

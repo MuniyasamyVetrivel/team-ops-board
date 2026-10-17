@@ -121,6 +121,17 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
     - Notice and renewal labels use the server's `daysUntilRenewal` (`vendor-meta.ts`).
     - The vendor page's "Licences and expenses" tab renders `/vendors/{id}/links`.
   - Phase X8 links licences and expenses by implementing `VendorLinkSource` beans: the vendor page reads `/vendors/{id}/links`, a source hides itself without its own permission, and its `countUsing` blocks deleting the vendor. Use `VendorService.reference(id)` to validate a vendor id.
+- Finance Tracker (Phase X8, `com.teamops.finance`, module key `finance`, API under `/api/modules/finance/`, switched on for HR by V37; view permission `FINANCE_VIEW`, edit `FINANCE_EDIT`):
+  - Tools and licences (`FinanceLicence`, unique name) carry assigned users as children (`LicenceAssignment`, replaced as a set of user ids; new assignees and owners must be active).
+  - `vendor_id` is a plain column with a read-only `@NotFound` vendor view. Set both in `apply`, or the saved licence reads back without its vendor.
+  - `LicenceRules` computes seats used, free and utilisation, under-use (below 70%), annual cost, days to renewal, the reminder leads (30 and 7) and the card-number guard on payment labels. None of these are stored.
+  - Exchange rates (`ExchangeRateService`) are to AUD (`FinanceModule.BASE_CURRENCY`, never stored). Convert with `ratesOn`, `rateOn` or `convert`, using the newest rate on or before the day (400 `NO_EXCHANGE_RATE` without one).
+  - `LicenceService` must not depend on `VendorService`. That would be a cycle, because `VendorService` collects the `VendorLinkSource` beans, and `LicenceVendorLinks` is one of them. Check vendors through `VendorRepository`.
+  - Live licences block deleting their vendor, and a licence comes back from the bin only while its vendor is live.
+  - Renewal reminders: `FinanceReminderService`, `LICENCE_RENEWAL`, active and trial licences only.
+  - CSV imports `licences` and `exchange-rates` use `CsvImporter.Area.FINANCE`; the exports use the same columns.
+  - Search group `LICENCES` needs `FINANCE_VIEW` and the module switch.
+  - `AuditLogService` masks every entry of the FINANCE audit module for viewers without `FinanceAccess.canView` (details become `{hidden: true}`, the label is left out, free-text search skips them). New finance records get this automatically through `RecordTypes` (package `finance`).
 - Break-glass recovery (no Super Admin can sign in) is `BreakGlassService`, reachable only through the server command line (`BreakGlassRunner`, `scripts/break-glass.ps1`/`.sh`); never add an HTTP endpoint for it.
 - Write business audit events with `AuditService.record(...)`, which runs in its own transaction. Add new actions to the `AuditAction` enum and place each in a module in `AuditCatalog` (the audit viewer's filters; the switch won't compile otherwise).
 - Admin settings: add a key to `SettingDefinition` (type and range; edited at `/api/admin/settings`) and read it through `AppSettingsService` with a fallback default. Seed new keys in a migration.

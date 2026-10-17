@@ -71,6 +71,9 @@ app:
   vendors:
     # Daily contract renewal reminders, 30 and 7 days before a contract renews or ends (app.time-zone).
     reminder-cron: ${VENDOR_REMINDER_CRON:0 20 8 * * *}
+  finance:
+    # Daily licence renewal reminders, 30 and 7 days before a tool or licence renews (app.time-zone).
+    reminder-cron: ${FINANCE_REMINDER_CRON:0 25 8 * * *}
   recycle-bin:
     # Daily permanent delete of recycle bin items older than the Admin Settings retention (app.time-zone).
     purge-cron: ${RECYCLE_BIN_PURGE_CRON:0 30 2 * * *}

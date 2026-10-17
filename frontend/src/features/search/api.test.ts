@@ -18,6 +18,11 @@ describe('search links', () => {
     expect(groupHref('VENDOR_CONTRACTS', 'jira')).toBe('/tools/vendors/contracts?search=jira');
   });
 
+  it('opens licences on the Finance Tracker tool page until its own pages exist', () => {
+    expect(hitHref(hit('FINANCE_LICENCE', 3))).toBe('/tools/finance?licence=3');
+    expect(groupHref('LICENCES', 'jira')).toBe('/tools/finance?search=jira');
+  });
+
   it('sends "see all" to the matching Bench Management list with the search', () => {
     expect(groupHref('CONSULTANTS', ' sap s/4 ')).toBe('/tools/bench/consultants?search=sap%20s%2F4');
     expect(groupHref('CLIENTS', 'acme')).toBe('/tools/bench/clients?search=acme');

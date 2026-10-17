@@ -23,7 +23,7 @@ public final class AuditCatalog {
 		CAMPAIGNS("Campaigns"), LEADS("Leads"), BACKLINKS("Backlinks"), CONTENT("Content"),
 		CELEBRATIONS("Celebrations and events"), REPORTS("Reports"), SETTINGS("Settings"),
 		BACKUPS("Backups and exports"), MODULES("Department tools"), BENCH("Bench management"),
-		VENDORS("Vendors"),
+		VENDORS("Vendors"), FINANCE("Finance tracker"),
 		/** The automatic record changes of every module (each entry also belongs to its record's module). */
 		RECORDS("Record changes");
 
@@ -105,7 +105,8 @@ public final class AuditCatalog {
 			List.of("changes.budget"), AuditAction.PAID_RESULTS_RECORDED, List.of("results.spend"),
 			AuditAction.PAID_RESULTS_CORRECTED, List.of("changes.results.from.spend", "changes.results.to.spend"),
 			AuditAction.VENDOR_CONTRACT_CREATED, List.of("value"), AuditAction.VENDOR_CONTRACT_UPDATED,
-			List.of("changes.value"));
+			List.of("changes.value"), AuditAction.LICENCE_CREATED, List.of("cost"), AuditAction.LICENCE_UPDATED,
+			List.of("changes.cost"));
 
 	public static List<String> financePaths(AuditAction action) {
 		return FINANCE_PATHS.getOrDefault(action, List.of());
@@ -167,6 +168,9 @@ public final class AuditCatalog {
 			case VENDOR_CREATED, VENDOR_UPDATED, VENDOR_DELETED, VENDOR_CONTRACT_CREATED, VENDOR_CONTRACT_UPDATED,
 					VENDOR_CONTRACT_DELETED, VENDOR_CONTRACT_DOCUMENT_ADDED, VENDOR_CONTRACT_DOCUMENT_REMOVED ->
 				Module.VENDORS;
+			case LICENCE_CREATED, LICENCE_UPDATED, LICENCE_DELETED, EXCHANGE_RATE_CREATED, EXCHANGE_RATE_UPDATED,
+					EXCHANGE_RATE_DELETED ->
+				Module.FINANCE;
 		};
 	}
 

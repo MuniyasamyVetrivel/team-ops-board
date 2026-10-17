@@ -46,6 +46,9 @@ public final class PermissionCodes {
 	/** See money amounts (budgets, spend, approval amounts), including in audit history. */
 	public static final String FINANCE_VIEW = "FINANCE_VIEW";
 
+	/** Change Finance Tracker records: tools and licences, exchange rates (with FINANCE_VIEW; Super Admin only by default). */
+	public static final String FINANCE_EDIT = "FINANCE_EDIT";
+
 	private PermissionCodes() {
 	}
 

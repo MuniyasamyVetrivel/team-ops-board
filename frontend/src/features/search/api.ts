@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 import { BENCH_PATHS, clientHref, consultantPath, engagementHref, withSearch } from '@/features/bench/bench-paths';
+import { toolPath } from '@/features/modules/module-icons';
 import { contractHref, VENDOR_PATHS, vendorPath } from '@/features/vendors/vendor-paths';
 import { api } from '@/lib/api/client';
 
@@ -19,7 +20,8 @@ export type ResultType =
   | 'CLIENT'
   | 'CLIENT_ENGAGEMENT'
   | 'VENDOR'
-  | 'VENDOR_CONTRACT';
+  | 'VENDOR_CONTRACT'
+  | 'FINANCE_LICENCE';
 
 export type SearchGroupKey =
   | 'TASKS'
@@ -35,7 +37,8 @@ export type SearchGroupKey =
   | 'CLIENTS'
   | 'ENGAGEMENTS'
   | 'VENDORS'
-  | 'VENDOR_CONTRACTS';
+  | 'VENDOR_CONTRACTS'
+  | 'LICENCES';
 
 /** Mirrors SearchDtos.Hit. {@code ref} is an article's slug; {@code status} is the record's status code. */
 export interface SearchHit {
@@ -113,6 +116,9 @@ export function hitHref(hit: SearchHit): string {
       return vendorPath(hit.id);
     case 'VENDOR_CONTRACT':
       return contractHref(hit.id);
+    // The Finance Tracker (Phase X8) has no pages yet: its tool page opens until its frontend replaces these links.
+    case 'FINANCE_LICENCE':
+      return `${toolPath('finance')}?licence=${hit.id}`;
   }
 }
 
@@ -148,6 +154,8 @@ export function groupHref(group: SearchGroupKey, query: string): string {
       return withSearch(VENDOR_PATHS.vendors, query);
     case 'VENDOR_CONTRACTS':
       return withSearch(VENDOR_PATHS.contracts, query);
+    case 'LICENCES':
+      return withSearch(toolPath('finance'), query);
   }
 }
 

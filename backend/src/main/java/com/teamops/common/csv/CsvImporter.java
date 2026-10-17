@@ -23,7 +23,9 @@ public interface CsvImporter<T> {
 		/** {@code /api/modules/bench/imports}: Bench Management, behind its module switch. */
 		BENCH,
 		/** {@code /api/modules/vendors/imports}: Vendor Management, behind its module switch. */
-		VENDORS
+		VENDORS,
+		/** {@code /api/modules/finance/imports}: Finance Tracker, behind its module switch. */
+		FINANCE
 
 	}
 

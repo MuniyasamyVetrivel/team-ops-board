@@ -79,6 +79,12 @@ public class AuditLogService {
 
 	private static final String DEPARTMENT_TYPE = RecordTypes.typeOf(Department.class);
 
+	/**
+	 * What a Finance Tracker entry's details read as for viewers without FINANCE_VIEW: its records are finance data as a
+	 * whole (brief X8), so the details and the record's name are left out, not just the amounts.
+	 */
+	static final Map<String, Object> FINANCE_HIDDEN = Map.of("hidden", true, "reason", "FINANCE_VIEW");
+
 	private final AuditLogRepository auditLogRepository;
 
 	private final UserRepository userRepository;
@@ -219,13 +225,20 @@ public class AuditLogService {
 							cb.like(cb.lower(cb.concat(cb.concat(user.get("firstName"), " "), user.get("lastName"))),
 									pattern, '\\')));
 				Predicate details = cb.like(cb.lower(root.<String>get("details")), pattern, '\\');
+				Predicate label = cb.like(cb.lower(root.get("entityLabel")), pattern, '\\');
 				if (!canSeeFinance) {
 					// Searching amounts would reveal them: details holding finance amounts are not searched.
 					details = cb.and(cb.isFalse(root.get("finance")), details);
+					// Finance Tracker records are finance data as a whole: their names and details are not searched.
+					Set<String> financeTypes = recordTypes.typesIn(AuditCatalog.Module.FINANCE);
+					if (!financeTypes.isEmpty()) {
+						Predicate notFinance = cb.not(root.get("entityType").in(financeTypes));
+						details = cb.and(notFinance, details);
+						label = cb.and(notFinance, label);
+					}
 				}
 				where.add(cb.or(details, cb.like(cb.lower(root.get("action")), pattern, '\\'),
-						cb.like(cb.lower(root.get("entityType")), pattern, '\\'),
-						cb.like(cb.lower(root.get("entityLabel")), pattern, '\\'),
+						cb.like(cb.lower(root.get("entityType")), pattern, '\\'), label,
 						cb.like(root.get("ipAddress"), pattern, '\\'), root.get("actorId").in(people)));
 			}
 			return cb.and(where.toArray(Predicate[]::new));
@@ -299,21 +312,23 @@ public class AuditLogService {
 			addRefLabels(parsed, labels);
 			// System entries have no actor (and Map.of() rejects a null key).
 			User actor = log.getActorId() == null ? null : actors.get(log.getActorId());
-			items.add(toItem(log, actor, parsed, withClient));
+			items.add(toItem(log, actor, parsed, withClient, canSeeFinance));
 		}
 		return items;
 	}
 
-	private AuditLogItem toItem(AuditLog log, User actor, Object details, boolean withClient) {
+	private AuditLogItem toItem(AuditLog log, User actor, Object details, boolean withClient, boolean canSeeFinance) {
 		AuditAction action = AuditCatalog.parse(log.getAction()).orElse(null);
 		AuditCatalog.Module module = action == null ? null
 				: AuditCatalog.isRecordChange(action) && recordTypes.moduleOf(log.getEntityType()) != null
 						? recordTypes.moduleOf(log.getEntityType()) : AuditCatalog.moduleOf(action);
+		boolean hidden = module == AuditCatalog.Module.FINANCE && !canSeeFinance;
 		return new AuditLogItem(log.getId(), log.getAction(),
 				action == null ? log.getAction() : AuditCatalog.labelOf(action, log.getEntityType()),
 				module == null ? null : module.name(), module == null ? null : module.label(), UserSummary.of(actor),
-				log.getEntityType(), RecordTypes.labelOf(log.getEntityType()), log.getEntityId(), log.getEntityLabel(),
-				log.getParentType(), log.getParentId(), details, withClient ? log.getIpAddress() : null,
+				log.getEntityType(), RecordTypes.labelOf(log.getEntityType()), log.getEntityId(),
+				hidden ? null : log.getEntityLabel(), log.getParentType(), log.getParentId(),
+				hidden ? FINANCE_HIDDEN : details, withClient ? log.getIpAddress() : null,
 				withClient ? log.getUserAgent() : null, log.getCreatedAt());
 	}
 

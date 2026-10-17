@@ -193,6 +193,16 @@ public enum AuditAction {
 	/** A document was added to a vendor contract (fileId, fileName). */
 	VENDOR_CONTRACT_DOCUMENT_ADDED,
 	/** A document was removed from a vendor contract (fileId, fileName). */
-	VENDOR_CONTRACT_DOCUMENT_REMOVED
+	VENDOR_CONTRACT_DOCUMENT_REMOVED,
+	/** A tool or licence was added to the Finance Tracker (name, vendorId, billingCycle, cost, currency). */
+	LICENCE_CREATED,
+	/** Details, cost, seats, assigned users, renewal or status changed ({@code changes} holds from/to). */
+	LICENCE_UPDATED,
+	LICENCE_DELETED,
+	/** An exchange rate to AUD was added (currency, effectiveFrom, rateToAud). */
+	EXCHANGE_RATE_CREATED,
+	/** A rate, its date or its source changed ({@code changes} holds from/to). */
+	EXCHANGE_RATE_UPDATED,
+	EXCHANGE_RATE_DELETED
 
 }

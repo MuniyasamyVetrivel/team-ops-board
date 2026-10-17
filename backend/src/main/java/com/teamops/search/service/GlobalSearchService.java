@@ -22,6 +22,9 @@ import com.teamops.bench.service.EngagementService;
 import com.teamops.bench.service.EngagementService.EngagementFilter;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.web.PageResponse;
+import com.teamops.finance.FinanceModule;
+import com.teamops.finance.service.LicenceService;
+import com.teamops.finance.service.LicenceService.LicenceFilter;
 import com.teamops.knowledge.dto.KnowledgeDtos;
 import com.teamops.knowledge.service.KnowledgeService;
 import com.teamops.marketing.common.MarketingPeriod;
@@ -59,7 +62,7 @@ import lombok.RequiredArgsConstructor;
  * exactly the same rules as the module's list page: the module's permission decides whether the group is searched at
  * all, and the service's scope (department, own work, published articles) decides which rows match. Digital Marketing
  * groups also need MARKETING_VIEW, like the whole {@code /api/marketing} API. Department tool groups (Bench Management:
- * BENCH_VIEW; Vendors: VENDOR_VIEW) also need the module switched on for the viewer ({@link ModuleAccessService#toolsFor}),
+ * BENCH_VIEW; Vendors: VENDOR_VIEW; Finance Tracker: FINANCE_VIEW) also need the module switched on for the viewer ({@link ModuleAccessService#toolsFor}),
  * like their pages.
  */
 @Service
@@ -107,6 +110,8 @@ public class GlobalSearchService {
 
 	private final VendorContractService contractService;
 
+	private final LicenceService licenceService;
+
 	public SearchResults search(String rawQuery, Set<Group> only, int limit, AuthenticatedUser viewer) {
 		String query = rawQuery == null ? "" : rawQuery.strip();
 		if (query.length() > MAX_QUERY_LENGTH) {
@@ -153,6 +158,7 @@ public class GlobalSearchService {
 			case LEADS -> marketing(viewer, "LEAD_VIEW");
 			case CONSULTANTS, CLIENTS, ENGAGEMENTS -> viewer.hasPermission(PermissionCodes.BENCH_VIEW);
 			case VENDORS, VENDOR_CONTRACTS -> viewer.hasPermission(PermissionCodes.VENDOR_VIEW);
+			case LICENCES -> viewer.hasPermission(PermissionCodes.FINANCE_VIEW);
 		};
 	}
 
@@ -161,6 +167,7 @@ public class GlobalSearchService {
 		return switch (group) {
 			case CONSULTANTS, CLIENTS, ENGAGEMENTS -> BenchModule.KEY;
 			case VENDORS, VENDOR_CONTRACTS -> VendorModule.KEY;
+			case LICENCES -> FinanceModule.KEY;
 			default -> null;
 		};
 	}
@@ -234,6 +241,12 @@ public class GlobalSearchService {
 					c -> new Hit(ResultType.VENDOR_CONTRACT, c.id(), null, c.title(),
 							join(c.vendor().name(), c.renewsOn() == null ? null : "Renews " + c.renewsOn()),
 							c.status().name(), null));
+			case LICENCES -> result(group,
+					licenceService.search(new LicenceFilter(q, null, null, null, null, null), newest),
+					l -> new Hit(ResultType.FINANCE_LICENCE, l.id(), null, l.name(),
+							join(l.vendor() == null ? null : l.vendor().name(),
+									l.seatsPaid() == null ? null : l.seatsUsed() + "/" + l.seatsPaid() + " seats"),
+							l.status().name(), null));
 		};
 	}
 

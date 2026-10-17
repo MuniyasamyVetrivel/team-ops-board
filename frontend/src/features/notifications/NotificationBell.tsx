@@ -1,4 +1,4 @@
-import { AlarmClock, Bell, BellOff, CalendarClock, CalendarHeart, CheckCheck, CircleCheck, FileSignature, LifeBuoy, Megaphone, MessageSquareReply, RefreshCw, UserPlus, Workflow, type LucideIcon } from 'lucide-react';
+import { AlarmClock, AppWindow, Bell, BellOff, CalendarClock, CalendarHeart, CheckCheck, CircleCheck, FileSignature, LifeBuoy, Megaphone, MessageSquareReply, RefreshCw, UserPlus, Workflow, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -32,6 +32,7 @@ const TYPE_META: Record<NotificationType, { icon: LucideIcon; tone: string; labe
   OCCASION_REMINDER: { icon: CalendarHeart, tone: 'text-primary', label: 'Coming up' },
   BENCH_ROLL_OFF: { icon: CalendarClock, tone: 'text-status-warning', label: 'Roll-off' },
   CONTRACT_RENEWAL: { icon: FileSignature, tone: 'text-status-warning', label: 'Contract renewal' },
+  LICENCE_RENEWAL: { icon: AppWindow, tone: 'text-status-warning', label: 'Licence renewal' },
 };
 
 export function NotificationBell() {

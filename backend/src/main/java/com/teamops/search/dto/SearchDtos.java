@@ -11,7 +11,7 @@ public final class SearchDtos {
 	public enum ResultType {
 
 		TASK, TICKET, PROJECT, EMPLOYEE, ARTICLE, MARKETING_PAGE, KEYWORD, EMAIL_CAMPAIGN, PAID_CAMPAIGN, LEAD,
-		CONSULTANT, CLIENT, CLIENT_ENGAGEMENT, VENDOR, VENDOR_CONTRACT
+		CONSULTANT, CLIENT, CLIENT_ENGAGEMENT, VENDOR, VENDOR_CONTRACT, FINANCE_LICENCE
 
 	}
 
@@ -21,7 +21,8 @@ public final class SearchDtos {
 		TASKS("Tasks"), TICKETS("Tickets"), PROJECTS("Projects"), EMPLOYEES("Employees"),
 		KNOWLEDGE_BASE("Knowledge Base"), MARKETING_PAGES("Marketing Pages"), KEYWORDS("Keywords"),
 		CAMPAIGNS("Campaigns"), LEADS("Leads"), CONSULTANTS("Consultants"), CLIENTS("Clients"),
-		ENGAGEMENTS("Client engagements"), VENDORS("Vendors"), VENDOR_CONTRACTS("Vendor contracts");
+		ENGAGEMENTS("Client engagements"), VENDORS("Vendors"), VENDOR_CONTRACTS("Vendor contracts"),
+		LICENCES("Tools and licences");
 
 		private final String label;
 

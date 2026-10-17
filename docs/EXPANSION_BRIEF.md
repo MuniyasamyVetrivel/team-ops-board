@@ -99,6 +99,13 @@
 - Renewal reminders 30 and 7 days before, to holders of `FINANCE_VIEW` (Super Admin only by default)
 - Finance data is hidden from everyone without FINANCE_VIEW, including in search, exports and audit details
 - CSV export
+- Decisions (agreed with the X8 backend, part 1):
+  - `FINANCE_VIEW` is also the Finance Tracker's view permission (module key `finance`, switched on for `HR`). As before, it shows finance amounts in other modules, such as vendor contract values.
+  - Every Finance Tracker record (tools and licences, exchange rates, later expenses and budgets) is finance data as a whole. For audit viewers without `FINANCE_VIEW`, its audit entries show no details and no record name, and free-text audit search does not match them.
+  - Seats used are the users assigned to a licence. Utilisation is used ÷ paid × 100, and a licence below 70% is under-used (cancelled ones excepted). The annual cost is 12 × a monthly cost or the yearly cost; one-off costs have none.
+  - Exchange rates are to AUD: one unit of the currency is the rate in AUD, in force from its date until that currency's next rate. AUD itself is always 1 and never stored. Licences show their AUD equivalent at today's rate, which is computed, not stored. Expenses will store the rate they were converted at.
+  - A payment method is a label. Any run of more than 4 digits, counting spaces and dashes inside the run, is refused as a possible card number, and the last 4 digits go in their own field.
+  - Renewal reminders cover active and trial licences (for a trial, the renewal date is the day it ends), 30 and 7 days before.
 
 ## Rules for all phases
 - Follow CLAUDE.md, the design system and the UI revamp rules

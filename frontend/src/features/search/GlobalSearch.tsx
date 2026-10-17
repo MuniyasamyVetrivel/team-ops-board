@@ -1,4 +1,5 @@
 import {
+  AppWindow,
   BookOpen,
   Briefcase,
   Building,
@@ -44,6 +45,7 @@ const TYPE_META: Record<ResultType, { icon: LucideIcon; label: string }> = {
   CLIENT_ENGAGEMENT: { icon: Briefcase, label: 'Engagement' },
   VENDOR: { icon: Store, label: 'Vendor' },
   VENDOR_CONTRACT: { icon: FileSignature, label: 'Vendor contract' },
+  FINANCE_LICENCE: { icon: AppWindow, label: 'Tool or licence' },
 };
 
 /**
