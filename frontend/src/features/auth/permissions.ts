@@ -59,6 +59,8 @@ export const PERMISSION_CODES = [
   'MODULE_MANAGE',
   'BENCH_VIEW',
   'BENCH_EDIT',
+  'VENDOR_VIEW',
+  'VENDOR_EDIT',
 ] as const;
 
 export type PermissionCode = (typeof PERMISSION_CODES)[number];

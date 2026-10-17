@@ -13,11 +13,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { useInitialSearch } from '@/lib/use-initial-search';
 import { cn } from '@/lib/utils';
+import { ToolSection } from '@/features/modules/ToolSection';
 
 import { useBench } from './api';
 import { AllocationMeter, BenchErrorState, ConsultantCell, ConsultantStatusBadge, SkillChips } from './BenchBadges';
 import { formatBenchDate, formatDays } from './bench-meta';
-import { BenchSection } from './BenchSection';
 
 const SORTS = [
   { value: 'days,desc', label: 'Longest on bench' },
@@ -46,7 +46,7 @@ export default function BenchListPage() {
 
   return (
     <div className="space-y-4">
-      <BenchSection title="Bench" description="Everyone available below 100% allocation today, with how long they have been on the bench." />
+      <ToolSection title="Bench" description="Everyone available below 100% allocation today, with how long they have been on the bench." />
       <Card>
         <div className="flex flex-col gap-3 border-b px-6 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:*:w-auto! sm:*:min-w-44 sm:[&>*:first-child]:min-w-64 sm:[&>*:first-child]:flex-1">
           <SearchInput placeholder="Search name, employee ID or location" aria-label="Search the bench" value={search} onChange={(e) => filter(setSearch)(e.target.value)} />

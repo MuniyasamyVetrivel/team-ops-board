@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 import { BENCH_PATHS, clientHref, consultantPath, engagementHref, withSearch } from '@/features/bench/bench-paths';
-import { toolPath } from '@/features/modules/module-icons';
+import { contractHref, VENDOR_PATHS, vendorPath } from '@/features/vendors/vendor-paths';
 import { api } from '@/lib/api/client';
 
 export type ResultType =
@@ -109,11 +109,10 @@ export function hitHref(hit: SearchHit): string {
       return clientHref(hit.id);
     case 'CLIENT_ENGAGEMENT':
       return engagementHref(hit.id);
-    // Vendors (Phase X7) has no pages yet: its tool page opens until the X7 frontend replaces these links.
     case 'VENDOR':
-      return `${toolPath('vendors')}?vendor=${hit.id}`;
+      return vendorPath(hit.id);
     case 'VENDOR_CONTRACT':
-      return `${toolPath('vendors')}?contract=${hit.id}`;
+      return contractHref(hit.id);
   }
 }
 
@@ -146,8 +145,9 @@ export function groupHref(group: SearchGroupKey, query: string): string {
     case 'ENGAGEMENTS':
       return withSearch(BENCH_PATHS.engagements, query);
     case 'VENDORS':
+      return withSearch(VENDOR_PATHS.vendors, query);
     case 'VENDOR_CONTRACTS':
-      return withSearch(toolPath('vendors'), query);
+      return withSearch(VENDOR_PATHS.contracts, query);
   }
 }
 

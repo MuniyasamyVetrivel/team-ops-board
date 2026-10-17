@@ -5,6 +5,8 @@ import { NAV_ITEMS, type RouteItem } from '@/config/navigation';
 import { BENCH_PATHS } from '@/features/bench/bench-paths';
 import { BenchLayout } from '@/features/bench/BenchLayout';
 import { MarketingLayout } from '@/features/marketing/MarketingLayout';
+import { VENDOR_PATHS } from '@/features/vendors/vendor-paths';
+import { VendorLayout } from '@/features/vendors/VendorLayout';
 import { AppShell } from '@/layouts/AppShell';
 
 import { CHANGE_PASSWORD_PATH, ProtectedRoute } from './ProtectedRoute';
@@ -63,6 +65,10 @@ const ConsultantProfilePage = lazy(() => import('@/features/bench/ConsultantProf
 const AllocationsPage = lazy(() => import('@/features/bench/AllocationsPage'));
 const EngagementsPage = lazy(() => import('@/features/bench/EngagementsPage'));
 const ClientsPage = lazy(() => import('@/features/bench/ClientsPage'));
+const VendorsPage = lazy(() => import('@/features/vendors/VendorsPage'));
+const VendorPage = lazy(() => import('@/features/vendors/VendorPage'));
+const ContractsPage = lazy(() => import('@/features/vendors/ContractsPage'));
+const RenewalsPage = lazy(() => import('@/features/vendors/RenewalsPage'));
 
 /** The page for every sidebar entry, by path. */
 const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
@@ -118,6 +124,16 @@ const detailRoutes: RouteObject[] = [
       { path: 'allocations', element: <AllocationsPage /> },
       { path: 'engagements', element: <EngagementsPage /> },
       { path: 'clients', element: <ClientsPage /> },
+    ],
+  },
+  {
+    path: VENDOR_PATHS.vendors,
+    element: <VendorLayout />,
+    children: [
+      { index: true, element: <VendorsPage /> },
+      { path: 'contracts', element: <ContractsPage /> },
+      { path: 'renewals', element: <RenewalsPage /> },
+      { path: ':id', element: <VendorPage /> },
     ],
   },
   { path: '/tools/:key', element: <DepartmentToolPage /> },

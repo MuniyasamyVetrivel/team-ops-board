@@ -44,3 +44,8 @@ export function moduleIcon(name: string): LucideIcon {
 export function toolPath(key: string): string {
   return `/tools/${key}`;
 }
+
+/** A tool's list page opened with a starting search (global search's "see all"). */
+export function withSearch(path: string, query: string): string {
+  return `${path}?search=${encodeURIComponent(query.trim())}`;
+}

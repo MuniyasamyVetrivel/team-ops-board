@@ -17,8 +17,8 @@ import { cn } from '@/lib/utils';
 import { useClients, type ClientStatus } from './api';
 import { BenchErrorState } from './BenchBadges';
 import { formatDateTime } from '@/lib/format';
+import { ToolSection } from '@/features/modules/ToolSection';
 import { useBenchTool } from './bench-tool';
-import { BenchSection } from './BenchSection';
 import { ClientFormDialog } from './ClientFormDialog';
 import { ClientSheet, ClientStatusBadge } from './ClientSheet';
 
@@ -49,7 +49,7 @@ export default function ClientsPage() {
 
   return (
     <div className="space-y-4">
-      <BenchSection
+      <ToolSection
         title="Clients"
         description="The companies consultants work for."
         actions={

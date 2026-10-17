@@ -15,6 +15,7 @@ import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { useIdParam } from '@/lib/use-id-param';
 import { useInitialSearch } from '@/lib/use-initial-search';
 import { cn } from '@/lib/utils';
+import { ToolSection } from '@/features/modules/ToolSection';
 
 import { PERIOD_STATUSES, useAllocations, useClients, type PeriodStatus } from './api';
 import { AllocationFormDialog } from './AllocationFormDialog';
@@ -22,7 +23,6 @@ import { AllocationSheet } from './AllocationSheet';
 import { BenchErrorState, BillableBadge, ConsultantCell, PeriodStatusBadge } from './BenchBadges';
 import { dateRange, PERIOD_STATUS_META, rollOffLabel, rollOffTone } from './bench-meta';
 import { useBenchTool } from './bench-tool';
-import { BenchSection } from './BenchSection';
 
 const SORTS = [
   { value: 'start,desc', label: 'Newest start' },
@@ -70,7 +70,7 @@ export default function AllocationsPage() {
 
   return (
     <div className="space-y-4">
-      <BenchSection
+      <ToolSection
         title="Allocations"
         description="Who is on which engagement, for how much of their time and until when."
         actions={

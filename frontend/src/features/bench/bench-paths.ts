@@ -31,7 +31,4 @@ export function clientHref(id: number): string {
   return `${BENCH_PATHS.clients}?client=${id}`;
 }
 
-/** A list page opened with a starting search (global search's "see all"). */
-export function withSearch(path: string, query: string): string {
-  return `${path}?search=${encodeURIComponent(query.trim())}`;
-}
+export { withSearch } from '@/features/modules/module-icons';

@@ -10,12 +10,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ToolSection } from '@/features/modules/ToolSection';
 
 import { CONSULTANT_STATUSES, useBenchDashboard, type BenchDashboard } from './api';
 import { BenchErrorState, ConsultantCell, ConsultantStatusBadge } from './BenchBadges';
 import { allocationHref, BENCH_PATHS } from './bench-paths';
 import { formatBenchDate, formatDays, formatFte, formatPercent, rollOffLabel, rollOffTone } from './bench-meta';
-import { BenchSection } from './BenchSection';
 
 /**
  * Bench Management on today's business date (the server's `asOf`): utilisation, billable vs non-billable, who is on
@@ -27,7 +27,7 @@ export default function BenchDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <BenchSection
+      <ToolSection
         title="Dashboard"
         description={dashboard.data ? `As of ${formatBenchDate(dashboard.data.asOf)}. One consultant at 100% is 1.00 FTE.` : 'Utilisation, the bench and upcoming roll-offs.'}
       />

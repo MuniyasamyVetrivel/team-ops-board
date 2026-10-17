@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
-/** The heading of one Bench Management tab, under the module's title and tab bar, with the tab's actions. */
-export function BenchSection({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
+/** The heading of one tab of a department tool, under the tool's title and tab bar, with the tab's actions. */
+export function ToolSection({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">

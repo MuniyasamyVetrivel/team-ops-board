@@ -40,6 +40,8 @@ export type HistoryRecordType =
   | 'CLIENT'
   | 'CLIENT_ENGAGEMENT'
   | 'ALLOCATION'
+  | 'VENDOR'
+  | 'VENDOR_CONTRACT'
   | 'SETTING'
   | 'SLA_POLICY';
 

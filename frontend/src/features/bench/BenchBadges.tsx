@@ -1,11 +1,9 @@
-import { Ban, Banknote, CircleSlash, ToggleLeft, TriangleAlert } from 'lucide-react';
+import { Banknote, CircleSlash, TriangleAlert } from 'lucide-react';
 import { Link } from 'react-router';
 
-import { EmptyState } from '@/components/common/EmptyState';
-import { ErrorState } from '@/components/common/ErrorState';
 import { UserAvatar } from '@/components/common/UserAvatar';
 import { Badge } from '@/components/ui/badge';
-import { toApiError } from '@/lib/api/errors';
+import { ToolErrorState } from '@/features/modules/ToolErrorState';
 import type { UserSummary } from '@/lib/api/types';
 import { cn } from '@/lib/utils';
 
@@ -103,11 +101,5 @@ export function ConsultantCell({ consultantId, name, user, detail }: { consultan
 
 /** A load error; a module switched off since the page opened reads as that, not as a generic failure. */
 export function BenchErrorState({ error, title, onRetry }: { error: unknown; title: string; onRetry?: () => void }) {
-  if (toApiError(error)?.code === 'MODULE_DISABLED') {
-    return <EmptyState icon={ToggleLeft} title="This tool is not switched on for your department" description="Ask your Super Admin to switch Bench Management on in Admin settings → Modules." />;
-  }
-  if (toApiError(error)?.code === 'FORBIDDEN') {
-    return <EmptyState icon={Ban} title="You don't have access to this" description="Bench Management needs the BENCH_VIEW permission." />;
-  }
-  return <ErrorState error={error} title={title} onRetry={onRetry} />;
+  return <ToolErrorState error={error} title={title} onRetry={onRetry} toolName="Bench Management" permission="BENCH_VIEW" />;
 }

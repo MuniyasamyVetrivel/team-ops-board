@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { allocationHref } from '@/features/bench/bench-paths';
-import { toolPath } from '@/features/modules/module-icons';
+import { contractHref } from '@/features/vendors/vendor-paths';
 import { api } from '@/lib/api/client';
 import type { PageResponse } from '@/lib/api/types';
 
@@ -35,8 +35,7 @@ export function notificationHref(notification: AppNotification): string | null {
   if (notification.entityType === 'IMPORTANT_DAY') return `/celebrations/important-days?day=${notification.entityId}`;
   if (notification.entityType === 'MARKETING_EVENT') return `/celebrations/events?event=${notification.entityId}`;
   if (notification.entityType === 'ALLOCATION') return allocationHref(notification.entityId);
-  // Vendors (Phase X7) has no pages yet: its tool page opens until the X7 frontend replaces this link.
-  if (notification.entityType === 'VENDOR_CONTRACT') return `${toolPath('vendors')}?contract=${notification.entityId}`;
+  if (notification.entityType === 'VENDOR_CONTRACT') return contractHref(notification.entityId);
   return null;
 }
 

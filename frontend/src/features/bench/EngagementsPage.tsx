@@ -15,12 +15,12 @@ import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { useIdParam } from '@/lib/use-id-param';
 import { useInitialSearch } from '@/lib/use-initial-search';
 import { cn } from '@/lib/utils';
+import { ToolSection } from '@/features/modules/ToolSection';
 
 import { PERIOD_STATUSES, useClients, useEngagements, type PeriodStatus } from './api';
 import { BenchErrorState, PeriodStatusBadge } from './BenchBadges';
 import { dateRange, PERIOD_STATUS_META } from './bench-meta';
 import { useBenchTool } from './bench-tool';
-import { BenchSection } from './BenchSection';
 import { EngagementFormDialog } from './EngagementFormDialog';
 import { EngagementSheet } from './EngagementSheet';
 
@@ -57,7 +57,7 @@ export default function EngagementsPage() {
 
   return (
     <div className="space-y-4">
-      <BenchSection
+      <ToolSection
         title="Engagements"
         description="Client work consultants are allocated to, with dates and account managers."
         actions={

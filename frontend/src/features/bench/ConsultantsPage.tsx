@@ -16,13 +16,13 @@ import { CsvImportDialog } from '@/features/marketing/components/CsvImportDialog
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { useInitialSearch } from '@/lib/use-initial-search';
 import { cn } from '@/lib/utils';
+import { ToolSection } from '@/features/modules/ToolSection';
 
 import { BENCH_IMPORTS, CONSULTANT_STATUSES, exportConsultants, useConsultantImportDefinition, useConsultants, type ConsultantQuery, type ConsultantStatus } from './api';
 import { AllocationMeter, BenchErrorState, ConsultantCell, ConsultantStatusBadge, SkillChips } from './BenchBadges';
 import { CONSULTANT_STATUS_META, formatBenchDate } from './bench-meta';
 import { consultantPath } from './bench-paths';
 import { useBenchTool } from './bench-tool';
-import { BenchSection } from './BenchSection';
 import { ConsultantFormDialog } from './ConsultantFormDialog';
 
 const SORTS = [
@@ -61,7 +61,7 @@ export default function ConsultantsPage() {
 
   return (
     <div className="space-y-4">
-      <BenchSection
+      <ToolSection
         title="Consultants"
         description="Skills, certifications, availability and today's allocation for everyone on the books."
         actions={

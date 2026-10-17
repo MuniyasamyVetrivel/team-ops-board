@@ -11,10 +11,11 @@ describe('search links', () => {
     expect(hitHref(hit('CLIENT_ENGAGEMENT', 5))).toBe('/tools/bench/engagements?engagement=5');
   });
 
-  it('opens vendor records on the Vendors tool page until its own pages exist', () => {
-    expect(hitHref(hit('VENDOR', 9))).toBe('/tools/vendors?vendor=9');
-    expect(hitHref(hit('VENDOR_CONTRACT', 4))).toBe('/tools/vendors?contract=4');
-    expect(groupHref('VENDOR_CONTRACTS', 'jira')).toBe('/tools/vendors?search=jira');
+  it('opens vendors on their page and contracts in the contracts drawer', () => {
+    expect(hitHref(hit('VENDOR', 9))).toBe('/tools/vendors/9');
+    expect(hitHref(hit('VENDOR_CONTRACT', 4))).toBe('/tools/vendors/contracts?contract=4');
+    expect(groupHref('VENDORS', 'acme')).toBe('/tools/vendors?search=acme');
+    expect(groupHref('VENDOR_CONTRACTS', 'jira')).toBe('/tools/vendors/contracts?search=jira');
   });
 
   it('sends "see all" to the matching Bench Management list with the search', () => {

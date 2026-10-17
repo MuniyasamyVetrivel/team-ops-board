@@ -19,6 +19,13 @@ const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['minute', 60],
 ];
 
+/** A calendar date from the server ("2026-10-07") as "7 Oct 2026", never shifted by the time zone; "—" without one. */
+export function formatLocalDate(value: string | null | undefined): string {
+  if (!value) return '—';
+  const [year, month, day] = value.split('-').map(Number);
+  return dateFormat.format(new Date(year ?? 1970, (month ?? 1) - 1, day ?? 1));
+}
+
 export function formatDate(iso: string | null | undefined): string {
   return iso ? dateFormat.format(new Date(iso)) : '—';
 }
