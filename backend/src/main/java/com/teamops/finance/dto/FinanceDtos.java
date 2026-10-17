@@ -7,6 +7,7 @@ import java.util.List;
 
 import com.teamops.department.dto.DepartmentSummary;
 import com.teamops.finance.entity.BillingCycle;
+import com.teamops.finance.entity.ExpenseCategory;
 import com.teamops.finance.entity.LicenceStatus;
 import com.teamops.user.dto.UserSummary;
 import com.teamops.vendor.dto.VendorDtos.VendorRef;
@@ -99,6 +100,111 @@ public final class FinanceDtos {
 			@Pattern(regexp = "\\d{4}", message = "must be exactly the last 4 digits") String cardLast4,
 			LicenceStatus status, @Size(max = MAX_ASSIGNED_USERS) List<@NotNull Long> assignedUserIds,
 			@Size(max = 5000) String notes, Integer version) {
+
+	}
+
+
+	// --- expenses ---------------------------------------------------------------------------------------------
+
+	/** The Approval an expense is linked to (code, title and status; never its amount). */
+	public record ApprovalRef(Long id, String code, String title, String status) {
+
+	}
+
+	public record ReceiptDto(Long fileId, String fileName, String contentType, long sizeBytes, Instant addedAt) {
+
+	}
+
+	/**
+	 * {@code amount} is the total in {@code currency}, GST included. Stored at the expense date (brief: "an AUD
+	 * equivalent at a stored exchange rate"): {@code audRate} (1 for AUD), {@code audRateDate} (null for AUD) and
+	 * {@code amountAud}. Computed: {@code amountExGst} and {@code gstAud}.
+	 * @param vendorId the vendor even while it is in the recycle bin ({@code vendor} is then null)
+	 */
+	public record ExpenseDto(Long id, LocalDate expenseDate, ExpenseCategory category, Long vendorId, VendorRef vendor,
+			String description, BigDecimal amount, BigDecimal gst, BigDecimal amountExGst, String currency,
+			BigDecimal audRate, LocalDate audRateDate, BigDecimal amountAud, BigDecimal gstAud,
+			DepartmentSummary department, ReceiptDto receipt, ApprovalRef approval, String notes, Integer version,
+			Instant createdAt, Instant updatedAt) {
+
+	}
+
+	/**
+	 * {@code currency} defaults to the Finance default currency. The AUD rate is taken from the exchange rates on the
+	 * expense date when the expense is created, and again when its date or currency changes (400 NO_EXCHANGE_RATE when
+	 * there is none). {@code version} is required for an update.
+	 */
+	public record SaveExpense(@NotNull LocalDate expenseDate, @NotNull ExpenseCategory category, Long vendorId,
+			@NotBlank @Size(max = 500) String description,
+			@NotNull @DecimalMin("0.00") @Digits(integer = 12, fraction = 2) BigDecimal amount,
+			@DecimalMin("0.00") @Digits(integer = 12, fraction = 2) BigDecimal gst,
+			@Pattern(regexp = "[A-Za-z]{3}", message = "must be a three-letter currency code") String currency,
+			Long departmentId, Long approvalId, @Size(max = 5000) String notes, Integer version) {
+
+	}
+
+	// --- budgets ----------------------------------------------------------------------------------------------
+
+	/**
+	 * A department's budget for a month in AUD, with the month's actual AUD spend; computed: {@code remaining},
+	 * {@code usedPercent} (null for a zero budget), {@code overBudget} and {@code overBy}.
+	 */
+	public record BudgetDto(Long id, DepartmentSummary department, int year, int month, BigDecimal amount,
+			BigDecimal actual, BigDecimal remaining, BigDecimal usedPercent, boolean overBudget, BigDecimal overBy,
+			String notes, Integer version, Instant createdAt, Instant updatedAt) {
+
+	}
+
+	public record SaveBudget(@NotNull Long departmentId, @Min(2000) @Max(2100) int year, @Min(1) @Max(12) int month,
+			@NotNull @DecimalMin("0.00") @Digits(integer = 12, fraction = 2) BigDecimal amount,
+			@Size(max = 5000) String notes, Integer version) {
+
+	}
+
+	/**
+	 * One line of a month's budget against actual: a department with a budget or with spend (or, with a null
+	 * department, the spend no department was given). {@code budget} and its figures are null without a budget.
+	 */
+	public record BudgetLine(DepartmentSummary department, Long budgetId, BigDecimal budget, BigDecimal actual,
+			BigDecimal remaining, BigDecimal usedPercent, boolean overBudget, BigDecimal overBy) {
+
+	}
+
+	public record BudgetSummary(int year, int month, List<BudgetLine> lines, BigDecimal totalBudget,
+			BigDecimal totalActual, BigDecimal totalActualBudgeted, long overBudgetDepartments) {
+
+	}
+
+	// --- dashboard --------------------------------------------------------------------------------------------
+
+	public record MonthSpend(int year, int month, BigDecimal totalAud) {
+
+	}
+
+	/** {@code department} null for spend no department was given. */
+	public record DepartmentSpend(DepartmentSummary department, BigDecimal totalAud) {
+
+	}
+
+	public record CategorySpend(ExpenseCategory category, BigDecimal totalAud, long expenses) {
+
+	}
+
+	/**
+	 * The Finance Tracker for a month (this month by default, on the business calendar). All amounts in AUD.
+	 * @param changePercent this month against the previous one; null when the previous month had no spend
+	 * @param trend the 12 months up to and including this one, months without spend at 0
+	 * @param upcomingRenewals active and trial licences renewing in the next 30 days (the first 10 of the count)
+	 * @param underUsedLicences licences with seats used below 70% of seats paid (the 10 least used of the count)
+	 * @param annualisedSoftwareCostAud the annual cost of every active and trial licence at today's rates
+	 * @param licencesWithoutRate licences left out of it because their currency has no rate yet
+	 */
+	public record FinanceDashboard(LocalDate asOf, int year, int month, BigDecimal monthSpendAud,
+			BigDecimal previousMonthSpendAud, BigDecimal changePercent, long expenseCount, List<MonthSpend> trend,
+			List<DepartmentSpend> byDepartment, List<CategorySpend> byCategory, BigDecimal monthBudgetAud,
+			long overBudgetDepartments, long upcomingRenewalCount, List<LicenceDto> upcomingRenewals,
+			long underUsedCount, List<LicenceDto> underUsedLicences, BigDecimal annualisedSoftwareCostAud,
+			long licencesWithoutRate) {
 
 	}
 

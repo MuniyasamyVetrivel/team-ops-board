@@ -6,8 +6,8 @@ import { hitHref, statusLabel } from '@/features/search/api';
 import { permissionDiff, toggleRolePermission } from './role-matrix';
 import { groupSettings, settingValueError } from './setting-rules';
 
-const windowDays = { label: 'Workload window', valueType: 'INTEGER' as const, min: 1, max: 90, unit: 'days' };
-const hours = { label: 'Default task hours', valueType: 'DECIMAL' as const, min: 0, max: 40, unit: 'hours' };
+const windowDays = { label: 'Workload window', valueType: 'INTEGER' as const, min: 1, max: 90, unit: 'days', options: [] };
+const hours = { label: 'Default task hours', valueType: 'DECIMAL' as const, min: 0, max: 40, unit: 'hours', options: [] };
 
 describe('settingValueError (mirrors SettingDefinition)', () => {
   it('accepts values in range', () => {
@@ -25,8 +25,15 @@ describe('settingValueError (mirrors SettingDefinition)', () => {
     expect(settingValueError(hours, '4.125')).toBe('Default task hours can have at most 2 decimal places');
   });
 
+  it('takes one of the options for a choice setting, ignoring case', () => {
+    const currency = { label: 'Default currency', valueType: 'CHOICE' as const, min: 0, max: 0, unit: '', options: ['INR', 'AUD', 'USD', 'SGD'] };
+    expect(settingValueError(currency, 'sgd')).toBeNull();
+    expect(settingValueError(currency, 'EUR')).toBe('Default currency must be one of: INR, AUD, USD, SGD');
+    expect(settingValueError(currency, '')).toBe('Default currency is required');
+  });
+
   it('groups settings in server order', () => {
-    const base = { description: null, value: '1', unit: '', min: 0, max: 1, updatedBy: null, updatedAt: '', version: 0, valueType: 'INTEGER' as const };
+    const base = { description: null, value: '1', unit: '', min: 0, max: 1, updatedBy: null, updatedAt: '', version: 0, valueType: 'INTEGER' as const, options: [] };
     const groups = groupSettings([
       { ...base, key: 'a', group: 'Workload', label: 'A' },
       { ...base, key: 'b', group: 'People', label: 'B' },

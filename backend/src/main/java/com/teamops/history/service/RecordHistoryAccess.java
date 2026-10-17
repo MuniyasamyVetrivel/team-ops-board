@@ -39,8 +39,12 @@ import com.teamops.document.service.DocumentService;
 import com.teamops.knowledge.entity.KnowledgeArticle;
 import com.teamops.finance.FinanceModule;
 import com.teamops.finance.entity.ExchangeRate;
+import com.teamops.finance.entity.FinanceBudget;
+import com.teamops.finance.entity.FinanceExpense;
 import com.teamops.finance.entity.FinanceLicence;
+import com.teamops.finance.service.BudgetService;
 import com.teamops.finance.service.ExchangeRateService;
+import com.teamops.finance.service.ExpenseService;
 import com.teamops.finance.service.LicenceService;
 import com.teamops.marketing.activity.entity.MarketingActivity;
 import com.teamops.marketing.activity.service.ActivityService;
@@ -105,7 +109,7 @@ public class RecordHistoryAccess {
 			EmailCampaignService emailCampaigns, TargetService targets, ModuleAccessService moduleAccess,
 			ConsultantService consultants, ClientService clients, EngagementService engagements,
 			AllocationService allocations, VendorService vendors, VendorContractService contracts,
-			LicenceService licences, ExchangeRateService exchangeRates) {
+			LicenceService licences, ExchangeRateService exchangeRates, ExpenseService expenses, BudgetService budgets) {
 		register(Task.class, (id, u) -> {
 			require(u, "TASK_VIEW");
 			tasks.get(id, u);
@@ -212,6 +216,14 @@ public class RecordHistoryAccess {
 		register(ExchangeRate.class, (id, u) -> {
 			requireModule(moduleAccess, u, FinanceModule.KEY);
 			exchangeRates.get(id);
+		});
+		register(FinanceExpense.class, (id, u) -> {
+			requireModule(moduleAccess, u, FinanceModule.KEY);
+			expenses.get(id);
+		});
+		register(FinanceBudget.class, (id, u) -> {
+			requireModule(moduleAccess, u, FinanceModule.KEY);
+			budgets.get(id);
 		});
 	}
 

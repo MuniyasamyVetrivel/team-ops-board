@@ -18,6 +18,7 @@ import com.teamops.common.csv.CsvImporter;
 import com.teamops.common.csv.RowReader;
 import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AuthenticatedUser;
+import com.teamops.common.settings.AppSettingsService;
 import com.teamops.department.entity.Department;
 import com.teamops.department.repository.DepartmentRepository;
 import com.teamops.finance.dto.FinanceDtos;
@@ -56,7 +57,7 @@ public class LicenceCsvImporter implements CsvImporter<LicenceCsvImporter.Row> {
 			CsvColumn.optional("seats_paid", "Seats paid for, 0 to 100,000", "20"),
 			CsvColumn.required("billing_cycle", "MONTHLY, YEARLY or ONE_OFF", "YEARLY"),
 			CsvColumn.optional("cost", "Cost per billing cycle, up to two decimals", "9600.00"),
-			CsvColumn.optional("currency", "Three-letter code; INR when empty", "AUD"),
+			CsvColumn.optional("currency", "Three-letter code; the Finance default currency when empty", "AUD"),
 			CsvColumn.optional("start_date", "YYYY-MM-DD", "2026-03-01"),
 			CsvColumn.optional("renewal_date", "YYYY-MM-DD; the end of a trial for trials", "2027-03-01"),
 			CsvColumn.optional("payment_method", "A label, never a card number", "Corporate Amex"),
@@ -76,8 +77,11 @@ public class LicenceCsvImporter implements CsvImporter<LicenceCsvImporter.Row> {
 
 	private final RecycleBinService recycleBin;
 
+	private final AppSettingsService settings;
+
 	public LicenceCsvImporter(FinanceLicenceRepository licences, VendorRepository vendors, UserRepository users,
-			DepartmentRepository departments, RecycleBinService recycleBin) {
+			DepartmentRepository departments, RecycleBinService recycleBin, AppSettingsService settings) {
+		this.settings = settings;
 		this.licences = licences;
 		this.vendors = vendors;
 		this.users = users;
@@ -122,6 +126,7 @@ public class LicenceCsvImporter implements CsvImporter<LicenceCsvImporter.Row> {
 
 	@Override
 	public ImportSession<Row> open(AuthenticatedUser actor) {
+		String defaultCurrency = settings.financeDefaultCurrency();
 		return new ImportSession<>() {
 
 			@Override
@@ -210,7 +215,7 @@ public class LicenceCsvImporter implements CsvImporter<LicenceCsvImporter.Row> {
 				}
 				return new Row(name, vendorId, ownerId, departmentId, seats, cycle,
 						cost == null ? null : cost.setScale(2, RoundingMode.UNNECESSARY),
-						FinanceText.currency(currency, FinanceText.DEFAULT_CURRENCY), start, renewal, paymentMethod, last4,
+						FinanceText.currency(currency, defaultCurrency), start, renewal, paymentMethod, last4,
 						status == null ? LicenceStatus.ACTIVE : status, List.copyOf(assigned), notes);
 			}
 

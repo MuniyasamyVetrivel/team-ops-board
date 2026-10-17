@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Briefcase, CalendarHeart, Gauge, LifeBuoy, LoaderCircle, Paperclip, SlidersHorizontal, Target, Trash2, UsersRound, type LucideIcon } from 'lucide-react';
+import { Briefcase, CalendarHeart, Gauge, LifeBuoy, LoaderCircle, Paperclip, SlidersHorizontal, Target, Trash2, UsersRound, Wallet, type LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { Panel } from '@/components/common/Panel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toApiError } from '@/lib/api/errors';
 import { applyServerErrors } from '@/lib/api/form-errors';
@@ -25,6 +26,7 @@ const GROUP_ICONS: Record<string, LucideIcon> = {
   Files: Paperclip,
   Calendar: CalendarHeart,
   'Recycle bin': Trash2,
+  Finance: Wallet,
 };
 
 /** What each setting changes, in the words of the people who rely on it. */
@@ -37,6 +39,7 @@ const EFFECTS: Record<string, string> = {
   'celebrations.reminderDaysBefore': 'Super Admins and celebration editors are reminded this many days before each birthday, work anniversary, important day and event, and again on the day. 0 sends only the on-the-day reminder.',
   'recycleBin.retentionDays': 'Deleted items stay in the Recycle Bin this many days, then are deleted permanently overnight. Shortening it applies to items already in the bin.',
   'upload.maxSizeMb': "Largest file people can attach. It can't exceed the limit the server was started with.",
+  'finance.defaultCurrency': 'New tools, licences and expenses start in this currency; each record can still choose its own. The options are INR, AUD, USD and every currency in the exchange rates table.',
 };
 
 export function GeneralSettings() {
@@ -117,7 +120,7 @@ function SettingRow({ setting, onStale }: { setting: SettingItem; onStale: () =>
         </label>
         <p className="mt-0.5 text-sm text-muted-foreground">{EFFECTS[setting.key] ?? setting.description}</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          {setting.min}–{setting.max} {setting.unit}
+          {setting.valueType === 'CHOICE' ? `One of ${setting.options.join(', ')}` : `${setting.min}–${setting.max} ${setting.unit}`}
           {setting.updatedBy && (
             <>
               {' '}
@@ -133,19 +136,29 @@ function SettingRow({ setting, onStale }: { setting: SettingItem; onStale: () =>
       </div>
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
-          <div className="relative w-32">
-            <Input
-              id={id}
-              inputMode={setting.valueType === 'INTEGER' ? 'numeric' : 'decimal'}
-              className="pr-12 text-right tabular-nums"
-              aria-invalid={errors.value ? true : undefined}
-              aria-describedby={errors.value ? `${id}-error` : undefined}
-              {...register('value')}
-            />
-            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted-foreground" aria-hidden>
-              {setting.unit}
-            </span>
-          </div>
+          {setting.valueType === 'CHOICE' ? (
+            <Select id={id} className="w-32" aria-invalid={errors.value ? true : undefined} aria-describedby={errors.value ? `${id}-error` : undefined} {...register('value')}>
+              {setting.options.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </Select>
+          ) : (
+            <div className="relative w-32">
+              <Input
+                id={id}
+                inputMode={setting.valueType === 'INTEGER' ? 'numeric' : 'decimal'}
+                className="pr-12 text-right tabular-nums"
+                aria-invalid={errors.value ? true : undefined}
+                aria-describedby={errors.value ? `${id}-error` : undefined}
+                {...register('value')}
+              />
+              <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted-foreground" aria-hidden>
+                {setting.unit}
+              </span>
+            </div>
+          )}
           <Button type="submit" size="sm" disabled={!isDirty || isSubmitting} aria-label={`Save ${setting.label}`}>
             {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden />}
             Save

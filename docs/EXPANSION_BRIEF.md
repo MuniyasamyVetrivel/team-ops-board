@@ -106,6 +106,23 @@
   - Exchange rates are to AUD: one unit of the currency is the rate in AUD, in force from its date until that currency's next rate. AUD itself is always 1 and never stored. Licences show their AUD equivalent at today's rate, which is computed, not stored. Expenses will store the rate they were converted at.
   - A payment method is a label. Any run of more than 4 digits, counting spaces and dashes inside the run, is refused as a possible card number, and the last 4 digits go in their own field.
   - Renewal reminders cover active and trial licences (for a trial, the renewal date is the day it ends), 30 and 7 days before.
+- Decisions (agreed with the X8 backend, part 2):
+  - **Default currency:** a "Default currency" setting for the Finance module in Admin settings (default INR). The options are INR, AUD, USD and any currency in the exchange rates table. New licences and expenses start in it, and each record can still choose its own currency.
+  - **Expense amounts:**
+    - An expense's amount is the total paid, with the GST it includes recorded separately; GST cannot exceed the amount.
+    - Each expense stores the AUD rate in force on its date, the date that rate took effect, and the AUD amount. A later change to the rates table leaves it as it is.
+    - The rate is taken again only when the expense's date or currency changes. A new amount keeps the stored rate.
+    - With no rate for that currency on or before the date, the expense is refused until a rate is added.
+  - **Budgets:** budgets are in AUD, one per department per month. Actual spend is that month's expenses (by expense date) at their stored AUD amounts. Remaining, used %, over-budget and over-by are computed, and nothing is stored.
+  - **Dashboard:**
+    - It covers one month (this month by default), its change on the previous month, and a 12-month trend.
+    - It shows spend by department (including spend with no department) and by category, and the month's budgets.
+    - It lists renewals in the next 30 days and licences below 70% seat use.
+    - It shows the annualised cost of active and trial licences at today's rates, and how many licences were left out for want of a rate.
+  - **The vendor page** lists the vendor's licences and expenses (finance viewers only), and a vendor cannot be deleted while either uses it.
+  - **"Hidden everywhere" without `FINANCE_VIEW`** also covers:
+    - the Recycle Bin: finance items show no name, can't be found by name, and a permanent delete is confirmed with "Finance expense #12"
+    - "Export all data", which leaves out the finance tables and receipts, blanks money columns in other tables, and redacts the names and details of rows about finance records (audit entries, notifications, recycle bin items)
 
 ## Rules for all phases
 - Follow CLAUDE.md, the design system and the UI revamp rules

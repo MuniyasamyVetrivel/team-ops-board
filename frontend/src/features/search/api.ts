@@ -21,7 +21,8 @@ export type ResultType =
   | 'CLIENT_ENGAGEMENT'
   | 'VENDOR'
   | 'VENDOR_CONTRACT'
-  | 'FINANCE_LICENCE';
+  | 'FINANCE_LICENCE'
+  | 'FINANCE_EXPENSE';
 
 export type SearchGroupKey =
   | 'TASKS'
@@ -38,7 +39,8 @@ export type SearchGroupKey =
   | 'ENGAGEMENTS'
   | 'VENDORS'
   | 'VENDOR_CONTRACTS'
-  | 'LICENCES';
+  | 'LICENCES'
+  | 'EXPENSES';
 
 /** Mirrors SearchDtos.Hit. {@code ref} is an article's slug; {@code status} is the record's status code. */
 export interface SearchHit {
@@ -119,6 +121,8 @@ export function hitHref(hit: SearchHit): string {
     // The Finance Tracker (Phase X8) has no pages yet: its tool page opens until its frontend replaces these links.
     case 'FINANCE_LICENCE':
       return `${toolPath('finance')}?licence=${hit.id}`;
+    case 'FINANCE_EXPENSE':
+      return `${toolPath('finance')}?expense=${hit.id}`;
   }
 }
 
@@ -155,6 +159,7 @@ export function groupHref(group: SearchGroupKey, query: string): string {
     case 'VENDOR_CONTRACTS':
       return withSearch(VENDOR_PATHS.contracts, query);
     case 'LICENCES':
+    case 'EXPENSES':
       return withSearch(toolPath('finance'), query);
   }
 }

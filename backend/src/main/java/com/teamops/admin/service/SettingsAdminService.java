@@ -19,6 +19,7 @@ import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.settings.AppSetting;
 import com.teamops.common.settings.AppSettingRepository;
+import com.teamops.common.settings.SettingChoices;
 import com.teamops.common.storage.StorageProperties;
 import com.teamops.common.web.ClientInfo;
 import com.teamops.user.dto.UserSummary;
@@ -44,6 +45,8 @@ public class SettingsAdminService {
 
 	private final AuditService auditService;
 
+	private final List<SettingChoices> choices;
+
 	public List<SettingItem> list() {
 		Map<String, AppSetting> byKey = settingRepository.findAll()
 			.stream()
@@ -57,7 +60,7 @@ public class SettingsAdminService {
 			.map(d -> {
 				AppSetting setting = byKey.get(d.key());
 				User editor = setting.getUpdatedById() == null ? null : editors.get(setting.getUpdatedById());
-				return SettingItem.of(d, setting, storage.maxFileSizeMb(), UserSummary.of(editor));
+				return SettingItem.of(d, setting, storage.maxFileSizeMb(), options(d), UserSummary.of(editor));
 			})
 			.toList();
 	}
@@ -72,7 +75,7 @@ public class SettingsAdminService {
 			throw ApiException.conflict("STALE_UPDATE",
 					"Someone else changed this setting just now. Reload and try again.");
 		}
-		String value = definition.normalize(request.value(), storage.maxFileSizeMb());
+		String value = definition.normalize(request.value(), storage.maxFileSizeMb(), options(definition));
 		AuditChanges changes = new AuditChanges().track(key, setting.getSettingValue(), value);
 		if (!changes.isEmpty()) {
 			setting.setSettingValue(value);
@@ -81,7 +84,19 @@ public class SettingsAdminService {
 					changes.toDetails(), client);
 		}
 		User editor = setting.getUpdatedById() == null ? null : userRepository.findById(setting.getUpdatedById()).orElse(null);
-		return SettingItem.of(definition, setting, storage.maxFileSizeMb(), UserSummary.of(editor));
+		return SettingItem.of(definition, setting, storage.maxFileSizeMb(), options(definition), UserSummary.of(editor));
+	}
+
+	/** The values a CHOICE setting accepts (from its {@link SettingChoices} bean); empty for numeric settings. */
+	private List<String> options(SettingDefinition definition) {
+		if (definition.type() != SettingDefinition.ValueType.CHOICE) {
+			return List.of();
+		}
+		return choices.stream()
+			.filter(c -> c.key().equals(definition.key()))
+			.findFirst()
+			.map(SettingChoices::options)
+			.orElse(List.of());
 	}
 
 }

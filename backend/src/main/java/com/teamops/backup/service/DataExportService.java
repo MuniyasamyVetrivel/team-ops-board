@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -62,18 +63,34 @@ public class DataExportService {
 
 	private final Clock clock;
 
+	private final FinanceRedaction financeRedaction;
+
 	public record Summary(int tables, long rows, int uploadFiles) {
 
 	}
 
-	/** Writes the ZIP to {@code out} (closed at the end) and audits the export, also when it breaks off. */
-	public Summary export(OutputStream out, Long actorId, ClientInfo client) throws IOException {
+	/**
+	 * What an export leaves out for an exporter without FINANCE_VIEW ({@link FinanceRedaction}); {@code active} false
+	 * for everyone else.
+	 */
+	record Redaction(boolean active, FinanceRedaction.Model model, FinanceRedaction.Files files) {
+
+		static final Redaction NONE = new Redaction(false, null, null);
+
+	}
+
+	/**
+	 * Writes the ZIP to {@code out} (closed at the end) and audits the export, also when it breaks off. Without
+	 * {@code canSeeFinance} (FINANCE_VIEW) finance data stays out of it ({@link FinanceRedaction}).
+	 */
+	public Summary export(OutputStream out, Long actorId, boolean canSeeFinance, ClientInfo client) throws IOException {
 		Map<String, Long> counts = new LinkedHashMap<>();
 		int files = 0;
 		try (ZipOutputStream zip = new ZipOutputStream(out)) {
-			exportTables(zip, counts);
-			files = UploadsArchive.addTo(zip, storage.dir());
-			writeIndex(zip, counts, files);
+			Redaction redaction = exportTables(zip, counts, canSeeFinance);
+			files = UploadsArchive.addTo(zip, storage.dir(),
+					redaction.active() ? redaction.files().storageKeys() : Set.of());
+			writeIndex(zip, counts, files, redaction.active());
 		}
 		catch (IOException | SQLException | RuntimeException ex) {
 			audit(actorId, client, counts, files, false, BackupService.rootMessage(ex));
@@ -87,7 +104,8 @@ public class DataExportService {
 		return summary;
 	}
 
-	private void exportTables(ZipOutputStream zip, Map<String, Long> counts) throws SQLException, IOException {
+	private Redaction exportTables(ZipOutputStream zip, Map<String, Long> counts, boolean canSeeFinance)
+			throws SQLException, IOException {
 		try (Connection connection = dataSource.getConnection()) {
 			boolean autoCommit = connection.getAutoCommit();
 			connection.setAutoCommit(false);
@@ -97,11 +115,17 @@ public class DataExportService {
 					// One snapshot for every table, so the CSV files agree with each other.
 					snapshot.execute("START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY");
 				}
+				Redaction redaction = canSeeFinance ? Redaction.NONE
+						: new Redaction(true, financeRedaction.model(), financeRedaction.financeFiles(connection));
 				for (String table : tables(connection)) {
+					if (redaction.active() && redaction.model().tables().contains(table.toLowerCase(Locale.ROOT))) {
+						continue;
+					}
 					zip.putNextEntry(new ZipEntry("tables/" + table + ".csv"));
-					counts.put(table, exportTable(connection, table, zip));
+					counts.put(table, exportTable(connection, table, zip, redaction));
 					zip.closeEntry();
 				}
+				return redaction;
 			}
 			finally {
 				connection.rollback();
@@ -126,8 +150,10 @@ public class DataExportService {
 		return tables;
 	}
 
-	private static long exportTable(Connection connection, String table, OutputStream out)
+	private static long exportTable(Connection connection, String table, OutputStream out, Redaction redaction)
 			throws SQLException, IOException {
+		String lower = table.toLowerCase(Locale.ROOT);
+		Set<String> moneyColumns = redaction.active() ? redaction.model().columns().getOrDefault(lower, Set.of()) : Set.of();
 		long rows = 0;
 		try (Statement query = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
 			// Connector/J streams rows one by one with this fetch size instead of loading the table into memory.
@@ -138,11 +164,19 @@ public class DataExportService {
 				int columns = meta.getColumnCount();
 				List<String> header = new ArrayList<>();
 				int deletedAt = -1;
+				int id = -1;
+				int entityType = -1;
+				int financeFlag = -1;
 				for (int i = 1; i <= columns; i++) {
 					String name = meta.getColumnLabel(i);
 					header.add(name);
-					if ("deleted_at".equalsIgnoreCase(name)) {
-						deletedAt = i;
+					switch (name.toLowerCase(Locale.ROOT)) {
+						case "deleted_at" -> deletedAt = i;
+						case "id" -> id = i;
+						case "entity_type" -> entityType = i;
+						case "finance" -> financeFlag = i;
+						default -> {
+						}
 					}
 				}
 				if (deletedAt > 0) {
@@ -150,9 +184,21 @@ public class DataExportService {
 				}
 				csv.row(header);
 				while (rs.next()) {
+					// Without FINANCE_VIEW: receipts' file rows are left out, as their files are.
+					if (redaction.active() && "files".equals(lower) && id > 0
+							&& redaction.files().ids().contains(rs.getLong(id))) {
+						continue;
+					}
+					boolean aboutFinance = redaction.active() && entityType > 0
+							&& redaction.model().recordTypes().contains(rs.getString(entityType));
+					boolean financeDetails = redaction.active() && financeFlag > 0 && rs.getBoolean(financeFlag);
 					List<String> row = new ArrayList<>(header.size());
 					for (int i = 1; i <= columns; i++) {
-						row.add(cell(rs, meta, i));
+						String name = meta.getColumnLabel(i).toLowerCase(Locale.ROOT);
+						boolean hide = moneyColumns.contains(name)
+								|| (aboutFinance && FinanceRedaction.RECORD_TEXT_COLUMNS.contains(name))
+								|| (financeDetails && "details".equals(name));
+						row.add(hide ? (rs.getObject(i) == null ? "" : FinanceRedaction.HIDDEN) : cell(rs, meta, i));
 					}
 					if (deletedAt > 0) {
 						row.add(rs.getObject(deletedAt) == null ? "no" : "yes");
@@ -181,7 +227,8 @@ public class DataExportService {
 		};
 	}
 
-	private void writeIndex(ZipOutputStream zip, Map<String, Long> counts, int files) throws IOException {
+	private void writeIndex(ZipOutputStream zip, Map<String, Long> counts, int files, boolean financeHidden)
+			throws IOException {
 		zip.putNextEntry(new ZipEntry("tables.csv"));
 		try (CsvWriter.Streaming csv = CsvWriter.stream(new NonClosingOutputStream(zip))) {
 			csv.row(List.of("table", "rows"));
@@ -191,11 +238,16 @@ public class DataExportService {
 		}
 		zip.closeEntry();
 		zip.putNextEntry(new ZipEntry("README.txt"));
-		zip.write(readme(counts.size(), files).getBytes(StandardCharsets.UTF_8));
+		zip.write(readme(counts.size(), files, financeHidden).getBytes(StandardCharsets.UTF_8));
 		zip.closeEntry();
 	}
 
-	private String readme(int tables, int files) {
+	private String readme(int tables, int files, boolean financeHidden) {
+		String finance = !financeHidden ? "" : """
+				- Finance data is left out, because the person who exported does not have FINANCE_VIEW: the Finance
+				  Tracker's tables and receipts, money amounts elsewhere and the details of records about finance read
+				  %s.
+				""".formatted(FinanceRedaction.HIDDEN);
 		return """
 				Team Ops Board - export of all data
 				Exported at %s (UTC)
@@ -212,7 +264,7 @@ public class DataExportService {
 				- Binary values are written as base64:<data>.
 				- Cells starting with =, +, - or @ (other than numbers) get a leading apostrophe so spreadsheets do not
 				  run them as formulas.
-				""".formatted(clock.instant(), tables, files, BIN_COLUMN, REDACTED);
+				""".formatted(clock.instant(), tables, files, BIN_COLUMN, REDACTED) + finance;
 	}
 
 	private void audit(Long actorId, ClientInfo client, Map<String, Long> counts, int files, boolean completed,

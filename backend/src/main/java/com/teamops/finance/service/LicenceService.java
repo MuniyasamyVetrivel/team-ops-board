@@ -29,6 +29,7 @@ import com.teamops.common.config.BusinessCalendar;
 import com.teamops.common.csv.CsvWriter;
 import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AuthenticatedUser;
+import com.teamops.common.settings.AppSettingsService;
 import com.teamops.common.web.ClientInfo;
 import com.teamops.common.web.PageResponse;
 import com.teamops.department.dto.DepartmentSummary;
@@ -98,6 +99,8 @@ public class LicenceService {
 
 	private final BusinessCalendar calendar;
 
+	private final AppSettingsService settings;
+
 	/** @param renewalWithinDays only licences, not cancelled, renewing between today and this many days from now */
 	public record LicenceFilter(String search, Long vendorId, Long departmentId, LicenceStatus status,
 			BillingCycle billingCycle, Integer renewalWithinDays) {
@@ -116,6 +119,17 @@ public class LicenceService {
 		FinanceLicence licence = load(id);
 		LocalDate today = calendar.today();
 		return toDto(licence, rates.ratesOn(Set.of(licence.getCurrency()), today), today);
+	}
+
+	/** Every active and trial licence with its computed figures on today's date (the dashboard's licence figures). */
+	@Transactional(readOnly = true)
+	public List<LicenceDto> inUse() {
+		LocalDate today = calendar.today();
+		List<FinanceLicence> licences = repository
+			.findAll((root, query, cb) -> cb.notEqual(root.get("status"), LicenceStatus.CANCELLED), Sort.by("name", "id"));
+		Map<String, ExchangeRate> audRates = rates.ratesOn(
+				licences.stream().map(FinanceLicence::getCurrency).collect(Collectors.toSet()), today);
+		return licences.stream().map(licence -> toDto(licence, audRates, today)).toList();
 	}
 
 	/** The vendor page's licences (newest first), as links; the caller checks the viewer may see finance data. */
@@ -229,7 +243,7 @@ public class LicenceService {
 		licence.setSeatsPaid(request.seatsPaid());
 		licence.setBillingCycle(request.billingCycle());
 		licence.setCost(request.cost() == null ? null : request.cost().setScale(2, RoundingMode.UNNECESSARY));
-		licence.setCurrency(FinanceText.currency(request.currency(), FinanceText.DEFAULT_CURRENCY));
+		licence.setCurrency(FinanceText.currency(request.currency(), settings.financeDefaultCurrency()));
 		licence.setStartDate(request.startDate());
 		licence.setRenewalDate(request.renewalDate());
 		licence.setPaymentMethod(paymentMethod);

@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -31,6 +32,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.AbstractMockHttpServletRequestBuilder;
 
+import com.teamops.common.config.BusinessCalendar;
 import com.teamops.common.csv.CsvImportService;
 import com.teamops.common.exception.ApiException;
 import com.teamops.common.security.AuthenticatedUser;
@@ -38,7 +40,11 @@ import com.teamops.common.security.JwtTokenService;
 import com.teamops.common.security.UserPrincipalService;
 import com.teamops.common.web.PageResponse;
 import com.teamops.finance.dto.FinanceDtos.Conversion;
+import com.teamops.finance.service.BudgetService;
 import com.teamops.finance.service.ExchangeRateService;
+import com.teamops.finance.service.ExpenseService;
+import com.teamops.finance.service.FinanceCurrencies;
+import com.teamops.finance.service.FinanceDashboardService;
 import com.teamops.finance.service.LicenceService;
 import com.teamops.module.service.ModuleAccessService;
 import com.teamops.support.SecuritySliceTest;
@@ -48,7 +54,8 @@ import com.teamops.support.SliceAuth;
  * The Finance Tracker is FINANCE_VIEW to read and FINANCE_EDIT to change (Super Admin only by default), on top of the
  * module switch that guards every request under /api/modules/finance/. Other modules' editors get nothing.
  */
-@WebMvcTest(controllers = { LicenceController.class, ExchangeRateController.class, FinanceImportController.class })
+@WebMvcTest(controllers = { LicenceController.class, ExchangeRateController.class, FinanceImportController.class,
+		ExpenseController.class, BudgetController.class, FinanceContextController.class })
 @SecuritySliceTest
 class FinanceApiSecurityTest {
 
@@ -62,6 +69,11 @@ class FinanceApiSecurityTest {
 
 	private static final String LICENCE_BODY = "{\"name\":\"Jira Cloud\",\"billingCycle\":\"YEARLY\",\"cost\":9600,"
 			+ "\"currency\":\"AUD\",\"seatsPaid\":20,\"paymentMethod\":\"Corporate Amex\",\"cardLast4\":\"1234\"}";
+
+	private static final String EXPENSE_BODY = "{\"expenseDate\":\"2026-10-01\",\"category\":\"TRAVEL\","
+			+ "\"description\":\"Taxi to the airport\",\"amount\":42.50,\"gst\":3.86,\"currency\":\"AUD\"}";
+
+	private static final String BUDGET_BODY = "{\"departmentId\":3,\"year\":2026,\"month\":10,\"amount\":5000}";
 
 	private static final String RATE_BODY = "{\"currency\":\"INR\",\"effectiveFrom\":\"2026-10-01\",\"rateToAud\":0.0182}";
 
@@ -86,6 +98,21 @@ class FinanceApiSecurityTest {
 	@MockitoBean
 	private CsvImportService imports;
 
+	@MockitoBean
+	private ExpenseService expenses;
+
+	@MockitoBean
+	private BudgetService budgets;
+
+	@MockitoBean
+	private FinanceDashboardService dashboard;
+
+	@MockitoBean
+	private FinanceCurrencies currencies;
+
+	@MockitoBean
+	private BusinessCalendar calendar;
+
 	private String bearer(AuthenticatedUser user) {
 		return SliceAuth.bearer(jwtTokenService, userPrincipalService, user);
 	}
@@ -100,13 +127,68 @@ class FinanceApiSecurityTest {
 					get("/api/modules/finance/licences/export"), get("/api/modules/finance/exchange-rates"),
 					get("/api/modules/finance/exchange-rates/current"),
 					get("/api/modules/finance/exchange-rates/convert").param("amount", "10").param("currency", "INR"),
-					get("/api/modules/finance/imports"),
+					get("/api/modules/finance/imports"), get("/api/modules/finance/expenses"),
+					get("/api/modules/finance/expenses/3/receipt"), get("/api/modules/finance/expenses/export"),
+					get("/api/modules/finance/budgets"), get("/api/modules/finance/budgets/summary").param("year", "2026")
+						.param("month", "10"),
+					get("/api/modules/finance/dashboard"), get("/api/modules/finance/context"),
 					post("/api/modules/finance/licences").contentType(MediaType.APPLICATION_JSON).content(LICENCE_BODY),
 					delete("/api/modules/finance/exchange-rates/3"))) {
 				mvc.perform(request.header(HttpHeaders.AUTHORIZATION, token)).andExpect(status().isForbidden());
 			}
 		}
-		verifyNoInteractions(licences, rates, imports);
+		verifyNoInteractions(licences, rates, imports, expenses, budgets, dashboard, currencies);
+	}
+
+	@Test
+	void financeViewSeesExpensesBudgetsAndTheDashboardButOnlyFinanceEditChangesThem() throws Exception {
+		when(expenses.search(any(), any())).thenReturn(new PageResponse<>(List.of(), 0, 25, 0, 0));
+		String token = bearer(VIEWER);
+
+		mvc.perform(get("/api/modules/finance/expenses").param("category", "TRAVEL").param("from", "2026-10-01")
+			.header(HttpHeaders.AUTHORIZATION, token)).andExpect(status().isOk());
+		mvc.perform(get("/api/modules/finance/dashboard").param("year", "2026").param("month", "10")
+			.header(HttpHeaders.AUTHORIZATION, token)).andExpect(status().isOk());
+		verify(dashboard).dashboard(2026, 10);
+		mvc.perform(get("/api/modules/finance/budgets/summary").param("year", "2026").param("month", "10")
+			.header(HttpHeaders.AUTHORIZATION, token)).andExpect(status().isOk());
+		when(calendar.today()).thenReturn(LocalDate.of(2026, 10, 17));
+		when(currencies.defaultCurrency()).thenReturn("INR");
+		when(currencies.options()).thenReturn(List.of("INR", "AUD", "USD"));
+		mvc.perform(get("/api/modules/finance/context").header(HttpHeaders.AUTHORIZATION, token)).andExpect(status().isOk())
+			.andExpect(jsonPath("$.baseCurrency").value("AUD"))
+			.andExpect(jsonPath("$.defaultCurrency").value("INR"));
+
+		for (AbstractMockHttpServletRequestBuilder<?> request : List.<AbstractMockHttpServletRequestBuilder<?>>of(
+				post("/api/modules/finance/expenses").contentType(MediaType.APPLICATION_JSON).content(EXPENSE_BODY),
+				put("/api/modules/finance/expenses/3").contentType(MediaType.APPLICATION_JSON).content(EXPENSE_BODY),
+				delete("/api/modules/finance/expenses/3"), delete("/api/modules/finance/expenses/3/receipt"),
+				multipart("/api/modules/finance/expenses/3/receipt")
+					.file(new MockMultipartFile("file", "receipt.pdf", "application/pdf", "%PDF".getBytes())),
+				post("/api/modules/finance/budgets").contentType(MediaType.APPLICATION_JSON).content(BUDGET_BODY),
+				delete("/api/modules/finance/budgets/3"))) {
+			mvc.perform(request.header(HttpHeaders.AUTHORIZATION, token)).andExpect(status().isForbidden());
+		}
+		// The viewer read the summary above; no change reached the service.
+		verify(budgets, never()).create(any(), any(), any());
+		verify(budgets, never()).delete(any(), any(), any());
+		verify(expenses, never()).create(any(), any(), any());
+
+		String admin = bearer(SliceAuth.SUPER_ADMIN);
+		for (String body : List.of("{\"expenseDate\":\"2026-10-01\",\"category\":\"TRAVEL\",\"description\":\"Taxi\"}",
+				"{\"expenseDate\":\"2026-10-01\",\"category\":\"PARTY\",\"description\":\"Taxi\",\"amount\":10}",
+				"{\"expenseDate\":\"2026-10-01\",\"category\":\"TRAVEL\",\"description\":\"Taxi\",\"amount\":-1}")) {
+			mvc.perform(post("/api/modules/finance/expenses").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(body)).andExpect(status().isBadRequest());
+		}
+		mvc.perform(post("/api/modules/finance/budgets").header(HttpHeaders.AUTHORIZATION, admin)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"departmentId\":3,\"year\":2026,\"month\":13,\"amount\":100}")).andExpect(status().isBadRequest());
+		mvc.perform(post("/api/modules/finance/expenses").header(HttpHeaders.AUTHORIZATION, admin)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(EXPENSE_BODY)).andExpect(status().isCreated());
+		verify(expenses).create(any(), eq(SliceAuth.SUPER_ADMIN), any());
 	}
 
 	@Test

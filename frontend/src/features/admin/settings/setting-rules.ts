@@ -7,9 +7,12 @@ const MAX_DECIMALS = 2;
  * Mirrors SettingDefinition.normalize: a number, whole for INTEGER settings, at most two decimals, within the
  * setting's range. Returns the message to show, or null when the value is acceptable.
  */
-export function settingValueError(setting: Pick<SettingItem, 'label' | 'valueType' | 'min' | 'max' | 'unit'>, raw: string): string | null {
+export function settingValueError(setting: Pick<SettingItem, 'label' | 'valueType' | 'min' | 'max' | 'unit' | 'options'>, raw: string): string | null {
   const text = raw.trim();
   if (text === '') return `${setting.label} is required`;
+  if (setting.valueType === 'CHOICE') {
+    return setting.options.some((o) => o.toUpperCase() === text.toUpperCase()) ? null : `${setting.label} must be one of: ${setting.options.join(', ')}`;
+  }
   if (!/^-?\d+(\.\d+)?$/.test(text)) return `${setting.label} must be a number`;
   const decimals = text.includes('.') ? text.split('.')[1]!.replace(/0+$/, '').length : 0;
   if (setting.valueType === 'INTEGER' && decimals > 0) return `${setting.label} must be a whole number`;

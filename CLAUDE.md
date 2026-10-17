@@ -125,6 +125,18 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
   - Tools and licences (`FinanceLicence`, unique name) carry assigned users as children (`LicenceAssignment`, replaced as a set of user ids; new assignees and owners must be active).
   - `vendor_id` is a plain column with a read-only `@NotFound` vendor view. Set both in `apply`, or the saved licence reads back without its vendor.
   - `LicenceRules` computes seats used, free and utilisation, under-use (below 70%), annual cost, days to renewal, the reminder leads (30 and 7) and the card-number guard on payment labels. None of these are stored.
+  - The default currency of new licences and expenses is the `finance.defaultCurrency` setting (`AppSettingsService.financeDefaultCurrency()`). It is a CHOICE setting, and its options come from the `SettingChoices` bean `FinanceCurrencies`: INR, AUD, USD, then the exchange-rate currencies. `GET /api/modules/finance/context` gives the forms the default and the choices.
+  - Expenses (`ExpenseService`):
+    - Each stores `audRate`, `audRateDate` and `amountAud`, the snapshot the brief asks for. `apply` takes the rate again only when the date or currency changes; a new amount keeps the stored rate.
+    - Each has one receipt (`FileService`); a replaced receipt is deleted, and the purge handler deletes it in `afterPurge`.
+    - Each can link to an optional Approval.
+  - Budgets (`BudgetService`, `BudgetMath`) are in AUD, one per department per month. Actual spend comes from the stored `amountAud`.
+  - The dashboard (`FinanceDashboardService`) uses three aggregate expense queries plus `LicenceService.inUse()`.
+  - The vendor page link sources are `LicenceVendorLinks` (`@Order(1)`) and `ExpenseVendorLinks` (`@Order(2)`).
+  - Finance data stays hidden without `FINANCE_VIEW` beyond the module itself:
+    - the audit log (`AuditLogService`)
+    - the recycle bin (`RecycleBinService.hidden`: no label, no name search, a generic confirmation text)
+    - "Export all data" (`FinanceRedaction`, worked out from the entity model: finance-package tables and their stored files are left out, `@AuditFinance` columns elsewhere and the text of rows whose `entity_type` is a finance record are redacted)
   - Exchange rates (`ExchangeRateService`) are to AUD (`FinanceModule.BASE_CURRENCY`, never stored). Convert with `ratesOn`, `rateOn` or `convert`, using the newest rate on or before the day (400 `NO_EXCHANGE_RATE` without one).
   - `LicenceService` must not depend on `VendorService`. That would be a cycle, because `VendorService` collects the `VendorLinkSource` beans, and `LicenceVendorLinks` is one of them. Check vendors through `VendorRepository`.
   - Live licences block deleting their vendor, and a licence comes back from the bin only while its vendor is live.
@@ -134,7 +146,7 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
   - `AuditLogService` masks every entry of the FINANCE audit module for viewers without `FinanceAccess.canView` (details become `{hidden: true}`, the label is left out, free-text search skips them). New finance records get this automatically through `RecordTypes` (package `finance`).
 - Break-glass recovery (no Super Admin can sign in) is `BreakGlassService`, reachable only through the server command line (`BreakGlassRunner`, `scripts/break-glass.ps1`/`.sh`); never add an HTTP endpoint for it.
 - Write business audit events with `AuditService.record(...)`, which runs in its own transaction. Add new actions to the `AuditAction` enum and place each in a module in `AuditCatalog` (the audit viewer's filters; the switch won't compile otherwise).
-- Admin settings: add a key to `SettingDefinition` (type and range; edited at `/api/admin/settings`) and read it through `AppSettingsService` with a fallback default. Seed new keys in a migration.
+- Admin settings: add a key to `SettingDefinition` (type and range; edited at `/api/admin/settings`) and read it through `AppSettingsService` with a fallback default. Seed new keys in a migration. A CHOICE setting takes one of the options a `SettingChoices` bean lists for its key; the settings page shows it as a dropdown.
 - Role permissions change only through `RolePermissionService` (Super Admin; rules in `RolePermissionRules`). Digital Marketing permissions are never put on a role.
 - Global search (`GlobalSearchService`) calls each module's own list service with the module's permission. A new searchable module adds a `Group` there instead of its own query On the frontend, add the result's link in `hitHref` (`features/search/api.ts`); pages open records from the URL (`useIdParam`) and take a starting search from `useInitialSearch()`.
 - Approval workflow steps are edited with `WorkflowStepsFields` (inside a `FormProvider`; schema and mapping in `workflow-steps.ts`); approval types are configured in `WorkflowsPanel`, shared by Approvals and Settings.

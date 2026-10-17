@@ -1,6 +1,7 @@
 package com.teamops.common.settings;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,7 +53,20 @@ public class AppSettingsService {
 
 	public static final int MAX_RETENTION_DAYS = 3650;
 
+	/** The Finance Tracker's default currency for new licences and expenses (a three-letter code; records may differ). */
+	public static final String FINANCE_DEFAULT_CURRENCY = "finance.defaultCurrency";
+
+	public static final String DEFAULT_FINANCE_CURRENCY = "INR";
+
 	private final AppSettingRepository repository;
+
+	/** The currency new licences and expenses start with when none is given (a three-letter code; INR by default). */
+	public String financeDefaultCurrency() {
+		return repository.findBySettingKey(FINANCE_DEFAULT_CURRENCY)
+			.map(setting -> setting.getSettingValue().trim().toUpperCase(Locale.ROOT))
+			.filter(value -> value.matches("[A-Z]{3}"))
+			.orElse(DEFAULT_FINANCE_CURRENCY);
+	}
 
 	/** Days ahead (plus overdue) counted towards workload %. */
 	public int workloadWindowDays() {

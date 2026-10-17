@@ -203,6 +203,20 @@ public enum AuditAction {
 	EXCHANGE_RATE_CREATED,
 	/** A rate, its date or its source changed ({@code changes} holds from/to). */
 	EXCHANGE_RATE_UPDATED,
-	EXCHANGE_RATE_DELETED
+	EXCHANGE_RATE_DELETED,
+	/** An expense was recorded (date, category, description, amount, gst, currency, audRate, amountAud). */
+	EXPENSE_CREATED,
+	/** Its details, amount, currency, date or links changed ({@code changes} holds from/to). */
+	EXPENSE_UPDATED,
+	EXPENSE_DELETED,
+	/** A receipt was attached to an expense, replacing any earlier one (fileId, fileName). */
+	EXPENSE_RECEIPT_ADDED,
+	/** An expense's receipt was removed (fileId, fileName). */
+	EXPENSE_RECEIPT_REMOVED,
+	/** A department budget for a month was set (departmentId, department, year, month, amount). */
+	BUDGET_CREATED,
+	/** A budget's amount or notes changed ({@code changes} holds from/to). */
+	BUDGET_UPDATED,
+	BUDGET_DELETED
 
 }

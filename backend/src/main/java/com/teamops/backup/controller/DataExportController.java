@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.teamops.backup.service.DataExportService;
 import com.teamops.common.security.AuthenticatedUser;
+import com.teamops.common.security.FinanceAccess;
 import com.teamops.common.web.ClientInfo;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -48,7 +49,7 @@ public class DataExportController {
 				ContentDisposition.attachment().filename(fileName, StandardCharsets.UTF_8).build().toString());
 		response.setHeader("X-Content-Type-Options", "nosniff");
 		response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
-		exports.export(response.getOutputStream(), actor.id(), ClientInfo.from(request));
+		exports.export(response.getOutputStream(), actor.id(), FinanceAccess.canView(actor), ClientInfo.from(request));
 	}
 
 }

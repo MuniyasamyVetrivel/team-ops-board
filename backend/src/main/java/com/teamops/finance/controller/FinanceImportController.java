@@ -48,7 +48,7 @@ public class FinanceImportController {
 	/** A header row and an example row, always served as a download. */
 	@GetMapping("/{type}/template")
 	public ResponseEntity<byte[]> template(@PathVariable String type, @AuthenticationPrincipal AuthenticatedUser actor) {
-		return FinanceCsv.download(type + "-template.csv", importService.template(Area.FINANCE, type, actor));
+		return FinanceDownloads.csv(type + "-template.csv", importService.template(Area.FINANCE, type, actor));
 	}
 
 	/** Validates the file and returns valid rows, invalid rows and their errors. Saves nothing. */

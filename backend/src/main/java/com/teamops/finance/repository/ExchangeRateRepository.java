@@ -29,6 +29,10 @@ public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, Long
 	List<ExchangeRate> findInForceOnOrBefore(@Param("currencies") Collection<String> currencies,
 			@Param("date") LocalDate date);
 
+	/** The currencies with at least one live rate, in alphabetical order. */
+	@Query("select distinct r.currency from ExchangeRate r order by r.currency")
+	List<String> findCurrencies();
+
 	/** Every rate on or before {@code date}, newest first per currency (the current rates table). */
 	@Query("""
 			select r from ExchangeRate r where r.effectiveFrom <= :date order by r.currency asc, r.effectiveFrom desc

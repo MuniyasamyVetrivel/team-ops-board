@@ -3,7 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
 import type { UserSummary } from '@/lib/api/types';
 
-export type SettingValueType = 'INTEGER' | 'DECIMAL';
+/** CHOICE settings take one of {@code options} (e.g. the Finance default currency). */
+export type SettingValueType = 'INTEGER' | 'DECIMAL' | 'CHOICE';
 
 /** Mirrors SettingDtos.SettingItem. {@code value} is the stored canonical text ("14", "4.5"). */
 export interface SettingItem {
@@ -16,6 +17,8 @@ export interface SettingItem {
   unit: string;
   min: number;
   max: number;
+  /** The values a CHOICE setting accepts; empty for numeric settings. */
+  options: string[];
   updatedBy: UserSummary | null;
   updatedAt: string;
   version: number;

@@ -74,7 +74,7 @@ public class ExchangeRateController {
 	/** CSV in the import's columns. */
 	@GetMapping("/export")
 	public ResponseEntity<byte[]> export(@RequestParam(required = false) String currency) {
-		return FinanceCsv.download("exchange-rates.csv", rateService.export(new RateFilter(currency)));
+		return FinanceDownloads.csv("exchange-rates.csv", rateService.export(new RateFilter(currency)));
 	}
 
 	@GetMapping("/{id}")

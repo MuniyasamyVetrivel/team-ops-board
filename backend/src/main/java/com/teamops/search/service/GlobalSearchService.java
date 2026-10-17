@@ -23,6 +23,8 @@ import com.teamops.bench.service.EngagementService.EngagementFilter;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.web.PageResponse;
 import com.teamops.finance.FinanceModule;
+import com.teamops.finance.service.ExpenseService;
+import com.teamops.finance.service.ExpenseService.ExpenseFilter;
 import com.teamops.finance.service.LicenceService;
 import com.teamops.finance.service.LicenceService.LicenceFilter;
 import com.teamops.knowledge.dto.KnowledgeDtos;
@@ -112,6 +114,8 @@ public class GlobalSearchService {
 
 	private final LicenceService licenceService;
 
+	private final ExpenseService expenseService;
+
 	public SearchResults search(String rawQuery, Set<Group> only, int limit, AuthenticatedUser viewer) {
 		String query = rawQuery == null ? "" : rawQuery.strip();
 		if (query.length() > MAX_QUERY_LENGTH) {
@@ -158,7 +162,7 @@ public class GlobalSearchService {
 			case LEADS -> marketing(viewer, "LEAD_VIEW");
 			case CONSULTANTS, CLIENTS, ENGAGEMENTS -> viewer.hasPermission(PermissionCodes.BENCH_VIEW);
 			case VENDORS, VENDOR_CONTRACTS -> viewer.hasPermission(PermissionCodes.VENDOR_VIEW);
-			case LICENCES -> viewer.hasPermission(PermissionCodes.FINANCE_VIEW);
+			case LICENCES, EXPENSES -> viewer.hasPermission(PermissionCodes.FINANCE_VIEW);
 		};
 	}
 
@@ -167,7 +171,7 @@ public class GlobalSearchService {
 		return switch (group) {
 			case CONSULTANTS, CLIENTS, ENGAGEMENTS -> BenchModule.KEY;
 			case VENDORS, VENDOR_CONTRACTS -> VendorModule.KEY;
-			case LICENCES -> FinanceModule.KEY;
+			case LICENCES, EXPENSES -> FinanceModule.KEY;
 			default -> null;
 		};
 	}
@@ -247,6 +251,12 @@ public class GlobalSearchService {
 							join(l.vendor() == null ? null : l.vendor().name(),
 									l.seatsPaid() == null ? null : l.seatsUsed() + "/" + l.seatsPaid() + " seats"),
 							l.status().name(), null));
+			case EXPENSES -> result(group,
+					expenseService.search(new ExpenseFilter(q, null, null, null, null, null, null), newest),
+					e -> new Hit(ResultType.FINANCE_EXPENSE, e.id(), null, e.description(),
+							join(e.expenseDate().toString(), e.vendor() == null ? label(e.category().name())
+									: e.vendor().name() + " · " + label(e.category().name())),
+							e.category().name(), null));
 		};
 	}
 

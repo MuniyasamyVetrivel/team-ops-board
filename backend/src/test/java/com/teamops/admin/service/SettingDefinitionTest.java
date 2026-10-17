@@ -3,6 +3,8 @@ package com.teamops.admin.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 import com.teamops.common.exception.ApiException;
@@ -49,6 +51,16 @@ class SettingDefinitionTest {
 		assertThat(SettingDefinition.UPLOAD_MAX_SIZE_MB.max(UPLOAD_CEILING)).isEqualTo(20);
 		assertThat(SettingDefinition.UPLOAD_MAX_SIZE_MB.normalize("20", UPLOAD_CEILING)).isEqualTo("20");
 		assertInvalid(SettingDefinition.UPLOAD_MAX_SIZE_MB, "25", "between 1 and 20 MB");
+	}
+
+	@Test
+	void theFinanceDefaultCurrencyIsOneOfItsOptions() {
+		assertThat(SettingDefinition.forKey(AppSettingsService.FINANCE_DEFAULT_CURRENCY)).contains(SettingDefinition.FINANCE_DEFAULT_CURRENCY);
+		List<String> options = List.of("INR", "AUD", "USD", "SGD");
+		assertThat(SettingDefinition.FINANCE_DEFAULT_CURRENCY.normalize(" sgd ", UPLOAD_CEILING, options)).isEqualTo("SGD");
+		assertThatThrownBy(() -> SettingDefinition.FINANCE_DEFAULT_CURRENCY.normalize("EUR", UPLOAD_CEILING, options))
+			.isInstanceOf(ApiException.class)
+			.hasMessageContaining("must be one of: INR, AUD, USD, SGD");
 	}
 
 	private static void assertInvalid(SettingDefinition definition, String value, String message) {

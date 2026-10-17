@@ -1,6 +1,7 @@
 package com.teamops.admin.dto;
 
 import java.time.Instant;
+import java.util.List;
 
 import com.teamops.admin.service.SettingDefinition;
 import com.teamops.common.settings.AppSetting;
@@ -15,15 +16,16 @@ public final class SettingDtos {
 	private SettingDtos() {
 	}
 
+	/** @param options the values a CHOICE setting accepts; empty for numeric settings */
 	public record SettingItem(String key, String group, String label, String description,
-			SettingDefinition.ValueType valueType, String value, String unit, int min, int max, UserSummary updatedBy,
-			Instant updatedAt, Integer version) {
+			SettingDefinition.ValueType valueType, String value, String unit, int min, int max, List<String> options,
+			UserSummary updatedBy, Instant updatedAt, Integer version) {
 
 		public static SettingItem of(SettingDefinition definition, AppSetting setting, int uploadCeilingMb,
-				UserSummary updatedBy) {
+				List<String> options, UserSummary updatedBy) {
 			return new SettingItem(definition.key(), definition.group(), definition.label(), setting.getDescription(),
 					definition.type(), setting.getSettingValue(), definition.unit(), definition.min(),
-					definition.max(uploadCeilingMb), updatedBy, setting.getUpdatedAt(), setting.getVersion());
+					definition.max(uploadCeilingMb), options, updatedBy, setting.getUpdatedAt(), setting.getVersion());
 		}
 
 	}

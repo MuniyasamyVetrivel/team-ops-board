@@ -100,13 +100,20 @@ public final class AuditCatalog {
 	 * Money amounts inside the details of business events, as dotted paths ("changes.budget" is a whole from/to pair).
 	 * Only users who can see finance see them; {@link AuditDetails#mask} hides them for everyone else.
 	 */
-	private static final Map<AuditAction, List<String>> FINANCE_PATHS = Map.of(AuditAction.APPROVAL_SUBMITTED,
-			List.of("amount"), AuditAction.PAID_CAMPAIGN_CREATED, List.of("budget"), AuditAction.PAID_CAMPAIGN_UPDATED,
-			List.of("changes.budget"), AuditAction.PAID_RESULTS_RECORDED, List.of("results.spend"),
-			AuditAction.PAID_RESULTS_CORRECTED, List.of("changes.results.from.spend", "changes.results.to.spend"),
-			AuditAction.VENDOR_CONTRACT_CREATED, List.of("value"), AuditAction.VENDOR_CONTRACT_UPDATED,
-			List.of("changes.value"), AuditAction.LICENCE_CREATED, List.of("cost"), AuditAction.LICENCE_UPDATED,
-			List.of("changes.cost"));
+	private static final Map<AuditAction, List<String>> FINANCE_PATHS = Map.ofEntries(
+			Map.entry(AuditAction.APPROVAL_SUBMITTED, List.of("amount")),
+			Map.entry(AuditAction.PAID_CAMPAIGN_CREATED, List.of("budget")),
+			Map.entry(AuditAction.PAID_CAMPAIGN_UPDATED, List.of("changes.budget")),
+			Map.entry(AuditAction.PAID_RESULTS_RECORDED, List.of("results.spend")),
+			Map.entry(AuditAction.PAID_RESULTS_CORRECTED, List.of("changes.results.from.spend", "changes.results.to.spend")),
+			Map.entry(AuditAction.VENDOR_CONTRACT_CREATED, List.of("value")),
+			Map.entry(AuditAction.VENDOR_CONTRACT_UPDATED, List.of("changes.value")),
+			Map.entry(AuditAction.LICENCE_CREATED, List.of("cost")),
+			Map.entry(AuditAction.LICENCE_UPDATED, List.of("changes.cost")),
+			Map.entry(AuditAction.EXPENSE_CREATED, List.of("amount", "gst", "amountAud")),
+			Map.entry(AuditAction.EXPENSE_UPDATED, List.of("changes.amount", "changes.gst", "changes.amountAud")),
+			Map.entry(AuditAction.BUDGET_CREATED, List.of("amount")),
+			Map.entry(AuditAction.BUDGET_UPDATED, List.of("changes.amount")));
 
 	public static List<String> financePaths(AuditAction action) {
 		return FINANCE_PATHS.getOrDefault(action, List.of());
@@ -169,7 +176,8 @@ public final class AuditCatalog {
 					VENDOR_CONTRACT_DELETED, VENDOR_CONTRACT_DOCUMENT_ADDED, VENDOR_CONTRACT_DOCUMENT_REMOVED ->
 				Module.VENDORS;
 			case LICENCE_CREATED, LICENCE_UPDATED, LICENCE_DELETED, EXCHANGE_RATE_CREATED, EXCHANGE_RATE_UPDATED,
-					EXCHANGE_RATE_DELETED ->
+					EXCHANGE_RATE_DELETED, EXPENSE_CREATED, EXPENSE_UPDATED, EXPENSE_DELETED, EXPENSE_RECEIPT_ADDED,
+					EXPENSE_RECEIPT_REMOVED, BUDGET_CREATED, BUDGET_UPDATED, BUDGET_DELETED ->
 				Module.FINANCE;
 		};
 	}

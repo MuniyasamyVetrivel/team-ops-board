@@ -2,6 +2,7 @@ package com.teamops.admin.service;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import com.teamops.common.exception.ApiException;
@@ -36,11 +37,17 @@ public enum SettingDefinition {
 
 	/** The maximum is the multipart limit the server runs with (see {@link #max(int)}). */
 	UPLOAD_MAX_SIZE_MB(AppSettingsService.UPLOAD_MAX_SIZE_MB, "Files", "Maximum upload size", "MB", ValueType.INTEGER, 1,
-			-1);
+			-1),
+
+	/** One of the {@code SettingChoices} the Finance Tracker lists: INR, AUD, USD and the exchange rate currencies. */
+	FINANCE_DEFAULT_CURRENCY(AppSettingsService.FINANCE_DEFAULT_CURRENCY, "Finance", "Default currency", "",
+			ValueType.CHOICE, 0, 0);
 
 	public enum ValueType {
 
-		INTEGER, DECIMAL
+		INTEGER, DECIMAL,
+		/** One of a list of values ({@code SettingChoices}), stored as written in the list. */
+		CHOICE
 
 	}
 
@@ -109,6 +116,21 @@ public enum SettingDefinition {
 	 * {@code "4.5"}).
 	 */
 	public String normalize(String raw, int uploadCeilingMb) {
+		return normalize(raw, uploadCeilingMb, List.of());
+	}
+
+	/**
+	 * As {@link #normalize(String, int)}; a CHOICE setting accepts one of {@code options} (ignoring case) and stores it as
+	 * the option is written.
+	 */
+	public String normalize(String raw, int uploadCeilingMb, List<String> options) {
+		if (type == ValueType.CHOICE) {
+			String wanted = raw == null ? "" : raw.trim();
+			return options.stream()
+				.filter(option -> option.equalsIgnoreCase(wanted))
+				.findFirst()
+				.orElseThrow(() -> invalid(label + " must be one of: " + String.join(", ", options)));
+		}
 		BigDecimal value;
 		try {
 			value = new BigDecimal(raw == null ? "" : raw.trim());

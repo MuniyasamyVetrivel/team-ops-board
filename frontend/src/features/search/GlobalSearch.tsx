@@ -11,6 +11,7 @@ import {
   LifeBuoy,
   Mail,
   MousePointerClick,
+  Receipt,
   Search,
   Store,
   UserPlus,
@@ -46,6 +47,7 @@ const TYPE_META: Record<ResultType, { icon: LucideIcon; label: string }> = {
   VENDOR: { icon: Store, label: 'Vendor' },
   VENDOR_CONTRACT: { icon: FileSignature, label: 'Vendor contract' },
   FINANCE_LICENCE: { icon: AppWindow, label: 'Tool or licence' },
+  FINANCE_EXPENSE: { icon: Receipt, label: 'Expense' },
 };
 
 /**

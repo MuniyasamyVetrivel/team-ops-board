@@ -20,6 +20,7 @@ import com.teamops.common.csv.CsvImporter.ImportSession;
 import com.teamops.common.csv.CsvRow;
 import com.teamops.common.csv.ImportDtos.CellError;
 import com.teamops.common.csv.RowReader;
+import com.teamops.common.settings.AppSettingsService;
 import com.teamops.department.entity.Department;
 import com.teamops.department.repository.DepartmentRepository;
 import com.teamops.finance.entity.BillingCycle;
@@ -51,8 +52,10 @@ class FinanceCsvImportersTest {
 
 	private final RecycleBinService recycleBin = mock(RecycleBinService.class);
 
+	private final AppSettingsService settings = mock(AppSettingsService.class);
+
 	private final LicenceCsvImporter licenceImporter = new LicenceCsvImporter(licences, vendors, users, departments,
-			recycleBin);
+			recycleBin, settings);
 
 	private final ExchangeRateCsvImporter rateImporter = new ExchangeRateCsvImporter(rates, recycleBin);
 
@@ -78,6 +81,7 @@ class FinanceCsvImportersTest {
 		when(departments.findByCode("IT")).thenReturn(Optional.of(it));
 		when(licences.existsByName("Jira Cloud")).thenReturn(true);
 		when(rates.existsByCurrencyAndEffectiveFrom("INR", LocalDate.of(2026, 10, 1))).thenReturn(true);
+		when(settings.financeDefaultCurrency()).thenReturn("AUD");
 		licenceSession = licenceImporter.open(SliceAuth.SUPER_ADMIN);
 		rateSession = rateImporter.open(SliceAuth.SUPER_ADMIN);
 	}

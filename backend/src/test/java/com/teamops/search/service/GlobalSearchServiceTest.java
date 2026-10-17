@@ -26,6 +26,7 @@ import com.teamops.bench.service.ConsultantService;
 import com.teamops.bench.service.EngagementService;
 import com.teamops.common.security.AuthenticatedUser;
 import com.teamops.common.web.PageResponse;
+import com.teamops.finance.service.ExpenseService;
 import com.teamops.finance.service.LicenceService;
 import com.teamops.knowledge.service.KnowledgeService;
 import com.teamops.marketing.email.service.EmailCampaignService;
@@ -99,13 +100,17 @@ class GlobalSearchServiceTest {
 	@Mock
 	private LicenceService licenceService;
 
+	@Mock
+	private ExpenseService expenseService;
+
 	private GlobalSearchService service;
 
 	@BeforeEach
 	void setUp() {
 		service = new GlobalSearchService(taskService, ticketService, projectService, teamService, knowledgeService,
 				seoService, emailCampaignService, paidCampaignService, leadService, moduleAccess, consultantService,
-				clientService, engagementService, vendorService, contractService, licenceService);
+				clientService, engagementService, vendorService, contractService, licenceService,
+				expenseService);
 	}
 
 	@Test

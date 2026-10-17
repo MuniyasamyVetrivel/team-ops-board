@@ -7,8 +7,6 @@ import org.springframework.util.StringUtils;
 /** Text rules shared by the finance forms and the CSV imports. */
 final class FinanceText {
 
-	static final String DEFAULT_CURRENCY = "INR";
-
 	private FinanceText() {
 	}
 

@@ -21,6 +21,7 @@ describe('search links', () => {
   it('opens licences on the Finance Tracker tool page until its own pages exist', () => {
     expect(hitHref(hit('FINANCE_LICENCE', 3))).toBe('/tools/finance?licence=3');
     expect(groupHref('LICENCES', 'jira')).toBe('/tools/finance?search=jira');
+    expect(hitHref(hit('FINANCE_EXPENSE', 8))).toBe('/tools/finance?expense=8');
   });
 
   it('sends "see all" to the matching Bench Management list with the search', () => {

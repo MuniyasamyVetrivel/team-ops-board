@@ -41,6 +41,7 @@ import com.teamops.common.config.BusinessCalendar;
 import com.teamops.common.exception.ApiException;
 import com.teamops.common.persistence.SoftDeletableEntity;
 import com.teamops.common.security.AuthenticatedUser;
+import com.teamops.common.security.FinanceAccess;
 import com.teamops.common.settings.AppSettingsService;
 import com.teamops.common.web.PageResponse;
 import com.teamops.department.entity.Department;
@@ -212,8 +213,9 @@ public class RecycleBinService {
 		if (filter.from() != null && filter.to() != null && filter.from().isAfter(filter.to())) {
 			throw ApiException.badRequest("INVALID_RANGE", "The start date must be on or before the end date");
 		}
-		Page<RecycleBinItem> page = items.findAll(spec(filter), pageable);
-		return new PageResponse<>(toItems(page.getContent()), page.getNumber(), page.getSize(),
+		boolean finance = FinanceAccess.canView(viewer);
+		Page<RecycleBinItem> page = items.findAll(spec(filter, finance), pageable);
+		return new PageResponse<>(toItems(page.getContent(), finance), page.getNumber(), page.getSize(),
 				page.getTotalElements(), page.getTotalPages());
 	}
 
@@ -308,7 +310,8 @@ public class RecycleBinService {
 		flush("RESTORE_CONFLICT",
 				"This item can't come back as it was: another record now uses one of its unique values.");
 		items.delete(item);
-		return new Restored(item.getEntityType(), item.getEntityId(), item.getLabel());
+		return new Restored(item.getEntityType(), item.getEntityId(),
+				hidden(item, FinanceAccess.canView(actor)) ? null : item.getLabel());
 	}
 
 	/** Deletes a record for good, confirmed with the item's name. */
@@ -318,7 +321,7 @@ public class RecycleBinService {
 		if (!actor.hasPermission(PermissionCodes.RECYCLE_BIN_PURGE)) {
 			throw ApiException.forbidden("RECYCLE_BIN_PURGE_FORBIDDEN", "Only a Super Admin can delete items permanently");
 		}
-		String expected = confirmationText(item);
+		String expected = confirmationText(item, FinanceAccess.canView(actor));
 		if (confirm == null || !expected.equalsIgnoreCase(confirm.trim())) {
 			throw ApiException.badRequest("CONFIRMATION_MISMATCH", "Type \"" + expected + "\" to delete it permanently");
 		}
@@ -389,7 +392,7 @@ public class RecycleBinService {
 		return items.findById(itemId).orElseThrow(RecycleBinService::notFound);
 	}
 
-	private Specification<RecycleBinItem> spec(Filter filter) {
+	private Specification<RecycleBinItem> spec(Filter filter, boolean canSeeFinance) {
 		return (root, query, cb) -> {
 			List<Predicate> where = new ArrayList<>();
 			if (StringUtils.hasText(filter.module())) {
@@ -411,7 +414,12 @@ public class RecycleBinService {
 				String pattern = "%" + filter.search().trim().toLowerCase(Locale.ROOT).replace("\\", "\\\\")
 					.replace("%", "\\%")
 					.replace("_", "\\_") + "%";
-				where.add(cb.like(cb.lower(root.get("label")), pattern, '\\'));
+				Predicate label = cb.like(cb.lower(root.get("label")), pattern, '\\');
+				if (!canSeeFinance) {
+					// Finance Tracker records are finance data as a whole: their names are not searched either.
+					label = cb.and(cb.notEqual(root.get("module"), AuditCatalog.Module.FINANCE.name()), label);
+				}
+				where.add(label);
 			}
 			return cb.and(where.toArray(Predicate[]::new));
 		};
@@ -419,7 +427,7 @@ public class RecycleBinService {
 
 	// --- mapping ----------------------------------------------------------------------------------------------
 
-	private List<Item> toItems(List<RecycleBinItem> page) {
+	private List<Item> toItems(List<RecycleBinItem> page, boolean canSeeFinance) {
 		Set<Long> userIds = page.stream().map(RecycleBinItem::getDeletedById).filter(Objects::nonNull).collect(Collectors.toSet());
 		Map<Long, User> users = userIds.isEmpty() ? Map.of()
 				: userRepository.findAllById(userIds).stream().collect(Collectors.toMap(User::getId, Function.identity()));
@@ -434,10 +442,11 @@ public class RecycleBinService {
 			AuditCatalog.Module module = parseModule(item.getModule());
 			LocalDate purgeOn = item.getDeletedAt().atZone(calendar.zone()).toLocalDate().plusDays(retention);
 			result.add(new Item(item.getId(), item.getEntityType(), RecordTypes.labelOf(item.getEntityType()),
-					item.getEntityId(), item.getLabel(), item.getModule(), module == null ? item.getModule() : module.label(),
+					item.getEntityId(), hidden(item, canSeeFinance) ? null : item.getLabel(), item.getModule(),
+					module == null ? item.getModule() : module.label(),
 					department == null ? null : new DepartmentRef(department.getId(), department.getName()),
 					item.getDeletedAt(), UserSummary.of(users.get(item.getDeletedById())),
-					purgeOn, Math.max(0, ChronoUnit.DAYS.between(today, purgeOn)), confirmationText(item)));
+					purgeOn, Math.max(0, ChronoUnit.DAYS.between(today, purgeOn)), confirmationText(item, canSeeFinance)));
 		}
 		return result;
 	}
@@ -449,6 +458,20 @@ public class RecycleBinService {
 		catch (IllegalArgumentException ex) {
 			return null;
 		}
+	}
+
+	/**
+	 * Finance Tracker records are finance data as a whole (brief X8): without FINANCE_VIEW their names stay hidden in
+	 * the bin, as everywhere else.
+	 */
+	static boolean hidden(RecycleBinItem item, boolean canSeeFinance) {
+		return !canSeeFinance && AuditCatalog.Module.FINANCE.name().equals(item.getModule());
+	}
+
+	/** What a permanent delete is confirmed with, as the viewer sees the item: its name, or "Expense #12". */
+	static String confirmationText(RecycleBinItem item, boolean canSeeFinance) {
+		return hidden(item, canSeeFinance) ? RecordTypes.labelOf(item.getEntityType()) + " #" + item.getEntityId()
+				: confirmationText(item);
 	}
 
 	/** The item's name, or "Marketing target #12" when it has none. */

@@ -66,7 +66,7 @@ public class LicenceController {
 			@RequestParam(required = false) Long vendorId, @RequestParam(required = false) Long departmentId,
 			@RequestParam(required = false) LicenceStatus status, @RequestParam(required = false) BillingCycle billingCycle,
 			@RequestParam(required = false) Integer renewalWithinDays) {
-		return FinanceCsv.download("licences.csv", licenceService
+		return FinanceDownloads.csv("licences.csv", licenceService
 			.export(new LicenceFilter(search, vendorId, departmentId, status, billingCycle, renewalWithinDays)));
 	}
 

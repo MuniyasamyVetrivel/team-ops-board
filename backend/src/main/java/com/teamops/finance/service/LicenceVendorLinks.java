@@ -1,5 +1,6 @@
 package com.teamops.finance.service;
 
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import com.teamops.common.security.AuthenticatedUser;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
  * deleted.
  */
 @Component
+@Order(1)
 @RequiredArgsConstructor
 class LicenceVendorLinks implements VendorLinkSource {
 

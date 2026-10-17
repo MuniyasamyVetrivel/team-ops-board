@@ -1,8 +1,10 @@
 package com.teamops.finance;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -13,9 +15,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -101,6 +110,10 @@ class FinanceIT {
 
 	private String auditorToken;
 
+	private String binManagerToken;
+
+	private String exporterToken;
+
 	@BeforeEach
 	void setUp() throws Exception {
 		users = new IntegrationUsers(userService, userRepository, departmentRepository);
@@ -127,6 +140,9 @@ class FinanceIT {
 		vendorOnlyToken = login(users.create(departmentId, RoleCodes.EMPLOYEE, "VENDOR_VIEW"));
 		// Reads the audit log but not finance data.
 		auditorToken = login(users.create(departmentId, RoleCodes.EMPLOYEE, "AUDIT_VIEW"));
+		// Manages the recycle bin and exports all data, but cannot see finance data.
+		binManagerToken = login(users.create(departmentId, RoleCodes.EMPLOYEE, "RECYCLE_BIN_MANAGE"));
+		exporterToken = login(users.create(departmentId, RoleCodes.EMPLOYEE, "DATA_EXPORT"));
 	}
 
 	@AfterEach
@@ -140,6 +156,15 @@ class FinanceIT {
 		jdbc.update("DELETE FROM recycle_bin_items WHERE entity_type = 'EXCHANGE_RATE' AND entity_id IN (" + rates + ")");
 		jdbc.update("DELETE FROM recycle_bin_items WHERE entity_type = 'VENDOR' AND entity_id IN (" + vendors + ")");
 		jdbc.update("DELETE FROM finance_licences WHERE name LIKE ?", "%" + nonce + "%");
+		String expenses = "SELECT id FROM finance_expenses WHERE description LIKE '%" + nonce + "%'";
+		String budgets = "SELECT id FROM finance_budgets WHERE department_id = " + departmentId;
+		jdbc.update("DELETE FROM recycle_bin_items WHERE entity_type = 'FINANCE_EXPENSE' AND entity_id IN (" + expenses + ")");
+		jdbc.update("DELETE FROM recycle_bin_items WHERE entity_type = 'FINANCE_BUDGET' AND entity_id IN (" + budgets + ")");
+		jdbc.update("DELETE FROM files WHERE id IN (SELECT receipt_file_id FROM (SELECT e.receipt_file_id FROM "
+				+ "finance_expenses e WHERE e.description LIKE ? AND e.receipt_file_id IS NOT NULL) r)", "%" + nonce + "%");
+		jdbc.update("DELETE FROM finance_expenses WHERE description LIKE ?", "%" + nonce + "%");
+		jdbc.update("DELETE FROM finance_budgets WHERE department_id = ?", departmentId);
+		jdbc.update("UPDATE app_settings SET setting_value = 'INR' WHERE setting_key = 'finance.defaultCurrency'");
 		jdbc.update("DELETE FROM finance_exchange_rates WHERE currency = ?", TEST_CURRENCY);
 		jdbc.update("DELETE FROM vendors WHERE name LIKE ?", "%" + nonce + "%");
 		users.deleteAll();
@@ -258,7 +283,7 @@ class FinanceIT {
 			.content(rate(today.minusDays(1), "0.7"))).andExpect(status().isForbidden());
 
 		as(viewerToken, get(API + "/exchange-rates/current")).andExpect(status().isOk())
-			.andExpect(jsonPath("$[?(@.currency == 'XTS')].id").value(org.hamcrest.Matchers.contains(newer.intValue())));
+			.andExpect(jsonPath("$[?(@.currency == 'XTS')].id").value(contains(newer.intValue())));
 		as(viewerToken, get(API + "/exchange-rates").param("currency", "xts")).andExpect(jsonPath("$.totalElements").value(2))
 			.andExpect(jsonPath("$.content[0].id").value(newer))
 			.andExpect(jsonPath("$.content[0].inForce").value(true))
@@ -282,7 +307,7 @@ class FinanceIT {
 			.andExpect(jsonPath("$.code").value("IN_RECYCLE_BIN"));
 		as(adminToken, get("/api/recycle-bin").param("entityType", "EXCHANGE_RATE").param("size", "100"))
 			.andExpect(jsonPath("$.content[?(@.entityId == %d)].label".formatted(newer))
-				.value(org.hamcrest.Matchers.contains("XTS rate from " + today.minusDays(5))));
+				.value(contains("XTS rate from " + today.minusDays(5))));
 		assertThat(older).isNotNull();
 	}
 
@@ -365,7 +390,191 @@ class FinanceIT {
 		}
 	}
 
+	@Test
+	void expensesKeepTheAudRateOfTheirDateAndStartInTheDefaultCurrency() throws Exception {
+		LocalDate today = calendar.today();
+		String before = body(as(viewerToken, get(API + "/dashboard")).andExpect(status().isOk()));
+		createRate(today.minusDays(40), "0.40000000");
+		createRate(today.minusDays(5), "0.50000000");
+
+		// The default currency is a setting, chosen from INR, AUD, USD and the currencies with a rate.
+		String settings = body(as(adminToken, get("/api/admin/settings")).andExpect(status().isOk()));
+		List<String> options = JsonPath.read(settings, "$[?(@.key == 'finance.defaultCurrency')].options[*]");
+		assertThat(options).startsWith("INR", "AUD", "USD").contains(TEST_CURRENCY);
+		int settingVersion = JsonPath.<List<Integer>>read(settings, "$[?(@.key == 'finance.defaultCurrency')].version").get(0);
+		as(adminToken, put("/api/admin/settings/finance.defaultCurrency").contentType(MediaType.APPLICATION_JSON)
+			.content("{\"version\":%d,\"value\":\"EUR\"}".formatted(settingVersion))).andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("INVALID_SETTING"));
+		as(adminToken, put("/api/admin/settings/finance.defaultCurrency").contentType(MediaType.APPLICATION_JSON)
+			.content("{\"version\":%d,\"value\":\"xts\"}".formatted(settingVersion))).andExpect(status().isOk())
+			.andExpect(jsonPath("$.value").value(TEST_CURRENCY));
+		as(viewerToken, get(API + "/context")).andExpect(jsonPath("$.defaultCurrency").value(TEST_CURRENCY))
+			.andExpect(jsonPath("$.baseCurrency").value("AUD"));
+		as(adminToken, post(API + "/licences").contentType(MediaType.APPLICATION_JSON)
+			.content("{\"name\":\"Default %s\",\"billingCycle\":\"YEARLY\"}".formatted(nonce))).andExpect(status().isCreated())
+			.andExpect(jsonPath("$.currency").value(TEST_CURRENCY));
+
+		// An expense without a currency takes the default, and the rate in force on its date.
+		Long vendorId = createVendor("Qantas");
+		Long expenseId = id(as(adminToken, post(API + "/expenses").contentType(MediaType.APPLICATION_JSON).content("""
+				{"expenseDate":"%s","category":"TRAVEL","vendorId":%d,"description":"Flights %s","amount":100,"gst":9.09,
+				"departmentId":%d}
+				""".formatted(today.minusDays(10), vendorId, nonce, departmentId))).andExpect(status().isCreated())
+			.andExpect(jsonPath("$.currency").value(TEST_CURRENCY))
+			.andExpect(jsonPath("$.audRate").value(0.4))
+			.andExpect(jsonPath("$.audRateDate").value(today.minusDays(40).toString()))
+			.andExpect(jsonPath("$.amountAud").value(40.0))
+			.andExpect(jsonPath("$.gstAud").value(3.64))
+			.andExpect(jsonPath("$.vendor.id").value(vendorId)));
+
+		// A new rate for that date later changes nothing stored; a new amount keeps the rate; a new date takes it again.
+		createRate(today.minusDays(12), "0.45000000");
+		as(viewerToken, get(API + "/expenses/" + expenseId)).andExpect(jsonPath("$.audRate").value(0.4));
+		String update = """
+				{"expenseDate":"%s","category":"TRAVEL","vendorId":%d,"description":"Flights %s","amount":%s,
+				"departmentId":%d,"version":%d}
+				""";
+		as(adminToken, put(API + "/expenses/" + expenseId).contentType(MediaType.APPLICATION_JSON)
+			.content(update.formatted(today.minusDays(10), vendorId, nonce, "200", departmentId,
+					version(API + "/expenses/" + expenseId)))).andExpect(status().isOk())
+			.andExpect(jsonPath("$.audRate").value(0.4))
+			.andExpect(jsonPath("$.amountAud").value(80.0));
+		as(adminToken, put(API + "/expenses/" + expenseId).contentType(MediaType.APPLICATION_JSON)
+			.content(update.formatted(today, vendorId, nonce, "200", departmentId, version(API + "/expenses/" + expenseId))))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.audRate").value(0.5))
+			.andExpect(jsonPath("$.amountAud").value(100.0));
+		as(adminToken, post(API + "/expenses").contentType(MediaType.APPLICATION_JSON)
+			.content("{\"expenseDate\":\"%s\",\"category\":\"OFFICE\",\"description\":\"Old %s\",\"amount\":5}"
+				.formatted(today.minusDays(400), nonce))).andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("NO_EXCHANGE_RATE"));
+		Long audExpense = id(as(adminToken, post(API + "/expenses").contentType(MediaType.APPLICATION_JSON).content("""
+				{"expenseDate":"%s","category":"OFFICE","description":"Coffee %s","amount":50,"currency":"AUD",
+				"departmentId":%d}
+				""".formatted(today, nonce, departmentId))).andExpect(status().isCreated())
+			.andExpect(jsonPath("$.audRate").value(1.0))
+			.andExpect(jsonPath("$.audRateDate").doesNotExist())
+			.andExpect(jsonPath("$.amountAud").value(50.0)));
+		as(viewerToken, post(API + "/expenses").contentType(MediaType.APPLICATION_JSON)
+			.content("{\"expenseDate\":\"%s\",\"category\":\"OFFICE\",\"description\":\"No %s\",\"amount\":5}"
+				.formatted(today, nonce))).andExpect(status().isForbidden());
+
+		// The receipt: uploaded by editors, served as an attachment.
+		MockMultipartFile pdf = new MockMultipartFile("file", "flight receipt.pdf", "application/pdf",
+				"%PDF-1.4\n%receipt\n".getBytes(StandardCharsets.UTF_8));
+		as(adminToken, multipart(API + "/expenses/" + expenseId + "/receipt").file(pdf)).andExpect(status().isOk())
+			.andExpect(jsonPath("$.receipt.fileName").value("flight receipt.pdf"));
+		as(viewerToken, get(API + "/expenses/" + expenseId + "/receipt")).andExpect(status().isOk())
+			.andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("attachment")))
+			.andExpect(header().string("X-Content-Type-Options", "nosniff"));
+
+		// The vendor page lists the expense to finance viewers only; the vendor stays while the expense uses it.
+		as(viewerToken, get("/api/modules/vendors/vendors/" + vendorId + "/links"))
+			.andExpect(jsonPath("$[?(@.kind == 'EXPENSES')].total").value(contains(1)));
+		as(vendorOnlyToken, get("/api/modules/vendors/vendors/" + vendorId + "/links")).andExpect(jsonPath("$").isEmpty());
+		as(adminToken, delete("/api/modules/vendors/vendors/" + vendorId)).andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value("VENDOR_IN_USE"));
+
+		// The month's budget against actual: 100 + 50 against 120.
+		Long budgetId = id(as(adminToken, post(API + "/budgets").contentType(MediaType.APPLICATION_JSON)
+			.content(budget(today, "120"))).andExpect(status().isCreated())
+			.andExpect(jsonPath("$.actual").value(150.0))
+			.andExpect(jsonPath("$.overBudget").value(true))
+			.andExpect(jsonPath("$.overBy").value(30.0))
+			.andExpect(jsonPath("$.usedPercent").value(125.0))
+			.andExpect(jsonPath("$.remaining").value(0.0)));
+		as(adminToken, post(API + "/budgets").contentType(MediaType.APPLICATION_JSON).content(budget(today, "500")))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value("BUDGET_EXISTS"));
+		as(adminToken, put(API + "/budgets/" + budgetId).contentType(MediaType.APPLICATION_JSON)
+			.content("{\"departmentId\":%d,\"year\":%d,\"month\":%d,\"amount\":200,\"version\":%d}".formatted(departmentId,
+					today.getYear(), today.getMonthValue(), version(API + "/budgets/" + budgetId))))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.remaining").value(50.0))
+			.andExpect(jsonPath("$.overBudget").value(false));
+		as(viewerToken, get(API + "/budgets/summary").param("year", String.valueOf(today.getYear()))
+			.param("month", String.valueOf(today.getMonthValue())))
+			.andExpect(jsonPath("$.lines[?(@.department.id == %d)].actual".formatted(departmentId))
+				.value(contains(150.0)))
+			.andExpect(jsonPath("$.lines[?(@.department.id == %d)].budget".formatted(departmentId))
+				.value(contains(200.0)));
+
+		// The dashboard counts both expenses in this month's spend and by department.
+		String after = body(as(viewerToken, get(API + "/dashboard")).andExpect(status().isOk()));
+		assertThat(new BigDecimal(String.valueOf(JsonPath.<Object>read(after, "$.monthSpendAud")))
+			.subtract(new BigDecimal(String.valueOf(JsonPath.<Object>read(before, "$.monthSpendAud")))))
+			.isEqualByComparingTo("150");
+		assertThat(JsonPath.<List<Object>>read(after, "$.byDepartment[?(@.department.id == %d)].totalAud".formatted(departmentId)))
+			.singleElement().satisfies(total -> assertThat(String.valueOf(total)).startsWith("150"));
+		assertThat(JsonPath.<List<Object>>read(after, "$.trend")).hasSize(12);
+
+		// In the bin, someone without FINANCE_VIEW sees neither the expense's name nor finds it by name.
+		as(adminToken, delete(API + "/expenses/" + audExpense)).andExpect(status().isNoContent());
+		Long item = binItem("FINANCE_EXPENSE", audExpense);
+		as(binManagerToken, get("/api/recycle-bin").param("entityType", "FINANCE_EXPENSE").param("size", "100"))
+			.andExpect(jsonPath("$.content[?(@.id == %d)].label".formatted(item)).value(contains(
+					nullValue())))
+			.andExpect(jsonPath("$.content[?(@.id == %d)].confirmationText".formatted(item))
+				.value(contains("Finance expense #" + audExpense)));
+		as(binManagerToken, get("/api/recycle-bin").param("search", "Coffee " + nonce))
+			.andExpect(jsonPath("$.totalElements").value(0));
+		as(adminToken, get("/api/recycle-bin").param("search", "Coffee " + nonce))
+			.andExpect(jsonPath("$.content[0].label").value(today + " Coffee " + nonce));
+
+		// A purged expense takes its receipt file with it.
+		Long fileId = jdbc.queryForObject("SELECT receipt_file_id FROM finance_expenses WHERE id = ?", Long.class, expenseId);
+		as(adminToken, delete(API + "/expenses/" + expenseId)).andExpect(status().isNoContent());
+		as(adminToken, post("/api/recycle-bin/%d/purge".formatted(binItem("FINANCE_EXPENSE", expenseId)))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"confirm\":\"%s Flights %s\"}".formatted(today, nonce))).andExpect(status().isNoContent());
+		assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM files WHERE id = ?", Integer.class, fileId)).isZero();
+	}
+
+	@Test
+	void exportingAllDataLeavesFinanceOutForExportersWithoutFinanceView() throws Exception {
+		LocalDate today = calendar.today();
+		createLicence("Export", today.plusDays(90), "ACTIVE");
+		Long expenseId = id(as(adminToken, post(API + "/expenses").contentType(MediaType.APPLICATION_JSON).content("""
+				{"expenseDate":"%s","category":"OFFICE","description":"Export %s","amount":12.5,"currency":"AUD"}
+				""".formatted(today, nonce))).andExpect(status().isCreated()));
+		as(adminToken, multipart(API + "/expenses/" + expenseId + "/receipt").file(new MockMultipartFile("file",
+				"export receipt.pdf", "application/pdf", "%PDF-1.4\n".getBytes(StandardCharsets.UTF_8)))).andExpect(status().isOk());
+		String key = jdbc.queryForObject("SELECT f.storage_key FROM files f JOIN finance_expenses e ON e.receipt_file_id = f.id "
+				+ "WHERE e.id = ?", String.class, expenseId);
+
+		Map<String, String> hidden = unzip(as(exporterToken, get("/api/admin/data-export")).andExpect(status().isOk())
+			.andReturn().getResponse().getContentAsByteArray());
+		assertThat(hidden).doesNotContainKeys("tables/finance_expenses.csv", "tables/finance_licences.csv",
+				"tables/finance_licence_assignments.csv", "uploads/" + key);
+		assertThat(hidden).containsKeys("tables/vendors.csv", "tables/audit_logs.csv", "tables/files.csv");
+		assertThat(hidden.get("tables/files.csv")).doesNotContain("export receipt.pdf");
+		assertThat(hidden.get("tables/audit_logs.csv")).doesNotContain("Export " + nonce).contains("[finance]");
+		assertThat(hidden.get("README.txt")).contains("Finance data is left out");
+
+		Map<String, String> full = unzip(as(adminToken, get("/api/admin/data-export")).andExpect(status().isOk())
+			.andReturn().getResponse().getContentAsByteArray());
+		assertThat(full).containsKeys("tables/finance_expenses.csv", "uploads/" + key);
+		assertThat(full.get("tables/finance_expenses.csv")).contains("Export " + nonce);
+		assertThat(full.get("README.txt")).doesNotContain("Finance data is left out");
+	}
+
 	// --- helpers ----------------------------------------------------------------------------------------------
+
+	private String budget(LocalDate month, String amount) {
+		return "{\"departmentId\":%d,\"year\":%d,\"month\":%d,\"amount\":%s}".formatted(departmentId, month.getYear(),
+				month.getMonthValue(), amount);
+	}
+
+	/** Every entry of a ZIP: text entries as UTF-8, others as a placeholder. */
+	private static Map<String, String> unzip(byte[] zip) throws IOException {
+		Map<String, String> entries = new HashMap<>();
+		try (ZipInputStream in = new ZipInputStream(new ByteArrayInputStream(zip))) {
+			for (ZipEntry entry = in.getNextEntry(); entry != null; entry = in.getNextEntry()) {
+				entries.put(entry.getName(), new String(in.readAllBytes(), StandardCharsets.UTF_8));
+			}
+		}
+		return entries;
+	}
 
 	private Long createVendor(String name) throws Exception {
 		return id(as(adminToken, post("/api/modules/vendors/vendors").contentType(MediaType.APPLICATION_JSON)

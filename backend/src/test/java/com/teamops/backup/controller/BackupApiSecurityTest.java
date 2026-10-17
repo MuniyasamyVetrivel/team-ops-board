@@ -134,14 +134,15 @@ class BackupApiSecurityTest {
 		doAnswer(inv -> {
 			inv.<OutputStream>getArgument(0).write(new byte[] { 'P', 'K' });
 			return null;
-		}).when(exports).export(any(), eq(22L), any());
+		}).when(exports).export(any(), eq(22L), eq(false), any());
 		mvc.perform(get("/api/admin/data-export").header(HttpHeaders.AUTHORIZATION, bearer(exporter)))
 			.andExpect(status().isOk())
 			.andExpect(header().string(HttpHeaders.CONTENT_TYPE, "application/zip"))
 			.andExpect(header().string("X-Content-Type-Options", "nosniff"))
 			.andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
 					org.hamcrest.Matchers.startsWith("attachment; filename=\"team-ops-export-")));
-		verify(exports).export(any(), eq(22L), any());
+		// Without FINANCE_VIEW the export leaves finance data out.
+		verify(exports).export(any(), eq(22L), eq(false), any());
 		mvc.perform(get("/api/admin/backups/status").header(HttpHeaders.AUTHORIZATION, bearer(exporter)))
 			.andExpect(status().isForbidden());
 	}

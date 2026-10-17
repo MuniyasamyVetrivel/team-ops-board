@@ -9,6 +9,8 @@ import com.teamops.common.security.AuthenticatedUser;
  * Phase X8 adds one bean for tools and licences and one for expenses; the vendor module lists whatever beans exist
  * ({@code GET /api/modules/vendors/vendors/{id}/links}) and refuses to delete a vendor that live records still use.
  * <p>
+ * Sources are listed in their {@code @Order} (licences, then expenses).
+ * <p>
  * A source decides who may see its records: finance data stays hidden from users without FINANCE_VIEW, so a finance
  * source returns {@link #visibleTo} false for them and its group is left out entirely.
  */

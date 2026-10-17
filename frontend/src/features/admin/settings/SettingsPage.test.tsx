@@ -17,10 +17,11 @@ const originalAdapter = api.defaults.adapter;
 const rakesh = { id: 1, fullName: 'Rakesh', email: 'rakesh@teamops.local', jobTitle: 'Director', status: 'ACTIVE' as const };
 
 const settings: SettingItem[] = [
-  { key: 'workload.windowDays', group: 'Workload', label: 'Workload window', description: 'Days ahead', valueType: 'INTEGER', value: '14', unit: 'days', min: 1, max: 90, updatedBy: rakesh, updatedAt: '2026-10-01T05:00:00Z', version: 2 },
-  { key: 'workload.defaultTaskHours', group: 'Workload', label: 'Hours for a task without an estimate', description: null, valueType: 'DECIMAL', value: '4', unit: 'hours', min: 0, max: 40, updatedBy: null, updatedAt: '2026-09-01T05:00:00Z', version: 0 },
-  { key: 'sla.warningThresholdPct', group: 'Help desk', label: 'SLA warning threshold', description: null, valueType: 'INTEGER', value: '75', unit: '%', min: 1, max: 99, updatedBy: null, updatedAt: '2026-09-01T05:00:00Z', version: 0 },
-  { key: 'celebrations.reminderDaysBefore', group: 'Calendar', label: 'Reminder days before', description: null, valueType: 'INTEGER', value: '2', unit: 'days', min: 0, max: 30, updatedBy: null, updatedAt: '2026-10-12T05:00:00Z', version: 0 },
+  { key: 'workload.windowDays', group: 'Workload', label: 'Workload window', description: 'Days ahead', valueType: 'INTEGER', value: '14', unit: 'days', min: 1, max: 90, options: [], updatedBy: rakesh, updatedAt: '2026-10-01T05:00:00Z', version: 2 },
+  { key: 'workload.defaultTaskHours', group: 'Workload', label: 'Hours for a task without an estimate', description: null, valueType: 'DECIMAL', value: '4', unit: 'hours', min: 0, max: 40, options: [], updatedBy: null, updatedAt: '2026-09-01T05:00:00Z', version: 0 },
+  { key: 'sla.warningThresholdPct', group: 'Help desk', label: 'SLA warning threshold', description: null, valueType: 'INTEGER', value: '75', unit: '%', min: 1, max: 99, options: [], updatedBy: null, updatedAt: '2026-09-01T05:00:00Z', version: 0 },
+  { key: 'celebrations.reminderDaysBefore', group: 'Calendar', label: 'Reminder days before', description: null, valueType: 'INTEGER', value: '2', unit: 'days', min: 0, max: 30, options: [], updatedBy: null, updatedAt: '2026-10-12T05:00:00Z', version: 0 },
+  { key: 'finance.defaultCurrency', group: 'Finance', label: 'Default currency', description: null, valueType: 'CHOICE', value: 'INR', unit: '', min: 0, max: 0, options: ['INR', 'AUD', 'USD', 'SGD'], updatedBy: null, updatedAt: '2026-10-12T05:00:00Z', version: 0 },
 ];
 
 const permissions: PermissionResponse[] = [
@@ -75,6 +76,30 @@ const body = (config: InternalAxiosRequestConfig) => JSON.parse(config.data as s
 describe('SettingsPage', () => {
   afterEach(() => {
     api.defaults.adapter = originalAdapter;
+  });
+
+  it('picks the Finance default currency from its options', async () => {
+    const user = userEvent.setup();
+    const puts: InternalAxiosRequestConfig[] = [];
+    mockApi(
+      routes({
+        'PUT /admin/settings/finance.defaultCurrency': (config) => {
+          puts.push(config);
+          return { ...settings[4], value: 'SGD', version: 1 };
+        },
+      }),
+    );
+    renderPage(<SettingsPage />, superAdmin);
+
+    const select = await screen.findByRole('combobox', { name: 'Default currency' });
+    expect(within(select).getAllByRole('option').map((o) => o.textContent)).toEqual(['INR', 'AUD', 'USD', 'SGD']);
+    expect(screen.getByText('One of INR, AUD, USD, SGD')).toBeInTheDocument();
+
+    await user.selectOptions(select, 'SGD');
+    await user.click(screen.getByRole('button', { name: 'Save Default currency' }));
+
+    expect(puts).toHaveLength(1);
+    expect(body(puts[0]!)).toEqual({ version: 0, value: 'SGD' });
   });
 
   it('edits a setting within its range and saves it with its version', async () => {
