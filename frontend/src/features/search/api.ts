@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 import { BENCH_PATHS, clientHref, consultantPath, engagementHref, withSearch } from '@/features/bench/bench-paths';
-import { toolPath } from '@/features/modules/module-icons';
+import { expenseHref, FINANCE_PATHS, licenceHref } from '@/features/finance/finance-paths';
 import { contractHref, VENDOR_PATHS, vendorPath } from '@/features/vendors/vendor-paths';
 import { api } from '@/lib/api/client';
 
@@ -118,11 +118,10 @@ export function hitHref(hit: SearchHit): string {
       return vendorPath(hit.id);
     case 'VENDOR_CONTRACT':
       return contractHref(hit.id);
-    // The Finance Tracker (Phase X8) has no pages yet: its tool page opens until its frontend replaces these links.
     case 'FINANCE_LICENCE':
-      return `${toolPath('finance')}?licence=${hit.id}`;
+      return licenceHref(hit.id);
     case 'FINANCE_EXPENSE':
-      return `${toolPath('finance')}?expense=${hit.id}`;
+      return expenseHref(hit.id);
   }
 }
 
@@ -159,8 +158,9 @@ export function groupHref(group: SearchGroupKey, query: string): string {
     case 'VENDOR_CONTRACTS':
       return withSearch(VENDOR_PATHS.contracts, query);
     case 'LICENCES':
+      return withSearch(FINANCE_PATHS.licences, query);
     case 'EXPENSES':
-      return withSearch(toolPath('finance'), query);
+      return withSearch(FINANCE_PATHS.expenses, query);
   }
 }
 

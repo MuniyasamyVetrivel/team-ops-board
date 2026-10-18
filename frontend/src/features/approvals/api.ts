@@ -127,12 +127,13 @@ export const approvalKeys = {
   types: () => [...approvalKeys.all, 'types'] as const,
 };
 
-export function useApprovals(query: ApprovalQuery) {
+export function useApprovals(query: ApprovalQuery, enabled = true) {
   return useQuery({
     queryKey: approvalKeys.list(query),
     queryFn: async () =>
       (await api.get<PageResponse<ApprovalListItem>>('/approvals', { params: cleanParams(query), paramsSerializer: serializeParams })).data,
     placeholderData: keepPreviousData,
+    enabled,
   });
 }
 

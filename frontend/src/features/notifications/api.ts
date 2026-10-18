@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { allocationHref } from '@/features/bench/bench-paths';
-import { toolPath } from '@/features/modules/module-icons';
+import { licenceHref } from '@/features/finance/finance-paths';
 import { contractHref } from '@/features/vendors/vendor-paths';
 import { api } from '@/lib/api/client';
 import type { PageResponse } from '@/lib/api/types';
@@ -37,8 +37,7 @@ export function notificationHref(notification: AppNotification): string | null {
   if (notification.entityType === 'MARKETING_EVENT') return `/celebrations/events?event=${notification.entityId}`;
   if (notification.entityType === 'ALLOCATION') return allocationHref(notification.entityId);
   if (notification.entityType === 'VENDOR_CONTRACT') return contractHref(notification.entityId);
-  // The Finance Tracker (Phase X8) has no pages yet: its tool page opens until its frontend replaces this link.
-  if (notification.entityType === 'FINANCE_LICENCE') return `${toolPath('finance')}?licence=${notification.entityId}`;
+  if (notification.entityType === 'FINANCE_LICENCE') return licenceHref(notification.entityId);
   return null;
 }
 

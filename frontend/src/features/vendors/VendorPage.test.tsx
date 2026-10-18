@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { api } from '@/lib/api/client';
 import { page } from '@/test/celebration-fixtures';
 import { superAdmin } from '@/test/fixtures';
+import { financeTool } from '@/test/finance-fixtures';
 import { mockApi, renderPage } from '@/test/render';
 import { contract, vendor, vendorEditor, vendorTool } from '@/test/vendor-fixtures';
 import { vendorRoutes } from '@/test/vendor-routes';
@@ -14,9 +15,9 @@ import VendorPage from './VendorPage';
 
 const originalAdapter = api.defaults.adapter;
 
-function renderVendor(user = superAdmin, links: VendorLinkGroup[] = [], hidden = false) {
+function renderVendor(user = superAdmin, links: VendorLinkGroup[] = [], hidden = false, tools = [vendorTool(true)]) {
   mockApi({
-    'GET /department-tools': () => [vendorTool(true)],
+    'GET /department-tools': () => tools,
     'GET /modules/vendors/vendors/5': () => vendor(),
     'GET /modules/vendors/vendors/5/links': () => links,
     'GET /modules/vendors/contracts': () =>
@@ -65,11 +66,11 @@ describe('VendorPage', () => {
     expect(screen.queryByRole('tab', { name: 'History' })).not.toBeInTheDocument();
   });
 
-  it('keeps a place for licences and expenses until the Finance Tracker links them', async () => {
+  it('says so when no licences or expenses name the vendor', async () => {
     renderVendor();
     await userEvent.click(await screen.findByRole('tab', { name: 'Licences and expenses' }));
 
-    expect(await screen.findByText('No licences or expenses linked yet')).toBeInTheDocument();
+    expect(await screen.findByText('No licences or expenses to show')).toBeInTheDocument();
   });
 
   it('lists linked records the server lets the viewer see', async () => {
@@ -79,5 +80,23 @@ describe('VendorPage', () => {
     const group = await screen.findByRole('region', { name: 'Tools and licences' });
     expect(within(group).getByText('Jira Cloud')).toBeInTheDocument();
     expect(within(group).getByText('Showing the newest 1 of 3.')).toBeInTheDocument();
+    // Without the Finance Tracker among the user's tools, the record isn't a link.
+    expect(within(group).queryByRole('link', { name: 'Jira Cloud' })).not.toBeInTheDocument();
+  });
+
+  it('opens linked licences and expenses on their Finance Tracker pages', async () => {
+    renderVendor(
+      superAdmin,
+      [
+        { kind: 'LICENCES', label: 'Tools and licences', total: 1, items: [{ id: 1, title: 'Jira Cloud', detail: '18 of 20 seats', status: 'ACTIVE' }] },
+        { kind: 'EXPENSES', label: 'Expenses', total: 1, items: [{ id: 40, title: 'Flights to Sydney', detail: '2026-10-02 · AUD 640.00', status: null }] },
+      ],
+      false,
+      [vendorTool(true), financeTool(true)],
+    );
+    await userEvent.click(await screen.findByRole('tab', { name: 'Licences and expenses' }));
+
+    expect(await screen.findByRole('link', { name: 'Jira Cloud' })).toHaveAttribute('href', '/tools/finance/licences?licence=1');
+    expect(screen.getByRole('link', { name: 'Flights to Sydney' })).toHaveAttribute('href', '/tools/finance/expenses?expense=40');
   });
 });

@@ -45,6 +45,8 @@ export function useUpdateSetting() {
       // Workload, SLA and marketing figures read these settings.
       void queryClient.invalidateQueries({ queryKey: ['workload'] });
       void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      // The Finance default currency starts new licences and expenses (its /context).
+      void queryClient.invalidateQueries({ queryKey: ['finance'] });
     },
   });
 }

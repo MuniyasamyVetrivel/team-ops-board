@@ -8,8 +8,10 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Detail, Muted } from '@/features/celebrations/Details';
+import { expenseHref, FINANCE_KEY, licenceHref } from '@/features/finance/finance-paths';
 import { useCanViewHistory } from '@/features/history/api';
 import { RecordHistory } from '@/features/history/RecordHistory';
+import { useDepartmentTools } from '@/features/modules/api';
 import { useTool } from '@/features/modules/tool-context';
 import { statusLabel } from '@/features/search/api';
 import { formatLocalDate } from '@/lib/format';
@@ -224,20 +226,25 @@ function VendorContracts({ vendorId, onOpen }: { vendorId: number; onOpen: (id: 
   );
 }
 
+/** Where a linked record opens, by its group's kind (VendorLinkSource.kind). */
+const LINK_HREFS: Record<string, (id: number) => string> = { LICENCES: licenceHref, EXPENSES: expenseHref };
+
 /**
- * Licences and expenses (Finance Tracker, Phase X8) that name this vendor. The server lists only the kinds the viewer
- * may see; until Finance Tracker exists there are none, and this says so.
+ * Licences and expenses (Finance Tracker) that name this vendor. The server lists only the kinds the viewer may see
+ * (FINANCE_VIEW); each opens on its Finance Tracker page when the viewer may open that tool.
  */
 function LinkedRecords({ vendorId }: { vendorId: number }) {
   const links = useVendorLinks(vendorId);
+  const tools = useDepartmentTools();
+  const financeOpen = tools.data?.some((t) => t.key === FINANCE_KEY) ?? false;
   if (links.isPending) return <Skeleton className="h-32" role="status" aria-label="Loading linked records" />;
   if (links.isError) return <VendorErrorState error={links.error} title="Couldn't load linked records" onRetry={() => void links.refetch()} />;
   if (links.data.length === 0) {
     return (
       <EmptyState
         icon={Receipt}
-        title="No licences or expenses linked yet"
-        description="Tools, licences and expenses from the Finance Tracker will appear here once it is set up. Finance data shows only to people who can see finance."
+        title="No licences or expenses to show"
+        description="Tools, licences and expenses from the Finance Tracker that name this vendor appear here. Finance data shows only to people who can see finance."
         className="py-10"
       />
     );
@@ -256,7 +263,13 @@ function LinkedRecords({ vendorId }: { vendorId: number }) {
               {group.items.map((item) => (
                 <li key={item.id} className="flex items-center gap-3 px-4 py-2.5">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{item.title}</p>
+                    {financeOpen && LINK_HREFS[group.kind] ? (
+                      <Link to={LINK_HREFS[group.kind]!(item.id)} className="block truncate text-sm font-medium hover:underline">
+                        {item.title}
+                      </Link>
+                    ) : (
+                      <p className="truncate text-sm font-medium">{item.title}</p>
+                    )}
                     {item.detail && <p className="truncate text-xs text-muted-foreground">{item.detail}</p>}
                   </div>
                   {item.status && <span className="text-xs text-muted-foreground">{statusLabel(item.status)}</span>}

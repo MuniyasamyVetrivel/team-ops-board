@@ -18,10 +18,11 @@ describe('search links', () => {
     expect(groupHref('VENDOR_CONTRACTS', 'jira')).toBe('/tools/vendors/contracts?search=jira');
   });
 
-  it('opens licences on the Finance Tracker tool page until its own pages exist', () => {
-    expect(hitHref(hit('FINANCE_LICENCE', 3))).toBe('/tools/finance?licence=3');
-    expect(groupHref('LICENCES', 'jira')).toBe('/tools/finance?search=jira');
-    expect(hitHref(hit('FINANCE_EXPENSE', 8))).toBe('/tools/finance?expense=8');
+  it('opens licences and expenses on their Finance Tracker pages', () => {
+    expect(hitHref(hit('FINANCE_LICENCE', 3))).toBe('/tools/finance/licences?licence=3');
+    expect(groupHref('LICENCES', 'jira')).toBe('/tools/finance/licences?search=jira');
+    expect(groupHref('EXPENSES', 'flights')).toBe('/tools/finance/expenses?search=flights');
+    expect(hitHref(hit('FINANCE_EXPENSE', 8))).toBe('/tools/finance/expenses?expense=8');
   });
 
   it('sends "see all" to the matching Bench Management list with the search', () => {

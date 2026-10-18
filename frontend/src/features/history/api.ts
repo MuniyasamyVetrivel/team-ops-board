@@ -42,6 +42,10 @@ export type HistoryRecordType =
   | 'ALLOCATION'
   | 'VENDOR'
   | 'VENDOR_CONTRACT'
+  | 'FINANCE_LICENCE'
+  | 'FINANCE_EXPENSE'
+  | 'FINANCE_BUDGET'
+  | 'EXCHANGE_RATE'
   | 'SETTING'
   | 'SLA_POLICY';
 

@@ -4,6 +4,8 @@ import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 import { NAV_ITEMS, type RouteItem } from '@/config/navigation';
 import { BENCH_PATHS } from '@/features/bench/bench-paths';
 import { BenchLayout } from '@/features/bench/BenchLayout';
+import { FINANCE_PATHS } from '@/features/finance/finance-paths';
+import { FinanceLayout } from '@/features/finance/FinanceLayout';
 import { MarketingLayout } from '@/features/marketing/MarketingLayout';
 import { VENDOR_PATHS } from '@/features/vendors/vendor-paths';
 import { VendorLayout } from '@/features/vendors/VendorLayout';
@@ -69,6 +71,11 @@ const VendorsPage = lazy(() => import('@/features/vendors/VendorsPage'));
 const VendorPage = lazy(() => import('@/features/vendors/VendorPage'));
 const ContractsPage = lazy(() => import('@/features/vendors/ContractsPage'));
 const RenewalsPage = lazy(() => import('@/features/vendors/RenewalsPage'));
+const FinanceDashboardPage = lazy(() => import('@/features/finance/FinanceDashboardPage'));
+const LicencesPage = lazy(() => import('@/features/finance/LicencesPage'));
+const ExpensesPage = lazy(() => import('@/features/finance/ExpensesPage'));
+const BudgetsPage = lazy(() => import('@/features/finance/BudgetsPage'));
+const ExchangeRatesPage = lazy(() => import('@/features/finance/ExchangeRatesPage'));
 
 /** The page for every sidebar entry, by path. */
 const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
@@ -134,6 +141,17 @@ const detailRoutes: RouteObject[] = [
       { path: 'contracts', element: <ContractsPage /> },
       { path: 'renewals', element: <RenewalsPage /> },
       { path: ':id', element: <VendorPage /> },
+    ],
+  },
+  {
+    path: FINANCE_PATHS.dashboard,
+    element: <FinanceLayout />,
+    children: [
+      { index: true, element: <FinanceDashboardPage /> },
+      { path: 'licences', element: <LicencesPage /> },
+      { path: 'expenses', element: <ExpensesPage /> },
+      { path: 'budgets', element: <BudgetsPage /> },
+      { path: 'exchange-rates', element: <ExchangeRatesPage /> },
     ],
   },
   { path: '/tools/:key', element: <DepartmentToolPage /> },
