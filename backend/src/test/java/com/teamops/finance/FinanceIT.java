@@ -114,6 +114,8 @@ class FinanceIT {
 
 	private String exporterToken;
 
+	private String financeExporterToken;
+
 	@BeforeEach
 	void setUp() throws Exception {
 		users = new IntegrationUsers(userService, userRepository, departmentRepository);
@@ -138,11 +140,13 @@ class FinanceIT {
 		outsiderToken = login(outsiderId);
 		// Sees vendors but not finance data.
 		vendorOnlyToken = login(users.create(departmentId, RoleCodes.EMPLOYEE, "VENDOR_VIEW"));
-		// Reads the audit log but not finance data.
-		auditorToken = login(users.create(departmentId, RoleCodes.EMPLOYEE, "AUDIT_VIEW"));
+		// Reads the audit log and any record's history, but not finance data.
+		auditorToken = login(users.create(departmentId, RoleCodes.EMPLOYEE, "AUDIT_VIEW", "HISTORY_VIEW"));
 		// Manages the recycle bin and exports all data, but cannot see finance data.
 		binManagerToken = login(users.create(departmentId, RoleCodes.EMPLOYEE, "RECYCLE_BIN_MANAGE"));
 		exporterToken = login(users.create(departmentId, RoleCodes.EMPLOYEE, "DATA_EXPORT"));
+		// Exports all data and sees finance data, without being a Super Admin.
+		financeExporterToken = login(users.create(departmentId, RoleCodes.EMPLOYEE, "DATA_EXPORT", "FINANCE_VIEW"));
 	}
 
 	@AfterEach
@@ -531,31 +535,110 @@ class FinanceIT {
 	}
 
 	@Test
-	void exportingAllDataLeavesFinanceOutForExportersWithoutFinanceView() throws Exception {
+	void exportingAllDataHasEveryFinanceTableAndReceiptOnlyForExportersWithFinanceView() throws Exception {
 		LocalDate today = calendar.today();
-		createLicence("Export", today.plusDays(90), "ACTIVE");
+		Long licenceId = id(as(adminToken, post(API + "/licences").contentType(MediaType.APPLICATION_JSON)
+			.content("{\"name\":\"Export %s\",\"billingCycle\":\"YEARLY\",\"assignedUserIds\":[%d]}".formatted(nonce,
+					viewerId))).andExpect(status().isCreated()));
+		createRate(today.minusDays(3), "0.42000000");
 		Long expenseId = id(as(adminToken, post(API + "/expenses").contentType(MediaType.APPLICATION_JSON).content("""
-				{"expenseDate":"%s","category":"OFFICE","description":"Export %s","amount":12.5,"currency":"AUD"}
-				""".formatted(today, nonce))).andExpect(status().isCreated()));
-		as(adminToken, multipart(API + "/expenses/" + expenseId + "/receipt").file(new MockMultipartFile("file",
-				"export receipt.pdf", "application/pdf", "%PDF-1.4\n".getBytes(StandardCharsets.UTF_8)))).andExpect(status().isOk());
+				{"expenseDate":"%s","category":"OFFICE","description":"Export %s","amount":12.5,"currency":"AUD",
+				"departmentId":%d}
+				""".formatted(today, nonce, departmentId))).andExpect(status().isCreated()));
+		as(adminToken, post(API + "/budgets").contentType(MediaType.APPLICATION_JSON).content(budget(today, "321")))
+			.andExpect(status().isCreated());
+		String receiptName = "export receipt " + nonce + ".pdf";
+		uploadReceipt(expenseId, receiptName);
 		String key = jdbc.queryForObject("SELECT f.storage_key FROM files f JOIN finance_expenses e ON e.receipt_file_id = f.id "
 				+ "WHERE e.id = ?", String.class, expenseId);
+		String[] financeTables = { "tables/finance_licences.csv", "tables/finance_licence_assignments.csv",
+				"tables/finance_exchange_rates.csv", "tables/finance_expenses.csv", "tables/finance_budgets.csv" };
 
+		// Without FINANCE_VIEW: no finance tables and no receipt (its file, its files row, its name in audit entries).
 		Map<String, String> hidden = unzip(as(exporterToken, get("/api/admin/data-export")).andExpect(status().isOk())
 			.andReturn().getResponse().getContentAsByteArray());
-		assertThat(hidden).doesNotContainKeys("tables/finance_expenses.csv", "tables/finance_licences.csv",
-				"tables/finance_licence_assignments.csv", "uploads/" + key);
+		assertThat(hidden).doesNotContainKeys(financeTables).doesNotContainKey("uploads/" + key);
 		assertThat(hidden).containsKeys("tables/vendors.csv", "tables/audit_logs.csv", "tables/files.csv");
-		assertThat(hidden.get("tables/files.csv")).doesNotContain("export receipt.pdf");
-		assertThat(hidden.get("tables/audit_logs.csv")).doesNotContain("Export " + nonce).contains("[finance]");
+		assertThat(hidden.get("tables/files.csv")).doesNotContain(receiptName);
+		assertThat(hidden.get("tables/audit_logs.csv")).doesNotContain("Export " + nonce).doesNotContain(receiptName)
+			.contains("[finance]");
 		assertThat(hidden.get("README.txt")).contains("Finance data is left out");
 
-		Map<String, String> full = unzip(as(adminToken, get("/api/admin/data-export")).andExpect(status().isOk())
-			.andReturn().getResponse().getContentAsByteArray());
-		assertThat(full).containsKeys("tables/finance_expenses.csv", "uploads/" + key);
-		assertThat(full.get("tables/finance_expenses.csv")).contains("Export " + nonce);
-		assertThat(full.get("README.txt")).doesNotContain("Finance data is left out");
+		// With FINANCE_VIEW (the Super Admin, or anyone granted it): every finance table and the receipt, unredacted.
+		for (String token : List.of(adminToken, financeExporterToken)) {
+			Map<String, String> full = unzip(as(token, get("/api/admin/data-export")).andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsByteArray());
+			assertThat(full).containsKeys(financeTables).containsKey("uploads/" + key);
+			assertThat(full.get("uploads/" + key)).startsWith("%PDF-1.4");
+			assertThat(full.get("tables/finance_licences.csv")).contains("Export " + nonce);
+			assertThat(full.get("tables/finance_licence_assignments.csv")).contains(String.valueOf(licenceId));
+			assertThat(full.get("tables/finance_exchange_rates.csv")).contains(TEST_CURRENCY, "0.42");
+			assertThat(full.get("tables/finance_expenses.csv")).contains("Export " + nonce, "12.50");
+			assertThat(full.get("tables/finance_budgets.csv")).contains("321.00");
+			assertThat(full.get("tables/files.csv")).contains(receiptName, key);
+			assertThat(full.get("tables/audit_logs.csv")).contains("Export " + nonce, receiptName)
+				.doesNotContain("[finance]");
+			assertThat(full.get("README.txt")).doesNotContain("Finance data is left out");
+		}
+	}
+
+	@Test
+	void receiptFileNamesStayHiddenWithoutFinanceViewInFileHistoryTheBinAndTheAuditLog() throws Exception {
+		LocalDate today = calendar.today();
+		Long expenseId = id(as(adminToken, post(API + "/expenses").contentType(MediaType.APPLICATION_JSON).content("""
+				{"expenseDate":"%s","category":"OFFICE","description":"Receipt %s","amount":20,"currency":"AUD"}
+				""".formatted(today, nonce))).andExpect(status().isCreated()));
+		// Replacing the receipt deletes the first file and removing it the second; the third goes with the purge.
+		Long firstFile = uploadReceipt(expenseId, "first receipt " + nonce + ".pdf");
+		Long secondFile = uploadReceipt(expenseId, "second receipt " + nonce + ".pdf");
+		as(adminToken, delete(API + "/expenses/" + expenseId + "/receipt")).andExpect(status().isOk());
+		Long thirdFile = uploadReceipt(expenseId, "third receipt " + nonce + ".pdf");
+		as(adminToken, delete(API + "/expenses/" + expenseId)).andExpect(status().isNoContent());
+
+		// The recycle bin shows neither the expense's name nor its receipt's, and finds neither.
+		Long item = binItem("FINANCE_EXPENSE", expenseId);
+		as(binManagerToken, get("/api/recycle-bin").param("search", "receipt " + nonce))
+			.andExpect(jsonPath("$.totalElements").value(0));
+		assertThat(body(as(binManagerToken, get("/api/recycle-bin").param("size", "100")).andExpect(status().isOk())))
+			.doesNotContain("receipt " + nonce);
+		as(adminToken, post("/api/recycle-bin/%d/purge".formatted(item)).contentType(MediaType.APPLICATION_JSON)
+			.content("{\"confirm\":\"%s Receipt %s\"}".formatted(today, nonce))).andExpect(status().isNoContent());
+
+		for (Long fileId : List.of(firstFile, secondFile, thirdFile)) {
+			// Each file's created and deleted entries are filed under the expense.
+			assertThat(jdbc.queryForList("SELECT action FROM audit_logs WHERE entity_type = 'FILE' AND entity_id = ? "
+					+ "AND parent_type = 'FINANCE_EXPENSE' AND parent_id = ?", String.class, fileId, expenseId))
+				.contains("RECORD_CREATED", "RECORD_DELETED");
+			// The file's history and audit entries: no name and no details without FINANCE_VIEW.
+			for (String audit : List.of(
+					body(as(auditorToken, get("/api/history/FILE/" + fileId)).andExpect(status().isOk())),
+					body(as(auditorToken, get("/api/admin/audit-logs").param("entityType", "FILE")
+						.param("entityId", String.valueOf(fileId))).andExpect(status().isOk())))) {
+				assertThat(JsonPath.<List<Object>>read(audit, "$.content[*].details.hidden")).hasSizeGreaterThanOrEqualTo(2)
+					.containsOnly(true);
+				assertThat(JsonPath.<List<Object>>read(audit, "$.content[*].entityLabel")).containsOnlyNulls();
+				assertThat(audit).doesNotContain("receipt " + nonce);
+			}
+		}
+		// The Super Admin sees the names.
+		assertThat(body(as(adminToken, get("/api/history/FILE/" + firstFile)).andExpect(status().isOk())))
+			.contains("first receipt " + nonce + ".pdf");
+
+		// Searching the audit log by the names finds nothing, and its CSV export leaves them out.
+		as(auditorToken, get("/api/admin/audit-logs").param("search", "receipt " + nonce))
+			.andExpect(jsonPath("$.totalElements").value(0));
+		assertThat(JsonPath.<Integer>read(body(as(adminToken, get("/api/admin/audit-logs")
+			.param("search", "second receipt " + nonce))), "$.totalElements")).isPositive();
+		String csv = as(auditorToken, get("/api/admin/audit-logs/export").param("entityType", "FILE"))
+			.andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+		assertThat(csv).doesNotContain("receipt " + nonce);
+	}
+
+	private Long uploadReceipt(Long expenseId, String name) throws Exception {
+		String body = body(as(adminToken, multipart(API + "/expenses/" + expenseId + "/receipt")
+			.file(new MockMultipartFile("file", name, "application/pdf", "%PDF-1.4\n".getBytes(StandardCharsets.UTF_8))))
+			.andExpect(status().isOk()));
+		return ((Number) JsonPath.read(body, "$.receipt.fileId")).longValue();
 	}
 
 	// --- helpers ----------------------------------------------------------------------------------------------

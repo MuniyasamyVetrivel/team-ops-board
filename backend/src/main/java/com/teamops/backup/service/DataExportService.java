@@ -166,6 +166,7 @@ public class DataExportService {
 				int deletedAt = -1;
 				int id = -1;
 				int entityType = -1;
+				int parentType = -1;
 				int financeFlag = -1;
 				for (int i = 1; i <= columns; i++) {
 					String name = meta.getColumnLabel(i);
@@ -174,6 +175,7 @@ public class DataExportService {
 						case "deleted_at" -> deletedAt = i;
 						case "id" -> id = i;
 						case "entity_type" -> entityType = i;
+						case "parent_type" -> parentType = i;
 						case "finance" -> financeFlag = i;
 						default -> {
 						}
@@ -189,8 +191,9 @@ public class DataExportService {
 							&& redaction.files().ids().contains(rs.getLong(id))) {
 						continue;
 					}
-					boolean aboutFinance = redaction.active() && entityType > 0
-							&& redaction.model().recordTypes().contains(rs.getString(entityType));
+					// Rows about a finance record, or about a record filed under one (a receipt's audit entries).
+					boolean aboutFinance = redaction.active()
+							&& (isFinanceType(redaction, rs, entityType) || isFinanceType(redaction, rs, parentType));
 					boolean financeDetails = redaction.active() && financeFlag > 0 && rs.getBoolean(financeFlag);
 					List<String> row = new ArrayList<>(header.size());
 					for (int i = 1; i <= columns; i++) {
@@ -209,6 +212,12 @@ public class DataExportService {
 			}
 		}
 		return rows;
+	}
+
+	/** Whether the column (if the table has it) names a finance record type. */
+	private static boolean isFinanceType(Redaction redaction, ResultSet rs, int column) throws SQLException {
+		String type = column > 0 ? rs.getString(column) : null;
+		return type != null && redaction.model().recordTypes().contains(type);
 	}
 
 	private static String cell(ResultSet rs, ResultSetMetaData meta, int column) throws SQLException {

@@ -81,7 +81,8 @@ public class AuditLogService {
 
 	/**
 	 * What a Finance Tracker entry's details read as for viewers without FINANCE_VIEW: its records are finance data as a
-	 * whole (brief X8), so the details and the record's name are left out, not just the amounts.
+	 * whole (brief X8), so the details and the record's name are left out, not just the amounts. The same goes for the
+	 * entries of records filed under a finance record, such as an expense's receipt file and its name.
 	 */
 	static final Map<String, Object> FINANCE_HIDDEN = Map.of("hidden", true, "reason", "FINANCE_VIEW");
 
@@ -229,10 +230,12 @@ public class AuditLogService {
 				if (!canSeeFinance) {
 					// Searching amounts would reveal them: details holding finance amounts are not searched.
 					details = cb.and(cb.isFalse(root.get("finance")), details);
-					// Finance Tracker records are finance data as a whole: their names and details are not searched.
+					// Finance Tracker records are finance data as a whole, and so are the files they hold (receipts,
+					// filed under their record): their names and details are not searched.
 					Set<String> financeTypes = recordTypes.typesIn(AuditCatalog.Module.FINANCE);
 					if (!financeTypes.isEmpty()) {
-						Predicate notFinance = cb.not(root.get("entityType").in(financeTypes));
+						Predicate notFinance = cb.and(cb.not(root.get("entityType").in(financeTypes)),
+								cb.or(cb.isNull(root.get("parentType")), cb.not(root.get("parentType").in(financeTypes))));
 						details = cb.and(notFinance, details);
 						label = cb.and(notFinance, label);
 					}
@@ -322,7 +325,8 @@ public class AuditLogService {
 		AuditCatalog.Module module = action == null ? null
 				: AuditCatalog.isRecordChange(action) && recordTypes.moduleOf(log.getEntityType()) != null
 						? recordTypes.moduleOf(log.getEntityType()) : AuditCatalog.moduleOf(action);
-		boolean hidden = module == AuditCatalog.Module.FINANCE && !canSeeFinance;
+		boolean hidden = !canSeeFinance && (module == AuditCatalog.Module.FINANCE
+				|| (log.getParentType() != null && recordTypes.moduleOf(log.getParentType()) == AuditCatalog.Module.FINANCE));
 		return new AuditLogItem(log.getId(), log.getAction(),
 				action == null ? log.getAction() : AuditCatalog.labelOf(action, log.getEntityType()),
 				module == null ? null : module.name(), module == null ? null : module.label(), UserSummary.of(actor),

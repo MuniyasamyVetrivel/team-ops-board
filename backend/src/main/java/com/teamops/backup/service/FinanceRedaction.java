@@ -31,8 +31,8 @@ import lombok.RequiredArgsConstructor;
  * (receipts), in {@code uploads/} and in the {@code files} table;</li>
  * <li>money columns elsewhere (fields marked {@link AuditFinance}, such as approval amounts and contract values);</li>
  * <li>in rows about a finance record ({@code entity_type} of a finance record type: audit entries, notifications,
- * recycle bin items), their names, titles and details; and the details of audit entries flagged as holding finance
- * amounts.</li>
+ * recycle bin items) or about a record filed under one ({@code parent_type}: a receipt's audit entries), their
+ * names, titles and details; and the details of audit entries flagged as holding finance amounts.</li>
  * </ul>
  */
 @Component

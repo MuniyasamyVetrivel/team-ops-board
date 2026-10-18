@@ -81,7 +81,7 @@ class FinanceRecycleHandlers {
 			public void afterPurge(FinanceExpense expense) {
 				StoredFile receipt = expense.getReceipt();
 				if (receipt != null) {
-					fileService.delete(receipt);
+					fileService.delete(receipt, ExpenseService.receiptOwner(expense.getId()));
 				}
 			}
 

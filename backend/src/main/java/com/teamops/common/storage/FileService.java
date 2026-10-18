@@ -16,6 +16,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.teamops.common.audit.AuditRef;
 import com.teamops.common.exception.ApiException;
 import com.teamops.common.settings.AppSettingsService;
 
@@ -39,10 +40,18 @@ public class FileService {
 	private final AppSettingsService settings;
 
 	public StoredFile store(MultipartFile upload, Long uploadedBy) {
+		return store(upload, uploadedBy, null);
+	}
+
+	/**
+	 * As {@link #store(MultipartFile, Long)}, with the file's audit entry filed under {@code owner} (see
+	 * {@link StoredFile#auditParent()}).
+	 */
+	public StoredFile store(MultipartFile upload, Long uploadedBy, AuditRef owner) {
 		UploadPolicy.Checked checked = UploadPolicy.check(upload.getOriginalFilename(), upload.getSize(),
 				settings.uploadMaxBytes(properties.maxFileSizeMb()));
 		try (InputStream in = upload.getInputStream()) {
-			return save(in, checked, upload.getSize(), uploadedBy);
+			return save(in, checked, upload.getSize(), uploadedBy, owner);
 		}
 		catch (IOException ex) {
 			throw uploadFailed();
@@ -56,10 +65,11 @@ public class FileService {
 	public StoredFile storeBytes(byte[] content, String fileName, Long uploadedBy) {
 		UploadPolicy.Checked checked = UploadPolicy.check(fileName, content.length,
 				settings.uploadMaxBytes(properties.maxFileSizeMb()));
-		return save(new ByteArrayInputStream(content), checked, content.length, uploadedBy);
+		return save(new ByteArrayInputStream(content), checked, content.length, uploadedBy, null);
 	}
 
-	private StoredFile save(InputStream content, UploadPolicy.Checked checked, long size, Long uploadedBy) {
+	private StoredFile save(InputStream content, UploadPolicy.Checked checked, long size, Long uploadedBy,
+			AuditRef owner) {
 		String key;
 		MessageDigest digest = sha256();
 		try (InputStream in = new DigestInputStream(content, digest)) {
@@ -78,6 +88,7 @@ public class FileService {
 		file.setSizeBytes(size);
 		file.setChecksumSha256(HexFormat.of().formatHex(digest.digest()));
 		file.setUploadedBy(uploadedBy);
+		file.setAuditOwner(owner);
 		return repository.save(file);
 	}
 
@@ -96,6 +107,14 @@ public class FileService {
 	}
 
 	public void delete(StoredFile file) {
+		delete(file, null);
+	}
+
+	/** As {@link #delete(StoredFile)}, with the file's audit entry filed under {@code owner}. */
+	public void delete(StoredFile file, AuditRef owner) {
+		if (owner != null) {
+			file.setAuditOwner(owner);
+		}
 		String key = file.getStorageKey();
 		repository.delete(file);
 		afterCommit(() -> storage.delete(key));

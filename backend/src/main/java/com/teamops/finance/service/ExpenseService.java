@@ -22,6 +22,7 @@ import com.teamops.approval.entity.Approval;
 import com.teamops.approval.repository.ApprovalRepository;
 import com.teamops.common.audit.AuditAction;
 import com.teamops.common.audit.AuditChanges;
+import com.teamops.common.audit.AuditRef;
 import com.teamops.common.audit.AuditService;
 import com.teamops.common.csv.CsvWriter;
 import com.teamops.common.exception.ApiException;
@@ -165,15 +166,23 @@ public class ExpenseService {
 	public ExpenseDto attachReceipt(Long id, MultipartFile upload, AuthenticatedUser actor, ClientInfo info) {
 		FinanceExpense expense = load(id);
 		StoredFile previous = expense.getReceipt();
-		StoredFile file = fileService.store(upload, actor.id());
+		StoredFile file = fileService.store(upload, actor.id(), receiptOwner(id));
 		expense.setReceipt(file);
 		repository.flush();
 		if (previous != null) {
-			fileService.delete(previous);
+			fileService.delete(previous, receiptOwner(id));
 		}
 		auditService.record(AuditAction.EXPENSE_RECEIPT_ADDED, actor.id(), ENTITY, id,
 				Map.of("fileId", file.getId(), "fileName", file.getOriginalName()), info);
 		return toDto(expense);
+	}
+
+	/**
+	 * A receipt's audit entries belong to its expense, so they are finance data too: hidden, with their file name,
+	 * from everyone without FINANCE_VIEW.
+	 */
+	static AuditRef receiptOwner(Long expenseId) {
+		return AuditRef.of(FinanceExpense.class, expenseId);
 	}
 
 	/** Always served as a download; 404 RECEIPT_NOT_FOUND without one. */
@@ -195,7 +204,7 @@ public class ExpenseService {
 		}
 		expense.setReceipt(null);
 		repository.flush();
-		fileService.delete(file);
+		fileService.delete(file, receiptOwner(id));
 		auditService.record(AuditAction.EXPENSE_RECEIPT_REMOVED, actor.id(), ENTITY, id,
 				Map.of("fileId", file.getId(), "fileName", file.getOriginalName()), info);
 		return toDto(expense);
