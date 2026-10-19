@@ -8,14 +8,17 @@ import { afterEach } from 'vitest';
 configure({ asyncUtilTimeout: 3000 });
 
 // Saving a file clicks a download link (saveBlob). jsdom can't follow it and logs "Not implemented: navigation to
-// another Document", so the click still fires but its default navigation is prevented.
-const anchorClick = HTMLAnchorElement.prototype.click;
-HTMLAnchorElement.prototype.click = function click(this: HTMLAnchorElement) {
-  if (this.hasAttribute('download')) {
-    this.addEventListener('click', (event) => event.preventDefault(), { once: true });
-  }
-  anchorClick.call(this);
-};
+// another Document", so the click still fires but its default navigation is prevented. (Tests in the node
+// environment, such as scripts/, have no DOM.)
+if (typeof HTMLAnchorElement !== 'undefined') {
+  const anchorClick = HTMLAnchorElement.prototype.click;
+  HTMLAnchorElement.prototype.click = function click(this: HTMLAnchorElement) {
+    if (this.hasAttribute('download')) {
+      this.addEventListener('click', (event) => event.preventDefault(), { once: true });
+    }
+    anchorClick.call(this);
+  };
+}
 
 afterEach(() => {
   cleanup();

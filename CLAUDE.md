@@ -51,6 +51,16 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
 - There is no demo data in the app. The demo seeders (`DevDataSeeder` and friends) live in `src/test/java/com/teamops/devdata` for automated tests only and run only when a test sets `app.dev-seed.enabled=true`. `DEV_SEED_ENABLED` stays `false`. No test may depend on seeded data. Never put dev data in Flyway.
 - Real users come from `BOOTSTRAP_ADMIN_*` (first Super Admin on an empty database) and Admin → Users (one at a time or `UserCsvImporter`). See `docs/go-live-data.md`. Real team data stays in the git-ignored `private/` folder.
 - The `dev` Spring profile only turns on verbose SQL and debug logging.
+- Production (docs/deployment.md): Docker Compose on one Lightsail instance behind a Cloudflare Tunnel at
+  https://ops.tritusa.com.au, with no host ports.
+  - Files: `docker-compose.prod.yml`, `.env.prod.example`, `backend/Dockerfile` (targets `runtime` and `tools`),
+    `frontend/Dockerfile`, `deploy/nginx/team-ops.conf.template`.
+  - The `prod` profile (`application-prod.yml`) fixes the CORS origin, the Secure cookie, actuator health only, and
+    trusts forwarded headers from the Nginx subnet only (`ProdProfileTest`, `ProdProfileIT`).
+  - The Nginx CSP allows the inline theme script in `index.html` by its hash, which `frontend/scripts/nginx-conf.ts`
+    fills in at image build. Keep new inline scripts out of `index.html`.
+  - A new production variable goes in both `docker-compose.prod.yml` (backend `environment`) and
+    `.env.prod.example`.
 
 ## Coding rules
 - Controllers stay thin. Business logic goes in services, persistence in repositories.

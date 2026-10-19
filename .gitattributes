@@ -1,2 +1,7 @@
 # Shell scripts run on Linux servers: always LF.
 *.sh text eol=lf
+# Container builds read these on Linux: always LF (a CRLF Dockerfile breaks "\" line continuations).
+Dockerfile text eol=lf
+*.template text eol=lf
+docker-compose*.yml text eol=lf
+.env*.example text eol=lf

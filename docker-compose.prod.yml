@@ -1,0 +1,236 @@
+# Team Ops Board production stack: one Amazon Lightsail instance (Ubuntu 24.04, 4 GB), reachable only through a
+# Cloudflare Tunnel at https://ops.tritusa.com.au. See docs/deployment.md.
+#
+#   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+#
+# No port is published to the host: cloudflared makes an outbound connection to Cloudflare and forwards requests to
+# nginx on the "edge" network. Nginx serves the app and proxies /api to the backend on the "app" network. MySQL sits
+# on the internal "db" network (no internet access, nothing else can reach it).
+#
+# Memory on a 4 GB instance (plus a 2 GB swap file, docs/deployment.md): MySQL 1.25 GB (512 MB buffer pool),
+# backend 1.5 GB (heap 60% of it), nginx 128 MB, cloudflared 128 MB, about 1 GB left for Ubuntu and Docker.
+
+name: team-ops-board
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-hardening: &hardening
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+00:00
+      - --innodb-buffer-pool-size=512M
+      - --max-connections=50
+      - --skip-name-resolve
+    environment:
+      MYSQL_DATABASE: team_ops_board
+      MYSQL_USER: ${DB_USERNAME:?set DB_USERNAME in .env.prod}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env.prod}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env.prod}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - db
+    healthcheck:
+      # mysqladmin ping succeeds once the server accepts TCP connections (0 even when the login is refused).
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1280M
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
+
+  backend:
+    image: team-ops-board-backend:${APP_VERSION:-latest}
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: runtime
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:mysql://mysql:3306/team_ops_board?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true&useSSL=false&allowPublicKeyRetrieval=true
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env.prod}
+      JWT_ACCESS_TTL_MINUTES: ${JWT_ACCESS_TTL_MINUTES:-60}
+      JWT_REFRESH_TTL_DAYS: ${JWT_REFRESH_TTL_DAYS:-7}
+      APP_TIME_ZONE: ${APP_TIME_ZONE:-Asia/Kolkata}
+      FILE_MAX_SIZE_MB: ${FILE_MAX_SIZE_MB:-10}
+      COMPANY_NAME: ${COMPANY_NAME:-Tritusa}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      BOOTSTRAP_ADMIN_FIRST_NAME: ${BOOTSTRAP_ADMIN_FIRST_NAME:-Admin}
+      BOOTSTRAP_ADMIN_LAST_NAME: ${BOOTSTRAP_ADMIN_LAST_NAME:-}
+      BOOTSTRAP_ADMIN_DEPARTMENT_CODE: ${BOOTSTRAP_ADMIN_DEPARTMENT_CODE:-IT}
+      BOOTSTRAP_ADMIN_EMPLOYEE_ID: ${BOOTSTRAP_ADMIN_EMPLOYEE_ID:-}
+      APP_SCHEDULING_ENABLED: ${APP_SCHEDULING_ENABLED:-true}
+      TASK_REMINDER_CRON: ${TASK_REMINDER_CRON:-0 0 8 * * *}
+      MARKETING_ACTIVITY_CRON: ${MARKETING_ACTIVITY_CRON:-0 10 0 * * *}
+      CELEBRATION_REMINDER_CRON: ${CELEBRATION_REMINDER_CRON:-0 0 8 * * *}
+      BENCH_REMINDER_CRON: ${BENCH_REMINDER_CRON:-0 15 8 * * *}
+      VENDOR_REMINDER_CRON: ${VENDOR_REMINDER_CRON:-0 20 8 * * *}
+      FINANCE_REMINDER_CRON: ${FINANCE_REMINDER_CRON:-0 25 8 * * *}
+      RECYCLE_BIN_PURGE_CRON: ${RECYCLE_BIN_PURGE_CRON:-0 30 2 * * *}
+      # Backups: first copy on the local "backups" volume, second copy in a Lightsail object storage bucket.
+      BACKUP_ENABLED: ${BACKUP_ENABLED:-true}
+      BACKUP_CRON: ${BACKUP_CRON:-0 0 2 * * *}
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:?set BACKUP_ENCRYPTION_KEY in .env.prod}
+      BACKUP_TARGET: LOCAL
+      BACKUP_LOCAL_PATH: /var/backups/team-ops
+      BACKUP_WORK_DIR: /var/backups/team-ops/.work
+      BACKUP_SECONDARY_TARGET: ${BACKUP_SECONDARY_TARGET:-S3}
+      BACKUP_SECONDARY_S3_BUCKET: ${BACKUP_SECONDARY_S3_BUCKET:-}
+      BACKUP_SECONDARY_S3_PREFIX: ${BACKUP_SECONDARY_S3_PREFIX:-backups}
+      BACKUP_SECONDARY_S3_REGION: ${BACKUP_SECONDARY_S3_REGION:-ap-southeast-2}
+      BACKUP_SECONDARY_S3_ENDPOINT: ${BACKUP_SECONDARY_S3_ENDPOINT:-https://s3.ap-southeast-2.amazonaws.com}
+      BACKUP_SECONDARY_S3_ACCESS_KEY: ${BACKUP_SECONDARY_S3_ACCESS_KEY:-}
+      BACKUP_SECONDARY_S3_SECRET_KEY: ${BACKUP_SECONDARY_S3_SECRET_KEY:-}
+      BACKUP_SECONDARY_S3_PATH_STYLE: ${BACKUP_SECONDARY_S3_PATH_STYLE:-false}
+      BACKUP_KEEP_DAILY: ${BACKUP_KEEP_DAILY:-30}
+      BACKUP_KEEP_MONTHLY: ${BACKUP_KEEP_MONTHLY:-12}
+      BACKUP_MAX_AGE_HOURS: ${BACKUP_MAX_AGE_HOURS:-26}
+    volumes:
+      - uploads:/var/lib/team-ops/uploads
+      - backups:/var/backups/team-ops
+    networks:
+      - app
+      - db
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      # First start runs every Flyway migration.
+      start_period: 180s
+    stop_grace_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+    <<: *hardening
+    logging: *logging
+
+  nginx:
+    image: team-ops-board-nginx:${APP_VERSION:-latest}
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - edge
+      - app
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/nginx-health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    <<: *hardening
+    logging: *logging
+
+  cloudflared:
+    # Pin a release (https://github.com/cloudflare/cloudflared/releases) in CLOUDFLARED_VERSION and update it
+    # monthly: Cloudflare supports each cloudflared release for a year, and auto-update is off in a container.
+    image: cloudflare/cloudflared:${CLOUDFLARED_VERSION:-latest}
+    restart: unless-stopped
+    # A remotely managed tunnel: its public hostname (ops.tritusa.com.au -> http://nginx:8080) is set in the
+    # Cloudflare dashboard. cloudflared reads the token from TUNNEL_TOKEN, so it never appears in the command line.
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN in .env.prod}
+    depends_on:
+      nginx:
+        condition: service_healthy
+    networks:
+      - edge
+    read_only: true
+    # The image is distroless (no shell to run a probe in): Docker restarts it if it exits, and the tunnel's health
+    # shows in the Cloudflare dashboard (Zero Trust -> Networks -> Tunnels).
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    <<: *hardening
+    logging: *logging
+
+  # On demand only (profile "tools"): restores and restore tests, docs/deployment.md.
+  #   docker compose --env-file .env.prod -f docker-compose.prod.yml --profile tools run --rm tools <command>
+  tools:
+    image: team-ops-board-tools:${APP_VERSION:-latest}
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: tools
+    profiles: ["tools"]
+    environment:
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY}
+      # Restoring creates databases, which only root may do.
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - uploads:/var/lib/team-ops/uploads
+      - backups:/var/backups/team-ops
+    networks:
+      - db
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
+
+volumes:
+  mysql-data:
+  uploads:
+  backups:
+
+networks:
+  edge:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+  app:
+    ipam:
+      config:
+        - subnet: 172.28.1.0/24
+  db:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.28.2.0/24

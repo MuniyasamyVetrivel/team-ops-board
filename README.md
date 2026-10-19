@@ -15,6 +15,7 @@ UI revamp, the calendar celebrations, the go-live data work and expansion phases
 | [`docs/api.md`](docs/api.md) | Every REST endpoint with its permission, filters and sort fields |
 | [`docs/digital-marketing.md`](docs/digital-marketing.md) | SEO ranking logic, target calculations, recurring activities, campaign, lead, backlink and content rules |
 | [`docs/go-live-data.md`](docs/go-live-data.md) | Resetting a database, the first Super Admin and loading the real team |
+| [`docs/deployment.md`](docs/deployment.md) | Production on Lightsail with Docker Compose and a Cloudflare Tunnel: first deployment, checks, update, rollback, restore |
 | [`docs/backup-and-restore.md`](docs/backup-and-restore.md) | Encrypted backups, restore scripts and the monthly restore test, "Export all data", break-glass recovery |
 | [`docs/adding-a-module.md`](docs/adding-a-module.md) | The recipe for a new department tool (module registry, switch, permissions, pages) |
 | [`docs/PROJECT_BRIEF.md`](docs/PROJECT_BRIEF.md) | The original requirements |
@@ -169,42 +170,22 @@ exceeds its statement budget, or scans a growing table without an index.
 
 ## Deployment
 
-The backend is a self-contained Spring Boot jar. The frontend is static files. Serve both from **one origin** behind
-HTTPS: the refresh cookie is `SameSite=Strict` and scoped to `/api/auth`, so the browser must see the API on the same
-site as the app.
+Production runs on one Amazon Lightsail instance (Ubuntu 24.04, 4 GB, Sydney) as a Docker Compose stack, reachable
+only through a Cloudflare Tunnel at **https://ops.tritusa.com.au**. **[docs/deployment.md](docs/deployment.md)** has
+the first deployment, the checks, updates, rollbacks, restores and break-glass steps.
 
-1. **Database:** create the schema and user as above on MySQL 8. Flyway migrates it when the backend starts. The
-   nightly backup covers the database and the upload directory together: set `BACKUP_ENCRYPTION_KEY` (keep a copy off
-   the server) and point `BACKUP_TARGET` at object storage ([docs/backup-and-restore.md](docs/backup-and-restore.md)).
-2. **Backend:**
-   ```bash
-   cd backend && ./mvnw -DskipTests package
-   java -jar target/team-ops-board-backend-0.0.1-SNAPSHOT.jar
-   ```
-   Provide the variables above as real environment variables (or a `.env` file in the working directory):
-   - `REFRESH_COOKIE_SECURE=true` and a strong `JWT_SECRET`.
-   - `DEV_SEED_ENABLED=false` (the demo data is not part of the build anyway).
-   - `FILE_STORAGE_DIR` on persistent storage.
-   - `BOOTSTRAP_ADMIN_*` for the first start only, then remove them.
-   - Run the background jobs (`APP_SCHEDULING_ENABLED=true`) on one instance. They are idempotent, but there's no
-     reason to run them twice.
-   - Behind the reverse proxy, set `SERVER_FORWARD_HEADERS_STRATEGY=native` so audit logs record the client's IP
-     from `X-Forwarded-For` (only internal proxy addresses are trusted) instead of the proxy's.
-   - Health check: `GET /actuator/health`.
-3. **Frontend:**
-   ```bash
-   cd frontend && npm ci && npm run build      # outputs dist/
-   ```
-   Serve `dist/` with a web server that falls back to `index.html` for client-side routes. Cache `assets/*` for a
-   long time (the file names are content-hashed) and `index.html` not at all.
-4. **Reverse proxy:** send `/api/` to the backend and everything else to `dist/`. For example, with nginx:
-   ```nginx
-   location /api/ { proxy_pass http://127.0.0.1:8080; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; }
-   location /assets/ { root /srv/team-ops-board; expires 1y; add_header Cache-Control "public, immutable"; }
-   location / { root /srv/team-ops-board; try_files $uri /index.html; add_header Cache-Control "no-cache"; }
-   ```
-   Set `client_max_body_size` to at least `FILE_MAX_SIZE_MB`. `CORS_ALLOWED_ORIGINS` only matters if the API is
-   called from another origin.
+| File | Purpose |
+|---|---|
+| `docker-compose.prod.yml` | nginx, backend, mysql 8.4, cloudflared (and an on-demand `tools` container for restores). No host ports, named volumes for MySQL data, uploads and local backups, health checks, restart policies, memory limits for 4 GB |
+| `.env.prod.example` | Every production variable as a placeholder (copy to `.env.prod` on the server) |
+| `backend/Dockerfile` | JDK 21 build, JRE 21 runtime as a non-root user with the MySQL 8.4 client (`runtime`), and the restore image (`tools`) |
+| `frontend/Dockerfile`, `deploy/nginx/team-ops.conf.template` | Node build, non-root Nginx: SPA fallback, `/api` proxy, gzip, 10 MB uploads, security headers and CSP, real client IP from Cloudflare |
+| `backend/src/main/resources/application-prod.yml` | The `prod` Spring profile: Flyway on, demo data off, CORS for the production origin only, Secure cookie, actuator health only, logs to stdout, `Asia/Kolkata`, forwarded headers trusted from Nginx only |
+
+Elsewhere, the same rules apply: serve the app and `/api` from **one origin** behind HTTPS (the refresh cookie is
+`SameSite=Strict` and scoped to `/api/auth`), run the backend with `SPRING_PROFILES_ACTIVE=prod` (after adjusting its
+origin and proxy network), give it `mysqldump` from MySQL 8.4, and have the reverse proxy **set** (not append)
+`X-Forwarded-For` to the client's address.
 
 ## Authentication and authorization (summary)
 

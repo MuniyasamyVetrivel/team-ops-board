@@ -1,0 +1,64 @@
+# Production profile (SPRING_PROFILES_ACTIVE=prod): the Docker Compose deployment behind Nginx and a Cloudflare Tunnel
+# at https://ops.tritusa.com.au (docs/deployment.md). Values here win over application.yml; real environment
+# variables still win over both (Spring's relaxed binding), so settings that must not be loosened are not read from
+# placeholders here.
+
+spring:
+  flyway:
+    enabled: true
+    validate-on-migrate: true
+    # Never wipe a production schema, whatever a stray property says.
+    clean-disabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  main:
+    banner-mode: off
+
+server:
+  shutdown: graceful
+  # Nginx is the only client. It sets X-Forwarded-For to the real client IP (taken from Cloudflare's CF-Connecting-IP)
+  # and X-Forwarded-Proto. Tomcat trusts those headers only from the Compose "app" network, so audit logs record the
+  # person's IP and a request from anywhere else cannot spoof one.
+  forward-headers-strategy: native
+  tomcat:
+    remoteip:
+      internal-proxies: 172\.28\.1\.\d{1,3}
+      remote-ip-header: x-forwarded-for
+      protocol-header: x-forwarded-proto
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+      probes:
+        enabled: true
+  info:
+    env:
+      enabled: false
+
+logging:
+  # Plain text on stdout only; Docker keeps (and rotates) it. No log files inside the container.
+  file:
+    name: ""
+  level:
+    root: INFO
+
+app:
+  # Business time zone for "today", due dates and the job schedules.
+  time-zone: Asia/Kolkata
+  # The demo seeders live only in the test sources; this keeps them off even if one were ever on the class path.
+  dev-seed:
+    enabled: false
+  security:
+    refresh-cookie:
+      # HTTPS only (the tunnel terminates TLS at Cloudflare). Not read from a variable on purpose.
+      secure: true
+      same-site: Strict
+    cors:
+      # The app and the API share this one origin; nothing else may call the API from a browser.
+      allowed-origins: https://ops.tritusa.com.au

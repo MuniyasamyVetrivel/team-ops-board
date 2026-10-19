@@ -1,0 +1,17 @@
+# Build context for backend/Dockerfile and frontend/Dockerfile (both build from the repository root).
+# Secrets, real data and build output never go into an image.
+.git
+**/.env
+**/.env.*
+!**/.env.example
+private/
+**/node_modules/
+frontend/dist/
+frontend/coverage/
+backend/target/
+backend/uploads/
+uploads/
+**/*.log
+.idea/
+.vscode/
+docs/

@@ -52,7 +52,12 @@ health check fails every Super Admin sees a red banner across the top of every p
 **Development (this machine):** `BACKUP_TARGET=LOCAL`, `BACKUP_LOCAL_PATH=D:/team-ops-backups` (outside the project
 folder). Use forward slashes in `.env`.
 
-**Deployment (S3 or Lightsail object storage):** configuration only, no code change.
+**Production (Lightsail with Docker Compose, [deployment.md](deployment.md)):** the first copy goes to the `backups`
+Docker volume on the instance, the second to a Lightsail object storage bucket in Sydney, written with an access key
+scoped to that bucket. Restores and restore tests run in the `tools` container there; see
+[deployment.md](deployment.md#backups-and-restore) for the commands.
+
+**Other deployments (S3 or Lightsail object storage):** configuration only, no code change.
 
 ```properties
 BACKUP_TARGET=S3

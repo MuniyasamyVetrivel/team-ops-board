@@ -4,7 +4,8 @@ Team Ops Board is a single-company internal web application: a React single-page
 REST API backed by one MySQL 8 database. The requirements are in [`PROJECT_BRIEF.md`](PROJECT_BRIEF.md) and the build
 history and decisions in [`implementation-plan.md`](implementation-plan.md); the expansion (X1–X8) is specified in
 [`EXPANSION_BRIEF.md`](EXPANSION_BRIEF.md). Related references: [database](database.md), [API](api.md),
-[Digital Marketing](digital-marketing.md), [backups](backup-and-restore.md), [adding a module](adding-a-module.md).
+[Digital Marketing](digital-marketing.md), [backups](backup-and-restore.md), [adding a module](adding-a-module.md),
+[deployment](deployment.md) (production: Docker Compose on Lightsail behind a Cloudflare Tunnel, `prod` profile).
 
 ```
  Browser ── React SPA (Vite build, static files)
