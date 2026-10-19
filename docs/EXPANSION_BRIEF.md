@@ -1,5 +1,21 @@
 # Expansion Brief — Team Ops Board
 
+## Status
+
+Every phase below is built (backend and frontend), merged into `main` and in use. Details of what each delivered are
+in the [implementation plan's status table](implementation-plan.md#progress--decisions-changed-during-implementation).
+
+| Phase | Status | Migrations |
+|---|---|---|
+| X1 Audit history | Done | V26, V28 |
+| X2 Recycle bin | Done | V27, V29 |
+| X3 Backups and "never lose data" | Done | V30, V31 |
+| X4 Employee ID and profile photo | Done | V32 |
+| X5 Department modules framework | Done | V33 |
+| X6 Project Allocation and Bench Management | Done | V34, V35, V40 (Talent Acquisition switch fix) |
+| X7 Vendor Management | Done | V36 |
+| X8 Finance Tracker | Done | V37, V38, V39 |
+
 ## Access (applies to every phase below)
 - **Phase X4 (employee ID and profile photo) is for everyone.** All signed-in users see employee IDs and photos. Each user can change their own photo. Only SUPER_ADMIN can edit employee IDs and other people's photos.
 - **Every other feature in this brief is SUPER_ADMIN only by default:** X1 History tab and Audit Logs, X2 Recycle Bin (view, restore, permanent delete), X3 backup status and Export all data, X5 module settings, X6 Project Allocation and Bench, X7 Vendors, X8 Finance Tracker, and all their reminders and notifications.
@@ -68,7 +84,7 @@
 - Decisions (agreed after the X5 backend):
   - A user may open a module when they hold its view permission and it is switched on for their primary department or a department they are a member of. The Super Admin may open every module switched on for at least one active department, so a module switched off everywhere is off for everyone. Inactive departments do not count.
   - A module's edit permission always needs its view permission, both on a role (permission matrix) and when granted directly to a single user (400 `VIEW_PERMISSION_REQUIRED`).
-  - Default departments, by the department codes in the `departments` table: X6 switches Bench Management on for `HR` and `TALENT_ACQUISITION`; X7 switches Vendors and X8 switches Finance on for `HR` only. Each module's own migration does this and skips a department code that does not exist. The module permissions themselves stay on SUPER_ADMIN only.
+  - Default departments, by the department codes in the `departments` table: X6 switches Bench Management on for `HR` and `TA` (Talent Acquisition; V34 named it `TALENT_ACQUISITION`, which does not exist, and V40 corrected it); X7 switches Vendors and X8 switches Finance on for `HR` only. Each module's own migration does this and skips a department code that does not exist. The module permissions themselves stay on SUPER_ADMIN only.
 
 ## Phase X6 — Project Allocation and Bench Management (HR, Talent Acquisition)
 - Consultants: linked to an Employee record, with skills (for example SAP S/4HANA, Tosca, test automation, performance testing), certifications, experience, location, availability date, and status (Allocated, Partially allocated, On bench, On leave of absence, Notice period, Left)

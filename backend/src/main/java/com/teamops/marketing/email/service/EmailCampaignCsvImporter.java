@@ -53,7 +53,7 @@ public class EmailCampaignCsvImporter implements CsvImporter<EmailCampaignCsvImp
 			CsvColumn.optional("clicked", "Total clicks (default: unique clicks)", "1400"),
 			CsvColumn.optional("unsubscribed", "Default 0", "60"),
 			CsvColumn.optional("audience", "Who it was sent to", "SAP decision makers"),
-			CsvColumn.optional("owner_email", "A Digital Marketing user", "priya.menon@teamops.local"),
+			CsvColumn.optional("owner_email", "A Digital Marketing user", "marketing.owner@example.com"),
 			CsvColumn.optional("notes", "Up to 2000 characters", ""),
 			CsvColumn.optional("external_id", "The campaign's id in Zoho (prevents duplicates)", "ZC-1042"));
 

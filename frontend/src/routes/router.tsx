@@ -59,7 +59,6 @@ const EmployeesPage = lazy(() => import('@/features/celebrations/EmployeesPage')
 const ImportantDaysPage = lazy(() => import('@/features/celebrations/ImportantDaysPage'));
 const EventsPage = lazy(() => import('@/features/celebrations/EventsPage'));
 const LinkedInPostsPage = lazy(() => import('@/features/celebrations/LinkedInPostsPage'));
-const DepartmentToolPage = lazy(() => import('@/features/modules/DepartmentToolPage'));
 const BenchDashboardPage = lazy(() => import('@/features/bench/BenchDashboardPage'));
 const BenchListPage = lazy(() => import('@/features/bench/BenchListPage'));
 const ConsultantsPage = lazy(() => import('@/features/bench/ConsultantsPage'));
@@ -119,7 +118,8 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
 /** Detail routes that are not sidebar entries. */
 const detailRoutes: RouteObject[] = [
   // Department tools: the sidebar lists only tools switched on and permitted (/api/department-tools); the page and the
-  // server's /api/modules/{key}/ check enforce the same. Built tools come before the generic placeholder.
+  // server's /api/modules/{key}/ check enforce the same. Each tool's layout (ToolLayout) turns away a tool that is off
+  // or not permitted; a /tools/ path without a built tool is the not-found page.
   {
     path: BENCH_PATHS.dashboard,
     element: <BenchLayout />,
@@ -154,7 +154,6 @@ const detailRoutes: RouteObject[] = [
       { path: 'exchange-rates', element: <ExchangeRatesPage /> },
     ],
   },
-  { path: '/tools/:key', element: <DepartmentToolPage /> },
   {
     path: '/team/:id',
     element: (

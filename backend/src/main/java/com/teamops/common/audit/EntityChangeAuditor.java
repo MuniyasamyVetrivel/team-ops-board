@@ -41,6 +41,7 @@ import org.hibernate.event.spi.PreCollectionRemoveEvent;
 import org.hibernate.event.spi.PreCollectionRemoveEventListener;
 import org.hibernate.event.spi.PreCollectionUpdateEvent;
 import org.hibernate.event.spi.PreCollectionUpdateEventListener;
+import org.hibernate.metamodel.mapping.EntityMappingType;
 import org.hibernate.persister.collection.CollectionPersister;
 import org.hibernate.persister.entity.EntityPersister;
 import org.hibernate.type.ComponentType;
@@ -239,10 +240,13 @@ public class EntityChangeAuditor implements PostInsertEventListener, PostUpdateE
 		if (model == null || model.ignoredFields.contains(field)) {
 			return;
 		}
-		Type elementType = persister.getElementType();
-		String ref = elementType.isEntityType() ? RecordTypes.typeOf(elementType.getReturnedClass()) : null;
-		List<Object> from = elementValues(before, elementType, session);
-		List<Object> to = elementValues(after, elementType, session);
+		Class<?> elementEntity = persister.getAttributeMapping().getElementDescriptor()
+				.getPartMappingType() instanceof EntityMappingType entity
+						? entity.getMappedJavaType().getJavaTypeClass()
+						: null;
+		String ref = elementEntity != null ? RecordTypes.typeOf(elementEntity) : null;
+		List<Object> from = elementValues(before, elementEntity != null, session);
+		List<Object> to = elementValues(after, elementEntity != null, session);
 		if (AuditValues.same(from, to)) {
 			return;
 		}
@@ -252,10 +256,10 @@ public class EntityChangeAuditor implements PostInsertEventListener, PostUpdateE
 		buffer(session).add(change);
 	}
 
-	private List<Object> elementValues(Collection<?> elements, Type elementType, SharedSessionContractImplementor session) {
+	private List<Object> elementValues(Collection<?> elements, boolean entities, SharedSessionContractImplementor session) {
 		List<Object> values = new ArrayList<>(elements.size());
 		for (Object element : elements) {
-			values.add(elementType.isEntityType() ? idOf(element, session) : AuditValues.normalize(element));
+			values.add(entities ? idOf(element, session) : AuditValues.normalize(element));
 		}
 		values.sort(Comparator.comparing(String::valueOf));
 		return values;

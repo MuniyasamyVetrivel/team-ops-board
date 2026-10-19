@@ -1,10 +1,12 @@
 # Team Ops Board
 
 Internal Work & Performance Management System. It brings together tasks, workload, help desk, projects, approvals,
-collaboration, reports and a Digital Marketing performance module, so the reporting manager can see team workload
-and marketing performance at a glance.
+collaboration, reports, a Digital Marketing performance module and department tools (Bench Management, Vendors,
+Finance Tracker), so the reporting manager can see team workload and marketing performance at a glance.
 
-**Status:** all 24 phases of the [implementation plan](docs/implementation-plan.md) are complete.
+**Status:** everything planned is built: all 24 phases of the [implementation plan](docs/implementation-plan.md), the
+UI revamp, the calendar celebrations, the go-live data work and expansion phases X1–X8 of the
+[expansion brief](docs/EXPANSION_BRIEF.md). The plan's status table lists what each one delivered.
 
 | Document | Contents |
 |---|---|
@@ -12,21 +14,33 @@ and marketing performance at a glance.
 | [`docs/database.md`](docs/database.md) | Schema conventions, migrations, tables by module, history rules, indexing |
 | [`docs/api.md`](docs/api.md) | Every REST endpoint with its permission, filters and sort fields |
 | [`docs/digital-marketing.md`](docs/digital-marketing.md) | SEO ranking logic, target calculations, recurring activities, campaign, lead, backlink and content rules |
+| [`docs/go-live-data.md`](docs/go-live-data.md) | Resetting a database, the first Super Admin and loading the real team |
+| [`docs/backup-and-restore.md`](docs/backup-and-restore.md) | Encrypted backups, restore scripts and the monthly restore test, "Export all data", break-glass recovery |
+| [`docs/adding-a-module.md`](docs/adding-a-module.md) | The recipe for a new department tool (module registry, switch, permissions, pages) |
 | [`docs/PROJECT_BRIEF.md`](docs/PROJECT_BRIEF.md) | The original requirements |
+| [`docs/EXPANSION_BRIEF.md`](docs/EXPANSION_BRIEF.md) | Expansion phases X1–X8 and the decisions agreed during them |
+| [`docs/CALENDAR_FEATURES_BRIEF.md`](docs/CALENDAR_FEATURES_BRIEF.md), [`docs/UI_REVAMP_BRIEF.md`](docs/UI_REVAMP_BRIEF.md) | The calendar celebrations and UI revamp requirements |
 | [`docs/implementation-plan.md`](docs/implementation-plan.md) | The phase plan, what each phase delivered, and the decisions taken |
 
 ## What's inside
 
 | Area | Modules |
 |---|---|
-| My work | Dashboard (role-aware), My Tasks, My Tickets, My Calendar |
+| My work | Dashboard (role-aware), My Tasks, My Tickets, My Calendar (with birthdays, work anniversaries, important days and events) |
 | Work management | Tasks (checklists, comments, attachments, watchers, dependencies, history), Workload (LOW / NORMAL / HIGH / OVERLOADED), Projects (milestones, risks, dependencies, progress) |
 | Help desk | Tickets (`TKT-000001`), SLA policies, countdowns, warnings, breaches and compliance |
-| Collaboration | Approvals with configurable workflows, Announcements with acknowledgement, Knowledge Base, Documents with versions, Team directory and profiles |
+| Collaboration | Approvals with configurable workflows, Announcements with acknowledgement, Knowledge Base, Documents with versions, Team directory and profiles with employee IDs and photos |
+| Celebrations | Employees, Important Days, Events and LinkedIn posts, with daily reminders |
 | Digital Marketing | Executive dashboard, SEO pages, keywords and monthly rankings, Marketing Targets, Email Campaigns, LinkedIn Paid Campaigns, Leads, Backlinks, Content & Blog, recurring Marketing Activities, monthly report |
 | Analytics | Management reports (tasks, workload, tickets, projects) with CSV export |
-| Administration | Users, Departments, Settings (admin settings, role permission matrix, approval workflows), Audit Logs |
-| Everywhere | Global search (Ctrl/⌘ K), notifications, light / dark / system theme |
+| Department tools | Bench Management (consultants, clients, engagements, allocations, bench and utilisation), Vendors (contacts, contracts, renewals), Finance Tracker (tools and licences, expenses with receipts, budgets, exchange rates, dashboard). Each is switched on per department |
+| Administration | Users, Departments, Settings (admin settings, role permission matrix, approval workflows, modules), Audit Logs, Recycle Bin, Backups (status and "Export all data") |
+| Everywhere | History tab on every record, recycle bin with Undo, global search (Ctrl/⌘ K), notifications, light / dark / system theme |
+
+History, Audit Logs, Recycle Bin, Backups, Export, Modules and each department tool have their own permission, held
+only by the Super Admin until it is granted to someone ([expansion brief, Access](docs/EXPANSION_BRIEF.md)). Finance
+data (Finance Tracker records, vendor contract values, finance amounts in history and audit) stays hidden from
+everyone without `FINANCE_VIEW`.
 
 ## Stack
 
@@ -53,6 +67,9 @@ Run as a MySQL admin user (for example `root`):
 CREATE DATABASE team_ops_board CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 CREATE USER 'teamops'@'localhost' IDENTIFIED BY '<the DB_PASSWORD from backend/.env>';
 GRANT ALL PRIVILEGES ON team_ops_board.* TO 'teamops'@'localhost';
+-- Integration tests (mvnw verify -Pit) use their own database, never the real one:
+CREATE DATABASE team_ops_board_it CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+GRANT ALL PRIVILEGES ON team_ops_board_it.* TO 'teamops'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
@@ -91,17 +108,23 @@ npm run dev
 | `REFRESH_COOKIE_SECURE` | `true` | `true` behind HTTPS; `false` only for local http |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Comma-separated browser origins allowed to call the API |
 | `DEV_SEED_ENABLED` | `false` | Keep `false`. Demo data lives only in the automated tests |
-| `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`, `BOOTSTRAP_ADMIN_FIRST_NAME`, `BOOTSTRAP_ADMIN_LAST_NAME`, `BOOTSTRAP_ADMIN_DEPARTMENT_CODE` | —, —, Admin, —, IT | Creates the first Super Admin when the users table is empty. The password is temporary and must be changed at first sign-in. Remove the password after the first start |
+| `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`, `BOOTSTRAP_ADMIN_FIRST_NAME`, `BOOTSTRAP_ADMIN_LAST_NAME`, `BOOTSTRAP_ADMIN_DEPARTMENT_CODE`, `BOOTSTRAP_ADMIN_EMPLOYEE_ID` | —, —, Admin, —, IT, — | Creates the first Super Admin when the users table is empty. The password is temporary and must be changed at first sign-in. Remove the password after the first start |
 | `FILE_STORAGE_DIR`, `FILE_MAX_SIZE_MB` | `./uploads`, 20 | Where uploads are stored, and the server's upload limit |
 | `APP_TIME_ZONE` | `Asia/Kolkata` | Business time zone for "today", due dates, overdue and marketing months |
 | `APP_SCHEDULING_ENABLED` | `true` | Background jobs on or off |
 | `TASK_REMINDER_CRON` | `0 0 8 * * *` | Daily task due-soon and overdue reminders (in `APP_TIME_ZONE`) |
 | `MARKETING_ACTIVITY_CRON` | `0 10 0 * * *` | Daily job that creates recurring marketing occurrences and their tasks |
+| `CELEBRATION_REMINDER_CRON` | `0 0 8 * * *` | Daily birthday, work anniversary, important day and event reminders |
+| `BENCH_REMINDER_CRON`, `VENDOR_REMINDER_CRON`, `FINANCE_REMINDER_CRON` | `0 15 8 * * *`, `0 20 8 * * *`, `0 25 8 * * *` | Daily roll-off (30/14 days), contract renewal (30/7) and licence renewal (30/7) reminders, to holders of the tool's view permission |
+| `RECYCLE_BIN_PURGE_CRON` | `0 30 2 * * *` | Daily permanent delete of recycle bin items older than the retention setting (default 90 days) |
+| `BACKUP_ENABLED`, `BACKUP_CRON`, `BACKUP_ENCRYPTION_KEY`, `MYSQLDUMP_PATH`, `BACKUP_TARGET`, `BACKUP_LOCAL_PATH`, `BACKUP_S3_*`, `BACKUP_SECONDARY_*`, `BACKUP_KEEP_DAILY`, `BACKUP_KEEP_MONTHLY`, `BACKUP_MAX_AGE_HOURS`, `BACKUP_WORK_DIR` | see `.env.example` | Nightly encrypted backup and its copies, retention and the health alert ([docs/backup-and-restore.md](docs/backup-and-restore.md)) |
+| `COMPANY_NAME` | `Tritusa` | Shown on work anniversaries ("5 years at Tritusa") |
 | `SERVER_PORT` | 8080 | HTTP port |
 | `SERVER_FORWARD_HEADERS_STRATEGY` | — | `native` behind a reverse proxy (see Deployment) |
 
 Business settings (workload window, default task hours, default weekly capacity, SLA warning %, marketing "behind"
-threshold, upload limit) are edited in the app under **Settings** and stored in the database.
+threshold, celebration reminder days, recycle bin retention, upload limit, finance default currency) are edited in the
+app under **Settings** and stored in the database.
 
 ### Frontend (`frontend/.env`, optional)
 
@@ -150,8 +173,9 @@ The backend is a self-contained Spring Boot jar. The frontend is static files. S
 HTTPS: the refresh cookie is `SameSite=Strict` and scoped to `/api/auth`, so the browser must see the API on the same
 site as the app.
 
-1. **Database:** create the schema and user as above on MySQL 8. Flyway migrates it when the backend starts. Back up
-   the database and the upload directory together.
+1. **Database:** create the schema and user as above on MySQL 8. Flyway migrates it when the backend starts. The
+   nightly backup covers the database and the upload directory together: set `BACKUP_ENCRYPTION_KEY` (keep a copy off
+   the server) and point `BACKUP_TARGET` at object storage ([docs/backup-and-restore.md](docs/backup-and-restore.md)).
 2. **Backend:**
    ```bash
    cd backend && ./mvnw -DskipTests package
@@ -190,5 +214,7 @@ site as the app.
 - Roles: `SUPER_ADMIN`, `DEPARTMENT_MANAGER`, `EMPLOYEE`. Each endpoint checks a permission (`@PreAuthorize`), queries
   are limited to the viewer's data scope, and administration never allows privilege escalation.
 - Digital Marketing is visible only to Super Admins and people granted `MARKETING_VIEW`.
+- If no Super Admin can sign in, recovery runs from the server command line only (`scripts/break-glass.ps1` / `.sh`,
+  see [docs/backup-and-restore.md](docs/backup-and-restore.md)).
 
 Details are in [docs/architecture.md](docs/architecture.md#authentication-and-authorization).

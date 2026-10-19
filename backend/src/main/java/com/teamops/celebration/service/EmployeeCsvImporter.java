@@ -37,17 +37,17 @@ public class EmployeeCsvImporter implements CsvImporter<EmployeeCsvImporter.Row>
 
 	private static final List<CsvColumn> COLUMNS = List.of(
 			CsvColumn.required("employee_id", "Unique employee ID", "TRI-0042"),
-			CsvColumn.required("first_name", "First name", "Priya"),
-			CsvColumn.required("last_name", "Last name", "Menon"),
+			CsvColumn.required("first_name", "First name", "Alex"),
+			CsvColumn.required("last_name", "Last name", "Taylor"),
 			CsvColumn.required("date_of_birth", "YYYY-MM-DD", "1990-10-14"),
 			CsvColumn.required("designation", "Job title", "Digital Marketing Manager"),
-			CsvColumn.required("reporting_manager", "Who they report to", "Rakesh"),
+			CsvColumn.required("reporting_manager", "Who they report to", "Jordan Lee"),
 			CsvColumn.optional("date_of_joining", "YYYY-MM-DD; needed for work anniversaries", "2021-10-14"),
 			CsvColumn.optional("department_code", "e.g. DM, IT, HR", "DM"),
-			CsvColumn.optional("work_email", "Work email", "priya.menon@tritusa.com"),
+			CsvColumn.optional("work_email", "Work email", "alex.taylor@example.com"),
 			CsvColumn.optional("office_location", "Office", "Chennai"),
 			CsvColumn.optional("status", "ACTIVE (default) or LEFT", "ACTIVE"),
-			CsvColumn.optional("user_email", "Email of the app user to link, if they sign in", "priya.menon@teamops.local"));
+			CsvColumn.optional("user_email", "Email of the app user to link, if they sign in", "alex.taylor@example.com"));
 
 	private final EmployeeRepository employeeRepository;
 

@@ -34,8 +34,12 @@ A department tool such as Bench Management, Vendors or Finance is a **module**. 
 
      ```sql
      INSERT INTO department_modules (module_key, department_id, enabled)
-     SELECT 'bench', d.id, TRUE FROM departments d WHERE d.code IN ('HR', 'TALENT_ACQUISITION');
+     SELECT 'bench', d.id, TRUE FROM departments d WHERE d.code IN ('HR', 'TA');
      ```
+
+     Check the codes against the `departments` table first (`select code, name from departments`): a wrong code is
+     skipped silently. V34 looked for `TALENT_ACQUISITION` while Talent Acquisition's code is `TA`, and V40 had to
+     add the missing switch.
 
 2. **Definition.** Add a bean in the module's package (for example `com.teamops.bench.BenchModule`):
 
@@ -85,16 +89,16 @@ A department tool such as Bench Management, Vendors or Finance is a **module**. 
 
 The X5 frontend provides:
 - **Sidebar.** The "Department tools" section is built from `GET /api/department-tools` (`useDepartmentTools`, `features/modules/api.ts`). It sits before Administration and is hidden when the list is empty. Each entry links to `/tools/<key>`.
-- **Admin settings → Modules.** The tab is shown with `MODULE_MANAGE` (`canManageModules`). It has one card per module, with an on/off switch for each department. It shows an empty state until a module exists.
-- **Placeholder page.** `/tools/:key` renders `DepartmentToolPage`. It names the tool, or says it isn't available.
+- **Admin settings → Modules.** The tab is shown with `MODULE_MANAGE` (`canManageModules`). It has one card per module, with an on/off switch for each department.
+- **No placeholder page.** Every built tool registers its own routes; a `/tools/` path without one is the not-found page. Build a module's frontend in the same phase as its backend, so its sidebar entry never leads nowhere.
 
 A new module:
 
 1. **Icon.** If its icon is not yet in `MODULE_ICONS` (`features/modules/module-icons.ts`), add it there. Only the icons listed there are bundled, and any other name falls back to a grid icon.
 2. **Pages and routes.**
    - Add the module's pages under `features/<module>/`.
-   - Register its routes under `/tools/<key>` in `detailRoutes`, ahead of the generic `/tools/:key` route. Its landing page replaces the placeholder for that key.
-   - Each page checks that the key is in `useDepartmentTools()` and hides edit controls unless `canEdit` is set.
+   - Register its routes under `/tools/<key>` in `detailRoutes`, with a `ToolLayout`-based layout as the parent route.
+   - The layout checks that the key is in `useDepartmentTools()`; pages hide edit controls unless `canEdit` is set.
 3. **Disabled module.** Treats a 403 `MODULE_DISABLED` as "This tool is not switched on for your department", not as a generic error.
 4. **Page rules.** Follows the usual page rules: skeleton, empty and error states; a History tab; undo toast on delete.
 
@@ -103,8 +107,8 @@ Shared pieces in `features/modules/`:
 - `ToolSection`: the heading and actions of one tab.
 - `ToolErrorState`: turns a 403 `MODULE_DISABLED` into "This tool is not switched on for your department".
 
-Bench Management (`features/bench/`) and Vendors (`features/vendors/`) are the reference implementations:
-- `bench-paths.ts` / `vendor-paths.ts` hold the module's routes. Notification and search links (`notificationHref`, `hitHref`, `groupHref`) are built from them, so they can't drift from the pages.
-- `BenchLayout` / `VendorLayout` are `ToolLayout` with the module's tabs.
+Bench Management (`features/bench/`), Vendors (`features/vendors/`) and the Finance Tracker (`features/finance/`) are the reference implementations:
+- `bench-paths.ts` / `vendor-paths.ts` / `finance-paths.ts` hold the module's routes. Notification and search links (`notificationHref`, `hitHref`, `groupHref`) are built from them, so they can't drift from the pages.
+- `BenchLayout` / `VendorLayout` / `FinanceLayout` are `ToolLayout` with the module's tabs.
 - The API module calls `/modules/<key>/…`. A CSV import passes its own `ImportEndpoint` (`BENCH_IMPORTS`) to the shared `CsvImportDialog`.
-- Page tests render inside the real layout with `benchRoutes` / `vendorRoutes` (`src/test/`) and mock `GET /department-tools`.
+- Page tests render inside the real layout with `benchRoutes` / `vendorRoutes` / `financeRoutes` (`src/test/`) and mock `GET /department-tools`.

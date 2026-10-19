@@ -117,8 +117,8 @@ public class CelebrationReminderService {
 	}
 
 	/**
-	 * E.g. "Reminder: Priya Menon's birthday is in 2 days (14 October)", "Reminder: Diwali (India) is in 2 days.
-	 * LinkedIn post: Not started", "Today: Arun Kumar's work anniversary (3 November): 5 years at Tritusa". The post
+	 * E.g. "Reminder: Alex Taylor's birthday is in 2 days (14 October)", "Reminder: Diwali (India) is in 2 days.
+	 * LinkedIn post: Not started", "Today: Sam Lee's work anniversary (3 November): 5 years at Tritusa". The post
 	 * status is added when the occurrence needs a LinkedIn post.
 	 */
 	static String title(Occasion o, int daysAhead, LinkedInPostDto linkedIn) {

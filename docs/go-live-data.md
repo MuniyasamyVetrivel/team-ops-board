@@ -21,7 +21,8 @@ When you finish:
 | All tasks, tickets, projects, approvals, announcements, articles, documents, calendar entries, notifications | `backend/.env` (you edit a few lines in it) |
 | All marketing data: SEO pages and rankings, targets, activities, campaigns, leads, backlinks, content, reports | `private/team.csv` |
 | Celebrations data: employees, important days, events, LinkedIn posts | The MySQL server, and the `teamops` database user and its grants |
-| Audit log entries | |
+| Department tools data: bench consultants, clients, engagements and allocations; vendors and contracts; licences, expenses, budgets and exchange rates | Earlier backup files in the backup target (`BACKUP_LOCAL_PATH` or the bucket) |
+| Audit log entries, record history, the recycle bin and the backup history | |
 | Uploaded files in `FILE_STORAGE_DIR` (they belong to the removed records) | |
 
 Flyway recreates the **reference data** on the next start. Nothing has to be added by hand:
@@ -33,9 +34,11 @@ Flyway recreates the **reference data** on the next start. Nothing has to be add
 - Ticket categories and knowledge base categories.
 - Approval types and their workflow steps.
 - Admin settings and code sequences.
+- The department tool switches: Bench Management for `HR` and `TA`, Vendors and Finance for `HR`. Their permissions
+  stay with the Super Admin until granted.
 
-Changes made in the app to reference data, such as edited settings, role permissions, SLA policies or extra
-departments, are reset to the Flyway defaults. Write them down first if you want to apply them again.
+Changes made in the app to reference data, such as edited settings, role permissions, SLA policies, tool switches or
+extra departments, are reset to the Flyway defaults. Write them down first if you want to apply them again.
 
 ## Before you start
 
@@ -64,7 +67,9 @@ mysqldump -u root -p --single-transaction --routines team_ops_board > team_ops_b
 ```
 
 Also copy the upload directory (`FILE_STORAGE_DIR`, `backend/uploads` by default) if you might need those files.
-Store the backup somewhere private: it contains personal data.
+Store the backup somewhere private: it contains personal data. If the app is running with backups set up, **Run
+backup now** on Administration → Backups makes an encrypted copy of both in one step
+([backup-and-restore.md](backup-and-restore.md)).
 
 ### 2. Stop the backend
 

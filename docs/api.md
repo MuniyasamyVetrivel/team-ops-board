@@ -50,7 +50,7 @@ Any bearer header sent to `login`, `refresh` or `logout` is ignored, so a stale 
 ### POST /api/auth/login
 
 ```json
-{ "email": "rakesh@teamops.local", "password": "…" }
+{ "email": "admin@example.com", "password": "…" }
 ```
 
 **200**, with header `Set-Cookie: tob_refresh=…; Path=/api/auth; HttpOnly; SameSite=Strict; Max-Age=604800`:
@@ -63,7 +63,7 @@ Any bearer header sent to `login`, `refresh` or `logout` is ignored, so a stale 
   "expiresAt": "2026-10-07T11:00:00Z",
   "user": {
     "id": 1,
-    "email": "rakesh@teamops.local",
+    "email": "admin@example.com",
     "firstName": "Rakesh",
     "lastName": "",
     "fullName": "Rakesh",
@@ -433,6 +433,79 @@ Department tools (Bench Management, Vendors, Finance, ...) are modules registere
 | Method | Path | Permission | Description |
 |---|---|---|---|
 | GET | `/api/history/{entityType}/{entityId}` | `HISTORY_VIEW` (Super Admin only by default; 403 otherwise), and the viewer must be able to open the record | A record's History tab, newest first (`page`, `size`): its own entries and those of its children (comments, checklist items, attachments, steps, versions). Same item shape as the audit log, without IP address and browser unless the viewer has `AUDIT_VIEW`. 404 `RECORD_NOT_FOUND` when the viewer may not open the record. `AUDIT_VIEW` opens any record's history, including deleted records |
+
+## Department tools
+
+Every path below is under `/api/modules/{key}/` and goes through `ModuleAccessInterceptor` (the tool switched on for
+one of the user's departments, view permission for GET, edit permission for everything else) on top of the listed
+`@PreAuthorize`. The permissions are held only by the Super Admin until granted. Lists take `page`, `size` and
+`sort=field,dir`; changes to records send `version` (409 `STALE_UPDATE`); deletes move the record to the recycle bin.
+CSV imports follow the shared preview-then-commit flow (`GET` lists the import types, `/template`, `/preview` and
+`/commit` with `checksum` and `skipInvalid`).
+
+### Bench Management: `/api/modules/bench` (`BENCH_VIEW`, `BENCH_EDIT`)
+
+| Method | Path | Permission | Description |
+|---|---|---|---|
+| GET | `/dashboard` | `BENCH_VIEW` | Utilisation %, billable vs non-billable, on bench now, days on bench, upcoming roll-offs, skills on the bench, with its `asOf` day |
+| GET | `/bench` | `BENCH_VIEW` | Consultants below 100% today, with bench start and days on bench (`search`, `skill`; sort `days` (default, desc), `name`, `allocated`) |
+| GET, POST | `/consultants` | `BENCH_VIEW` / `BENCH_EDIT` | List (`search`, `status`, `skill`; sort `name`, `code`, `available`, `experience`, `updated`) and create; a consultant is an Employee record plus bench details. The status is computed |
+| GET | `/consultants/candidates` | `BENCH_EDIT` | Active employees who are not consultants yet (`search`) |
+| GET | `/consultants/export` | `BENCH_VIEW` | CSV in the import's columns |
+| GET, PUT, DELETE | `/consultants/{id}` | `BENCH_VIEW` / `BENCH_EDIT` | Detail with allocations, update, delete (409 while it has live allocations) |
+| GET, POST | `/clients` | `BENCH_VIEW` / `BENCH_EDIT` | List (`search`, `status`; sort `name`, `updated`) and create; names are unique |
+| GET, PUT, DELETE | `/clients/{id}` | `BENCH_VIEW` / `BENCH_EDIT` | Detail, update, delete |
+| GET, POST | `/engagements` | `BENCH_VIEW` / `BENCH_EDIT` | List (`search`, `clientId`, `status`, `accountManagerId`; sort `name`, `client`, `start`, `end`, `updated`) and create; names are unique per client |
+| GET, PUT, DELETE | `/engagements/{id}` | `BENCH_VIEW` / `BENCH_EDIT` | Detail, update, delete (409 while it has live allocations) |
+| GET, POST | `/allocations` | `BENCH_VIEW` / `BENCH_EDIT` | List (`search`, `consultantId`, `engagementId`, `clientId`, `status`, `billable`; sort `start`, `end`, `consultant`, `percent`, `updated`) and create. A total above 100% is a warning in the response, never a block |
+| GET | `/allocations/check` | `BENCH_VIEW` | Where an allocation (`consultantId`, `startDate`, `endDate`, `allocationPercent`, `excludeId`) would take the consultant above 100%; saves nothing |
+| GET, PUT, DELETE | `/allocations/{id}` | `BENCH_VIEW` / `BENCH_EDIT` | Detail, update, delete |
+| GET, POST | `/imports/consultants`, `/template`, `/preview`, `/commit` | `BENCH_VIEW` and `BENCH_EDIT` | Consultant CSV import |
+
+### Vendors: `/api/modules/vendors` (`VENDOR_VIEW`, `VENDOR_EDIT`)
+
+A contract's `value` is finance data: without `FINANCE_VIEW` it reads `null` with `valueHidden: true`, the export
+writes `Hidden`, sorting by `value` is refused and an update keeps the stored value.
+
+| Method | Path | Permission | Description |
+|---|---|---|---|
+| GET, POST | `/vendors` | `VENDOR_VIEW` / `VENDOR_EDIT` | List (`search`, `category`, `status`, `country`; sort `name`, `category`, `country`, `rating`, `updated`) and create; names are unique, contacts are sent as a list |
+| GET | `/vendors/export` | `VENDOR_VIEW` | CSV in the import's columns |
+| GET, PUT, DELETE | `/vendors/{id}` | `VENDOR_VIEW` / `VENDOR_EDIT` | Detail with contacts, update, delete (409 while it has live contracts, licences or expenses) |
+| GET | `/vendors/{id}/links` | `VENDOR_VIEW` | Linked records of other tools (licences, expenses), each group only with its own permission (`FINANCE_VIEW`) |
+| GET, POST | `/contracts` | `VENDOR_VIEW` / `VENDOR_EDIT` | List (`search`, `vendorId`, `status`, `renewalWithinDays`, `autoRenew`; sort `title`, `vendor`, `start`, `end`, `renewal`, `value`, `updated`) and create; titles are unique per vendor, blacklisted vendors take none. Status, `renewsOn`, `noticeBy` and `daysUntilRenewal` are computed |
+| GET | `/contracts/export` | `VENDOR_VIEW` | CSV in the import's columns |
+| GET, PUT, DELETE | `/contracts/{id}` | `VENDOR_VIEW` / `VENDOR_EDIT` | Detail, update, delete |
+| GET, POST | `/contracts/{id}/documents` | `VENDOR_VIEW` / `VENDOR_EDIT` | List and upload contract documents |
+| GET, DELETE | `/contracts/{id}/documents/{fileId}` | `VENDOR_VIEW` / `VENDOR_EDIT` | Download (attachment, `nosniff`) and delete |
+| GET, POST | `/imports`, `/imports/{type}/template`, `/preview`, `/commit` | `VENDOR_VIEW` and `VENDOR_EDIT` | CSV imports `vendors` and `vendor-contracts` |
+
+### Finance Tracker: `/api/modules/finance` (`FINANCE_VIEW`, `FINANCE_EDIT`)
+
+Seats used, utilisation, under-use (below 70%), annual cost, AUD amounts at today's rate, days to renewal and every
+budget figure are computed. Exchange rates are to AUD; a conversion without a rate on or before the day is 400
+`NO_EXCHANGE_RATE`.
+
+| Method | Path | Permission | Description |
+|---|---|---|---|
+| GET | `/context` | `FINANCE_VIEW` | `today` (business calendar), `baseCurrency` (AUD), `defaultCurrency` (the `finance.defaultCurrency` setting) and the `currencies` the forms offer |
+| GET | `/dashboard` | `FINANCE_VIEW` | One month (this month unless `year` and `month`): spend and its change on the month before, 12-month trend, spend by department and category, budgets, renewals in 30 days, under-used licences, annualised licence cost and `licencesWithoutRate` |
+| GET, POST | `/licences` | `FINANCE_VIEW` / `FINANCE_EDIT` | List (`search`, `vendorId`, `departmentId`, `status`, `billingCycle`, `renewalWithinDays`; sort `name`, `vendor`, `renewal`, `cost`, `seats`, `updated`) and create; names are unique, assignees are a set of user ids. A payment label with a run of more than 4 digits is refused |
+| GET | `/licences/export` | `FINANCE_VIEW` | CSV in the import's columns |
+| GET, PUT, DELETE | `/licences/{id}` | `FINANCE_VIEW` / `FINANCE_EDIT` | Detail, update, delete |
+| GET, POST | `/expenses` | `FINANCE_VIEW` / `FINANCE_EDIT` | List (`search`, `category`, `departmentId`, `vendorId`, `approvalId`, `from`, `to`; sort `date`, `amount` (AUD), `category`, `updated`) and create. Each stores the AUD rate, its date and the AUD amount; the rate is taken again only when the date or currency changes |
+| GET | `/expenses/export` | `FINANCE_VIEW` | CSV |
+| GET, PUT, DELETE | `/expenses/{id}` | `FINANCE_VIEW` / `FINANCE_EDIT` | Detail, update, delete |
+| POST, GET, DELETE | `/expenses/{id}/receipt` | `FINANCE_EDIT` / `FINANCE_VIEW` / `FINANCE_EDIT` | Upload or replace (the old file is deleted), download (attachment, `nosniff`), remove the receipt |
+| GET, POST | `/budgets` | `FINANCE_VIEW` / `FINANCE_EDIT` | List (`year`, `month`, `departmentId`; sort `month`, `department`, `amount`) and create; one AUD budget per department and month |
+| GET | `/budgets/summary` | `FINANCE_VIEW` | A month's (`year`, `month`) budget against actual per department, with totals |
+| GET, PUT, DELETE | `/budgets/{id}` | `FINANCE_VIEW` / `FINANCE_EDIT` | Detail, update, delete |
+| GET, POST | `/exchange-rates` | `FINANCE_VIEW` / `FINANCE_EDIT` | List (`currency`; sort `currency`, `effective` (default, desc), `updated`) and create; one rate per currency and date |
+| GET | `/exchange-rates/current` | `FINANCE_VIEW` | The rate in force today for every currency that has one |
+| GET | `/exchange-rates/convert` | `FINANCE_VIEW` | `amount` in `currency` as AUD on `date` (today when absent) |
+| GET | `/exchange-rates/export` | `FINANCE_VIEW` | CSV in the import's columns |
+| GET, PUT, DELETE | `/exchange-rates/{id}` | `FINANCE_VIEW` / `FINANCE_EDIT` | Detail, update, delete |
+| GET, POST | `/imports`, `/imports/{type}/template`, `/preview`, `/commit` | `FINANCE_VIEW` and `FINANCE_EDIT` | CSV imports `licences` and `exchange-rates` |
 
 ## Digital Marketing
 

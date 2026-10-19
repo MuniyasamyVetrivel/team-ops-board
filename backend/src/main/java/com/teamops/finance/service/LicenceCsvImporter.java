@@ -52,7 +52,7 @@ public class LicenceCsvImporter implements CsvImporter<LicenceCsvImporter.Row> {
 	private static final List<CsvColumn> COLUMNS = List.of(
 			CsvColumn.required("name", "Tool or licence name, unique", "Jira Cloud Premium"),
 			CsvColumn.optional("vendor", "Name of an existing vendor", "Atlassian"),
-			CsvColumn.optional("owner_email", "Email of an active user who looks after it", "rakesh@example.com"),
+			CsvColumn.optional("owner_email", "Email of an active user who looks after it", "licence.owner@example.com"),
 			CsvColumn.optional("department", "Department code", "IT"),
 			CsvColumn.optional("seats_paid", "Seats paid for, 0 to 100,000", "20"),
 			CsvColumn.required("billing_cycle", "MONTHLY, YEARLY or ONE_OFF", "YEARLY"),

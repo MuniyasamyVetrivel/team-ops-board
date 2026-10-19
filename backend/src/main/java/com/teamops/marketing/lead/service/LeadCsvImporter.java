@@ -61,7 +61,7 @@ public class LeadCsvImporter implements CsvImporter<LeadCsvImporter.Row> {
 			CsvColumn.optional("phone", "Phone", "+91 98450 00000"),
 			CsvColumn.optional("status", "NEW (default), CONTACTED, QUALIFIED, CONVERTED or LOST", "NEW"),
 			CsvColumn.optional("campaign", "Email or paid campaign (external id or name), or content (URL or title)", "SAP Testing Services Outreach"),
-			CsvColumn.optional("owner_email", "A Digital Marketing user", "priya.menon@teamops.local"),
+			CsvColumn.optional("owner_email", "A Digital Marketing user", "marketing.owner@example.com"),
 			CsvColumn.optional("department_code", "Department code", "DM"),
 			CsvColumn.optional("notes", "Up to 2000 characters", ""),
 			CsvColumn.optional("external_id", "The lead's id in the source system (prevents duplicates)", "WEB-20431"));

@@ -162,6 +162,16 @@ On the first working day of each month:
 the recycle bin are included and marked (`_in_recycle_bin` = `yes`). Password and refresh-token hashes are replaced by
 `[redacted]`. Times are UTC. Each export is audited (`DATA_EXPORTED`).
 
+The export is complete only for an exporter who also holds `FINANCE_VIEW` (the Super Admin by default). Without it,
+finance data stays out (`FinanceRedaction`, worked out from the entity model, so new finance fields are covered
+automatically):
+- the Finance Tracker's tables and the files they point at (receipts), in `uploads/` and in `tables/files.csv`;
+- money columns in other tables (`@AuditFinance` fields, such as approval amounts and vendor contract values);
+- the names, titles and details of rows about a finance record (audit entries, notifications, recycle bin items), and
+  the details of audit entries that hold finance amounts.
+
+A full copy of everything, finance included, is the encrypted backup itself.
+
 ## Break-glass access
 
 For when nobody can sign in as Super Admin: the only Super Admin forgot their password, lost access to their mailbox,

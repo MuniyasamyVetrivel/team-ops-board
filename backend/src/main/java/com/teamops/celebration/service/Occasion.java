@@ -17,7 +17,7 @@ import com.teamops.user.dto.UserSummary;
  * @param subjectId the employee (birthdays, anniversaries), important day or event
  * @param date the occurrence's business-zone date (an event's start date)
  * @param name what reminders call it: the person, the day or the event title
- * @param title the calendar title, e.g. "Priya Menon's birthday"
+ * @param title the calendar title, e.g. "Alex Taylor's birthday"
  * @param person the event owner, or the employee's app user
  * @param startAt for events only (timed)
  */

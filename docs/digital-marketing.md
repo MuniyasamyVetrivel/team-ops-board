@@ -268,6 +268,15 @@ and `GET /api/marketing/integrations` shows which source each module uses.
 | `AnalyticsProvider` | Google Analytics |
 | `LeadProvider` | Salesforce, Zoho CRM |
 
+## History, recycle bin and finance amounts
+
+- Every marketing record has a History tab (`HISTORY_VIEW`, Super Admin only by default) with field-by-field changes.
+- Pages, keywords, targets, target types, activities, email and paid campaigns, leads, backlinks and content go to the
+  recycle bin when deleted, with an Undo toast; the module's own delete rules (closed months, sent campaigns, pages
+  with keywords) still apply first. Ranking history and frozen monthly reports are never deleted.
+- A paid campaign's `budget` is a finance amount (`@AuditFinance`): marketing users see it on the campaign, but its
+  history and audit entries show it only to holders of `FINANCE_VIEW`.
+
 ## Development data
 
 The demo seeders, which live only in the test sources, create the brief's worked examples relative to today:
@@ -279,4 +288,5 @@ The demo seeders, which live only in the test sources, create the brief's worked
 - The SAP Testing Services Outreach email: 25,000 sent, 24,000 delivered, 8,500 opens, 1,250 clicks, 185 leads.
 - The recurring activities from brief section 35.
 
-Marketing users are listed in the [README](../README.md#development-credentials).
+The app itself has no demo users: real marketing users get their permissions through Admin → Users or the users CSV
+import ([go-live-data.md](go-live-data.md)).

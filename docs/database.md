@@ -51,10 +51,19 @@ change is a new migration. See [architecture.md](architecture.md) for how the ap
 | V25 user_password_change_and_time_zone | `users.must_change_password` (an admin-set password must be replaced at the next sign-in) and `users.time_zone` |
 | V26 audit_history | Phase X1: `created_at`/`created_by`/`updated_at`/`updated_by` on every record table (backfilled from the author, requester, uploader or recorder column where there was one, otherwise NULL = system); `audit_logs.entity_label`, `parent_type`, `parent_id`, `finance` and `(entity_type, entity_id, created_at)` / `(parent_type, parent_id, created_at)` indexes; the `FINANCE_VIEW` permission (Super Admin) |
 | V27 recycle_bin | Phase X2: `deleted_at`, `deleted_by` and a `deleted_at` index on the 17 recycle-bin tables (`tasks`, `announcements`, `calendar_events`, `employees`, `important_days`, `marketing_events`, `documents`, `marketing_activities`, `backlinks`, `content_items`, `email_campaigns`, `marketing_leads`, `paid_campaigns`, `marketing_keywords`, `marketing_pages`, `marketing_targets`, `marketing_target_types`); `recycle_bin_items`; the `recycleBin.retentionDays` setting (90) |
+| V28 super_admin_only_tools | Expansion access rule: `HISTORY_VIEW` and `RECYCLE_BIN_MANAGE` on `SUPER_ADMIN` only (no other role holds an expansion permission) |
+| V29 recycle_bin_purge_permission | Phase X2: `RECYCLE_BIN_PURGE` (permanent delete), split from `RECYCLE_BIN_MANAGE` (view and restore); Super Admin only |
 | V30 backups | Phase X3: `backup_runs` (backup history: trigger, status, start and end, file, size, SHA-256 checksum, target, error, who asked, when retention removed the file); the `BACKUP_VIEW` and `DATA_EXPORT` permissions (Super Admin) |
+| V31 backup_second_copy | Phase X3: `backup_runs.secondary_target`, `secondary_status`, `secondary_error`, `secondary_removed_at` (the optional second copy, `BACKUP_SECONDARY_TARGET`) and a `(secondary_status, started_at)` index |
 | V32 employee_id_and_profile_photo | Phase X4: `users.employee_id` (unique; backfilled from the Employee record linked to the user, NULL for anyone else until a Super Admin sets it) and `users.photo_file_id` (the profile photo, a square JPEG in `files`) |
 | V33 department_modules | Phase X5: `department_modules` (the switch of a department tool for a department: `module_key`, `department_id`, `enabled`; unique `(module_key, department_id)`, deleted with the department); the `MODULE_MANAGE` permission (Super Admin) |
-| V31 backup_second_copy | Phase X3: `backup_runs.secondary_target`, `secondary_status`, `secondary_error`, `secondary_removed_at` (the optional second copy, `BACKUP_SECONDARY_TARGET`) and a `(secondary_status, started_at)` index |
+| V34 bench_consultants_clients | Phase X6, part 1: `bench_consultants` (bench details of an Employee record), `bench_consultant_skills`, `bench_consultant_certifications`, `bench_clients`, `bench_client_engagements`; `BENCH_VIEW`, `BENCH_EDIT` (Super Admin); the `bench` tool switched on for `HR` |
+| V35 bench_allocations | Phase X6, part 2: `bench_allocations` (consultant, engagement, role, dates, 1–100 %, billable) |
+| V36 vendors | Phase X7: `vendors`, `vendor_contacts`, `vendor_contracts`, `vendor_contract_documents`; `VENDOR_VIEW`, `VENDOR_EDIT` (Super Admin); the `vendors` tool switched on for `HR` |
+| V37 finance_licences_rates | Phase X8, part 1: `finance_licences`, `finance_licence_assignments` (seats used), `finance_exchange_rates` (to AUD); `FINANCE_EDIT` (Super Admin; `FINANCE_VIEW` came with V26); the `finance` tool switched on for `HR` |
+| V38 finance_expenses_budgets | Phase X8, part 2: `finance_expenses` (with the stored AUD rate, rate date and AUD amount, receipt, optional approval), `finance_budgets` (AUD, one per department and month); the `finance.defaultCurrency` setting (INR) |
+| V39 receipt_audit_owner | Phase X8: files the audit entries of expense receipts under their expense (`parent_type`/`parent_id`), so they are masked like the expense |
+| V40 bench_for_talent_acquisition | Phase X6 fix: switches the `bench` tool on for Talent Acquisition (code `TA`; V34 looked for `TALENT_ACQUISITION`, which does not exist), unless that department already has a bench row |
 
 Never edit an applied migration; add `V{n+1}__description.sql` instead, in the phase that first needs it.
 
@@ -71,7 +80,8 @@ Never edit an applied migration; add `V{n+1}__description.sql` instead, in the p
 | `department_members` | Secondary memberships (`MEMBER` or `MANAGER`) | Composite primary key |
 | `refresh_tokens` | SHA-256 hash of each refresh token, expiry, revocation time, user agent and IP | Unique `token_hash` |
 | `audit_logs` | Actor, action, entity (type, id, label), parent record, JSON details, finance flag, IP and user agent. Append-only | Indexes on `(action, created_at)`, `(actor_id, created_at)`, `(entity_type, entity_id, created_at)`, `(parent_type, parent_id, created_at)` |
-| `app_settings` | Admin settings (workload window, default task hours, SLA warning %, marketing behind %, upload limit, default capacity) | Unique `setting_key` |
+| `app_settings` | Admin settings (workload window, default task hours, SLA warning %, marketing behind %, upload limit, default capacity, celebration reminder days, recycle bin retention, finance default currency) | Unique `setting_key` |
+| `recycle_bin_items` | One row per deleted record: type, id, label, who deleted it and when; the record itself keeps its row with `deleted_at` | — |
 | `code_sequences` | Next number per code prefix | One row per prefix |
 
 ### Work management
@@ -120,6 +130,25 @@ otherwise); occurrences are never stored.
 | `department_modules` | Which department tools (modules defined in code) are switched on for which department (Phase X5, docs/adding-a-module.md); switching off keeps the row with `enabled` false | Unique `(module_key, department_id)` |
 | `backup_runs` | Backup history (Phase X3, docs/backup-and-restore.md); a log, so not in record history | — |
 
+### Department tools (Phases X6–X8)
+
+Each tool's tables belong to a module (`department_modules` switch, own permissions). Statuses, bench days,
+utilisation, renewal dates, seats used and budget figures are computed, never stored. The recycle-bin tables among
+them carry `deleted_at`/`deleted_by`.
+
+| Table | Purpose | Notable constraints |
+|---|---|---|
+| `bench_consultants` | Bench details of an Employee record: experience, location, availability date, HR employment status (`employee_id` without a foreign key, so a consultant outlives its employee in the bin) | Unique `employee_id`; recycle bin |
+| `bench_consultant_skills`, `bench_consultant_certifications` | A consultant's skills and certifications | Unique `(consultant_id, name)` for skills |
+| `bench_clients`, `bench_client_engagements` | Clients and their engagements (separate from internal projects) | Unique client `name`; unique `(client_id, name)`; recycle bin |
+| `bench_allocations` | Consultant on an engagement: role, dates, allocation %, billable | Recycle bin |
+| `vendors`, `vendor_contacts` | Vendors (unique name, category, status, rating) and their contacts | Unique `name`; recycle bin (vendors) |
+| `vendor_contracts`, `vendor_contract_documents` | Contracts (dates, value and currency, renewal, auto-renew, notice) and their files | Unique `(vendor_id, title)`; unique `file_id`; recycle bin (contracts) |
+| `finance_licences`, `finance_licence_assignments` | Tools and licences, and the users assigned to them (seats used) | Unique `name`; unique `(licence_id, user_id)`; recycle bin (licences) |
+| `finance_exchange_rates` | Rate to AUD per currency from a date | Unique `(currency, effective_from)`; recycle bin |
+| `finance_expenses` | Expenses with GST, the AUD rate, rate date and AUD amount taken at the time, receipt, optional approval | Unique `receipt_file_id`; recycle bin |
+| `finance_budgets` | AUD budget per department and month | Unique `(department_id, budget_year, budget_month)`; recycle bin |
+
 ### Digital Marketing
 
 See [digital-marketing.md](digital-marketing.md) for the rules these tables support.
@@ -167,6 +196,10 @@ results and ordered by an indexed column. The knowledge base uses its FULLTEXT i
 CREATE DATABASE team_ops_board CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 CREATE USER 'teamops'@'localhost' IDENTIFIED BY '<DB_PASSWORD from backend/.env>';
 GRANT ALL PRIVILEGES ON team_ops_board.* TO 'teamops'@'localhost';
+-- The integration tests' own database (mvnw verify -Pit); they never touch team_ops_board.
+CREATE DATABASE team_ops_board_it CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+GRANT ALL PRIVILEGES ON team_ops_board_it.* TO 'teamops'@'localhost';
 ```
 
-Flyway creates and migrates every table when the backend starts.
+Flyway creates and migrates every table when the backend starts (and the integration tests migrate
+`team_ops_board_it` the same way). Override the test database with `-Dit.db.url=...`.

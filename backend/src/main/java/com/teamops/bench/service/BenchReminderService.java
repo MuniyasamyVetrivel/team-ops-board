@@ -98,7 +98,7 @@ public class BenchReminderService {
 		return LEAD_DAYS.stream().filter(lead -> daysLeft <= lead).findFirst().orElseThrow();
 	}
 
-	/** E.g. "Roll-off in 14 days: Priya Menon (Acme – S/4 rollout)", "Rolls off today: …". */
+	/** E.g. "Roll-off in 14 days: Alex Taylor (Client – Engagement)", "Rolls off today: …". */
 	static String title(Allocation allocation, long daysLeft) {
 		String when = daysLeft == 0 ? "Rolls off today" : daysLeft == 1 ? "Rolls off tomorrow"
 				: "Roll-off in " + daysLeft + " days";

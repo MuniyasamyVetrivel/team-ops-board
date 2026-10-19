@@ -55,7 +55,7 @@ public class BacklinkCsvImporter implements CsvImporter<BacklinkCsvImporter.Row>
 			CsvColumn.optional("rejected_date", "YYYY-MM-DD (needed for REJECTED)", ""),
 			CsvColumn.optional("lost_date", "YYYY-MM-DD (needed for LOST)", ""),
 			CsvColumn.optional("domain_authority", "0–100", "58"),
-			CsvColumn.optional("owner_email", "A Digital Marketing user", "karthik.raman@teamops.local"),
+			CsvColumn.optional("owner_email", "A Digital Marketing user", "marketing.owner@example.com"),
 			CsvColumn.optional("notes", "Up to 2000 characters", ""));
 
 	private final BacklinkService backlinkService;
