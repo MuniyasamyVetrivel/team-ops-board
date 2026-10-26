@@ -66,6 +66,7 @@ change is a new migration. See [architecture.md](architecture.md) for how the ap
 | V40 bench_for_talent_acquisition | Phase X6 fix: switches the `bench` tool on for Talent Acquisition (code `TA`; V34 looked for `TALENT_ACQUISITION`, which does not exist), unless that department already has a bench row |
 | V41 department_permissions | `department_permissions`: permissions every member of a department holds through their primary department; Digital Marketing (`DM`) gets all marketing permissions and `CELEBRATIONS_EDIT` |
 | V42 employees_work_department_tickets | Adds `TICKET_EDIT` to the `EMPLOYEE` role, so employees see and pick up tickets sent to their own department |
+| V43 leadership_department | Adds the active Leadership department (`LEADERSHIP`) with no department permissions or tools; skipped if one with that code or name exists |
 
 Never edit an applied migration; add `V{n+1}__description.sql` instead, in the phase that first needs it.
 

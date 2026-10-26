@@ -74,7 +74,7 @@ function DepartmentForm({ department, onDone, onCancel }: { department?: Departm
     try {
       const saved = isEdit
         ? await update.mutateAsync({ name: values.name, description: values.description || null, managerId, status: values.status as DepartmentStatus })
-        : await create.mutateAsync({ name: values.name, code: values.code, description: values.description || null, managerId });
+        : await create.mutateAsync({ name: values.name, code: values.code, description: values.description || null, managerId, status: values.status });
       toast.success(isEdit ? 'Department saved' : `${saved.name} was created`);
       onDone(saved);
     } catch (error) {
@@ -119,14 +119,17 @@ function DepartmentForm({ department, onDone, onCancel }: { department?: Departm
             ))}
           </Select>
         </FormField>
-        {isEdit && (
-          <FormField id="status" label="Status" hint="A department with active users cannot be deactivated" error={errors.status?.message}>
-            <Select id="status" {...register('status')}>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-            </Select>
-          </FormField>
-        )}
+        <FormField
+          id="status"
+          label="Status"
+          hint={isEdit ? 'A department with active users cannot be deactivated' : 'Inactive departments are not offered for new users'}
+          error={errors.status?.message}
+        >
+          <Select id="status" {...register('status')}>
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
+          </Select>
+        </FormField>
       </DialogBody>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onCancel}>

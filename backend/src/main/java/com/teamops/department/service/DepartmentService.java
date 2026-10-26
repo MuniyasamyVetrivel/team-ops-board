@@ -98,9 +98,10 @@ public class DepartmentService {
 		department.setName(name);
 		department.setDescription(trimToNull(request.description()));
 		department.setManager(resolveManager(request.managerId()));
+		department.setStatus(request.status() == null ? DepartmentStatus.ACTIVE : request.status());
 		Department saved = departmentRepository.save(department);
 		auditService.record(AuditAction.DEPARTMENT_CREATED, actorId(actor), "DEPARTMENT", saved.getId(),
-				Map.of("code", code, "name", name), client);
+				Map.of("code", code, "name", name, "status", saved.getStatus()), client);
 		return get(saved.getId(), actor);
 	}
 

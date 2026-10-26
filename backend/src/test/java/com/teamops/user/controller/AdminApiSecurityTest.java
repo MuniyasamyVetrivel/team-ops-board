@@ -32,6 +32,7 @@ import com.teamops.common.security.JwtTokenService;
 import com.teamops.common.security.UserPrincipalService;
 import com.teamops.common.web.PageResponse;
 import com.teamops.department.controller.DepartmentController;
+import com.teamops.department.entity.DepartmentStatus;
 import com.teamops.department.service.DepartmentService;
 import com.teamops.support.SecuritySliceTest;
 import com.teamops.support.SliceAuth;
@@ -202,6 +203,32 @@ class AdminApiSecurityTest {
 			.content("{\"name\":\"Quality\",\"code\":\"has spaces!\"}"))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.fieldErrors[0].field").value("code"));
+	}
+
+	@Test
+	void onlyDepartmentManageCanCreateOrEditDepartments() throws Exception {
+		mvc.perform(put("/api/departments/7").header(HttpHeaders.AUTHORIZATION, bearer(SliceAuth.EMPLOYEE))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"name\":\"Digital Marketing\",\"status\":\"INACTIVE\"}"))
+			.andExpect(status().isForbidden());
+
+		mvc.perform(post("/api/departments").header(HttpHeaders.AUTHORIZATION, bearer(SliceAuth.SUPER_ADMIN))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"name\":\"Legal\",\"code\":\"LEGAL\",\"status\":\"INACTIVE\"}"))
+			.andExpect(status().isCreated());
+		org.mockito.Mockito.verify(departmentService)
+			.create(org.mockito.ArgumentMatchers.argThat(r -> r.status() == DepartmentStatus.INACTIVE),
+					eq(SliceAuth.SUPER_ADMIN), any());
+		verifyNoInteractions(userService);
+	}
+
+	@Test
+	void departmentStatusIsRequiredOnEdit() throws Exception {
+		mvc.perform(put("/api/departments/7").header(HttpHeaders.AUTHORIZATION, bearer(SliceAuth.SUPER_ADMIN))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"name\":\"Digital Marketing\"}"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.fieldErrors[0].field").value("status"));
 	}
 
 	@Test

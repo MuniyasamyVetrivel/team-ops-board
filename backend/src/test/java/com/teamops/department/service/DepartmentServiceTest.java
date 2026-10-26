@@ -85,20 +85,68 @@ class DepartmentServiceTest {
 		});
 		when(departmentRepository.findWithManagerById(11L)).thenAnswer(inv -> Optional.of(TestFixtures.department(11L, "QA", "Quality")));
 
-		service.create(new CreateDepartmentRequest(" Quality ", "qa", null, null), SliceAuth.SUPER_ADMIN, client);
+		service.create(new CreateDepartmentRequest(" Quality ", "qa", null, null, null), SliceAuth.SUPER_ADMIN, client);
 
-		verify(departmentRepository).save(org.mockito.ArgumentMatchers
-			.argThat(d -> d.getCode().equals("QA") && d.getName().equals("Quality")));
+		verify(departmentRepository).save(org.mockito.ArgumentMatchers.argThat(d -> d.getCode().equals("QA")
+				&& d.getName().equals("Quality") && d.getStatus() == DepartmentStatus.ACTIVE));
 		verify(auditService).record(eq(AuditAction.DEPARTMENT_CREATED), eq(1L), eq("DEPARTMENT"), eq(11L), anyMap(),
 				eq(client));
+	}
+
+	@Test
+	void createTakesTheChosenStatusAndManager() {
+		User lead = TestFixtures.user(42L, "lead@teamops.local", TestFixtures.role(2L, "DEPARTMENT_MANAGER"));
+		when(userRepository.findById(42L)).thenReturn(Optional.of(lead));
+		when(departmentRepository.save(any())).thenAnswer(inv -> {
+			Department saved = inv.getArgument(0);
+			ReflectionTestUtils.setField(saved, "id", 12L);
+			return saved;
+		});
+		when(departmentRepository.findWithManagerById(12L))
+			.thenAnswer(inv -> Optional.of(TestFixtures.department(12L, "LEGAL", "Legal")));
+
+		service.create(new CreateDepartmentRequest("Legal", "legal", " Contracts ", 42L, DepartmentStatus.INACTIVE),
+				SliceAuth.SUPER_ADMIN, client);
+
+		verify(departmentRepository).save(org.mockito.ArgumentMatchers.argThat(d -> d.getStatus() == DepartmentStatus.INACTIVE
+				&& d.getManager() == lead && d.getDescription().equals("Contracts")));
+		verify(auditService).record(eq(AuditAction.DEPARTMENT_CREATED), eq(1L), eq("DEPARTMENT"), eq(12L),
+				eq(java.util.Map.of("code", "LEGAL", "name", "Legal", "status", DepartmentStatus.INACTIVE)), eq(client));
 	}
 
 	@Test
 	void createRejectsDuplicateCode() {
 		when(departmentRepository.existsByCodeIgnoreCase("DM")).thenReturn(true);
 
-		assertError(() -> service.create(new CreateDepartmentRequest("Marketing 2", "dm", null, null),
+		assertError(() -> service.create(new CreateDepartmentRequest("Marketing 2", "dm", null, null, null),
 				SliceAuth.SUPER_ADMIN, client), HttpStatus.CONFLICT, "DEPARTMENT_CODE_IN_USE");
+	}
+
+	@Test
+	void createRejectsDuplicateName() {
+		when(departmentRepository.existsByNameIgnoreCase("Leadership")).thenReturn(true);
+
+		assertError(() -> service.create(new CreateDepartmentRequest("Leadership", "LEAD", null, null, null),
+				SliceAuth.SUPER_ADMIN, client), HttpStatus.CONFLICT, "DEPARTMENT_NAME_IN_USE");
+		verify(departmentRepository, never()).save(any());
+	}
+
+	@Test
+	void deactivatingAnEmptyDepartmentIsAudited() {
+		service.update(7L, new UpdateDepartmentRequest("Digital Marketing", null, null, DepartmentStatus.INACTIVE),
+				SliceAuth.SUPER_ADMIN, client);
+
+		assertThat(marketing.getStatus()).isEqualTo(DepartmentStatus.INACTIVE);
+		verify(auditService).record(eq(AuditAction.DEPARTMENT_UPDATED), eq(1L), eq("DEPARTMENT"), eq(7L),
+				org.mockito.ArgumentMatchers.argThat(details -> details.toString().contains("status")), eq(client));
+	}
+
+	@Test
+	void unchangedEditWritesNoAudit() {
+		service.update(7L, new UpdateDepartmentRequest("Digital Marketing", null, null, DepartmentStatus.ACTIVE),
+				SliceAuth.SUPER_ADMIN, client);
+
+		verify(auditService, never()).record(any(), any(), any(), any(), anyMap(), any());
 	}
 
 	@Test

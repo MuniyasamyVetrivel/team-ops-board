@@ -124,7 +124,7 @@ class DigitalMarketingAccessIT {
 
 	@Test
 	void otherDepartmentsDoNotGetMarketingAccess() throws Exception {
-		for (String department : List.of("HR", "IT")) {
+		for (String department : List.of("HR", "IT", "LEADERSHIP")) {
 			Long id = users.create(department, RoleCodes.EMPLOYEE);
 			String token = login(users.email(id));
 			as(token, get("/api/auth/me")).andExpect(jsonPath("$.permissions", not(hasItem("MARKETING_VIEW"))));

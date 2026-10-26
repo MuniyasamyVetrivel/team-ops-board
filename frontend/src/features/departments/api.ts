@@ -44,6 +44,8 @@ export interface CreateDepartmentInput {
   code: string;
   description?: string | null;
   managerId?: number | null;
+  /** ACTIVE when left out. */
+  status?: DepartmentStatus;
 }
 
 export interface UpdateDepartmentInput {
