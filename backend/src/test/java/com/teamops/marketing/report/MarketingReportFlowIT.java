@@ -79,8 +79,9 @@ class MarketingReportFlowIT {
 	void setUp() throws Exception {
 		users = new IntegrationUsers(userService, userRepository, departmentRepository);
 		editorId = users.create("DM", RoleCodes.EMPLOYEE, ALL_MARKETING);
-		Long leadsOnlyId = users.create("DM", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "LEAD_VIEW");
-		Long partialEditorId = users.create("DM", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "MARKETING_EDIT", "SEO_VIEW");
+		// Outside Digital Marketing, so each holds only the permissions granted here (V41 gives DM members all of them).
+		Long leadsOnlyId = users.create("PRESALES", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "LEAD_VIEW");
+		Long partialEditorId = users.create("PRESALES", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "MARKETING_EDIT", "SEO_VIEW");
 		editorToken = login(users.email(editorId));
 		leadsOnlyToken = login(users.email(leadsOnlyId));
 		partialEditorToken = login(users.email(partialEditorId));

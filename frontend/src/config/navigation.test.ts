@@ -44,6 +44,29 @@ describe('visibleNavigation', () => {
     expect(visible).not.toContain('Email Campaigns');
   });
 
+  it('puts celebrations in Digital Marketing, below Monthly Report', () => {
+    const marketing = NAVIGATION.find((section) => section.id === 'digital-marketing')?.items.map((item) => item.label) ?? [];
+    expect(marketing.slice(marketing.indexOf('Monthly Report'))).toEqual(['Monthly Report', 'Employees & celebrations', 'Important days', 'Events', 'LinkedIn posts']);
+    expect(NAVIGATION.find((section) => section.id === 'collaboration')?.items.map((item) => item.label)).not.toContain('Events');
+    expect(NAV_ITEMS.find((item) => item.path === '/celebrations/employees')?.requires).toEqual(['MARKETING_VIEW']);
+  });
+
+  it('gives a Digital Marketing team member the whole marketing area, celebrations included', () => {
+    const modules = ['MARKETING', 'SEO', 'CAMPAIGN', 'TARGET', 'LEAD', 'BACKLINK', 'CONTENT'] as const;
+    const dmMember = makeUser(['EMPLOYEE'], [...webEmployee.permissions, ...modules.flatMap((m) => [`${m}_VIEW`, `${m}_EDIT`] as const), 'CELEBRATIONS_EDIT']);
+    const marketing = NAVIGATION.find((section) => section.id === 'digital-marketing')?.items.map((item) => item.label);
+    expect(visibleNavigation(dmMember).find((section) => section.id === 'digital-marketing')?.items.map((item) => item.label)).toEqual(marketing);
+  });
+
+  it('hides celebrations from HR and IT employees', () => {
+    const hrAdmin = makeUser(['EMPLOYEE'], [...webEmployee.permissions, 'USER_MANAGE']);
+    for (const viewer of [webEmployee, hrAdmin]) {
+      for (const label of ['Employees & celebrations', 'Important days', 'Events', 'LinkedIn posts']) {
+        expect(labels(viewer)).not.toContain(label);
+      }
+    }
+  });
+
   it('shows Audit Logs to the Super Admin only, not to employees or managers by default', () => {
     expect(labels(superAdmin)).toContain('Audit Logs');
     expect(labels(webEmployee)).not.toContain('Audit Logs');

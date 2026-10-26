@@ -16,7 +16,7 @@ import { applyServerErrors } from '@/lib/api/form-errors';
 
 import { useCreateUser, type UserDetail } from './api';
 import { ProfileFields } from './ProfileFields';
-import { createUserSchema, toProfilePayload, type CreateUserFormInput, type CreateUserFormValues } from './schemas';
+import { createUserSchema, DEFAULT_WEEKLY_CAPACITY_HOURS, toProfilePayload, type CreateUserFormInput, type CreateUserFormValues } from './schemas';
 
 const SERVER_FIELDS = ['employeeId', 'email', 'password', 'firstName', 'lastName', 'jobTitle', 'phone', 'location', 'workingHours', 'timeZone', 'departmentId', 'reportsToId', 'weeklyCapacityHours'] as const;
 
@@ -36,7 +36,7 @@ export function CreateUserDialog({ open, onOpenChange, onCreated }: CreateUserDi
     resolver: zodResolver(createUserSchema),
     defaultValues: {
       employeeId: '', email: '', firstName: '', lastName: '', jobTitle: '', phone: '', location: '', workingHours: '', timeZone: '',
-      departmentId: '', reportsToId: '', weeklyCapacityHours: 40, password: '', role: 'EMPLOYEE',
+      departmentId: '', reportsToId: '', weeklyCapacityHours: DEFAULT_WEEKLY_CAPACITY_HOURS, password: '', role: 'EMPLOYEE',
     },
   });
   const { register, handleSubmit, reset, setError, formState: { errors, isSubmitting } } = form;

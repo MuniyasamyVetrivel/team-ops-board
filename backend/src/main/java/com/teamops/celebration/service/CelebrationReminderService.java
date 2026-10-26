@@ -32,7 +32,8 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Daily reminders for birthdays, work anniversaries, important days and events: the "Reminder days before" setting
- * (default 2) ahead, and again on the day, to every active Super Admin and CELEBRATIONS_EDIT holder. "Today" comes
+ * (default 2) ahead, and again on the day, to every active Super Admin and Digital Marketing user (MARKETING_VIEW) who
+ * holds CELEBRATIONS_EDIT. "Today" comes
  * from {@link BusinessCalendar} (APP_TIME_ZONE), like everywhere else. Each reminder has a dedup key of occurrence, lead
  * time and recipient, so re-running the job never sends one twice. In-app only: no email sender is configured.
  */
@@ -107,11 +108,16 @@ public class CelebrationReminderService {
 		return sent;
 	}
 
-	/** Active Super Admins and CELEBRATIONS_EDIT holders, once each. */
+	/** Active Super Admins and CELEBRATIONS_EDIT holders who can see celebrations (MARKETING_VIEW), once each. */
 	List<User> recipients() {
 		Map<Long, User> users = new LinkedHashMap<>();
 		userRepository.findByRoleAndStatus(RoleCodes.SUPER_ADMIN, UserStatus.ACTIVE).forEach(u -> users.put(u.getId(), u));
+		Set<Long> viewers = new HashSet<>();
+		userRepository.findActiveWithPermission(CelebrationAccess.VIEW_PERMISSION, UserStatus.ACTIVE)
+			.forEach(u -> viewers.add(u.getId()));
 		userRepository.findActiveWithPermission(CelebrationAccess.EDIT_PERMISSION, UserStatus.ACTIVE)
+			.stream()
+			.filter(u -> viewers.contains(u.getId()))
 			.forEach(u -> users.putIfAbsent(u.getId(), u));
 		return new ArrayList<>(users.values());
 	}

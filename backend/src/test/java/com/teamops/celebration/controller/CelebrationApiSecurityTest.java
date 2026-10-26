@@ -41,8 +41,9 @@ import com.teamops.support.SecuritySliceTest;
 import com.teamops.support.SliceAuth;
 
 /**
- * Brief: every signed-in user sees celebrations, important days and events; only Super Admins and CELEBRATIONS_EDIT
- * holders change them. Services mocked.
+ * Celebrations, important days and events belong to Digital Marketing: only Super Admins and MARKETING_VIEW holders
+ * see them (everyone else gets 403), and among those only Super Admins and CELEBRATIONS_EDIT holders change them.
+ * Services mocked.
  */
 @WebMvcTest(controllers = { EmployeeController.class, ImportantDayController.class, MarketingEventController.class,
 		CelebrationController.class })
@@ -57,6 +58,16 @@ class CelebrationApiSecurityTest {
 	private static final AuthenticatedUser MARKETER = new AuthenticatedUser(12L, "arun.kumar@teamops.local",
 			"Arun Kumar", 7L, Set.of("EMPLOYEE"), SliceAuth.with(SliceAuth.EMPLOYEE_PERMISSIONS, "MARKETING_VIEW",
 					"MARKETING_EDIT", "CAMPAIGN_VIEW", "CAMPAIGN_EDIT", "CONTENT_VIEW", "CONTENT_EDIT"));
+
+	/** CELEBRATIONS_EDIT on its own (e.g. through a custom role) does not open Digital Marketing. */
+	private static final AuthenticatedUser EDIT_WITHOUT_MARKETING = new AuthenticatedUser(13L, "hr.user@teamops.local",
+			"HR User", 3L, Set.of("EMPLOYEE"), SliceAuth.with(SliceAuth.EMPLOYEE_PERMISSIONS, "CELEBRATIONS_EDIT"));
+
+	private static final List<String> READS = List.of("/api/celebrations/employees", "/api/celebrations/employees/1",
+			"/api/celebrations/important-days", "/api/celebrations/important-days/1",
+			"/api/celebrations/important-days/export", "/api/celebrations/important-days/1/attachments",
+			"/api/celebrations/events", "/api/celebrations/events/1", "/api/celebrations/events/1/attachments",
+			"/api/celebrations/upcoming", "/api/celebrations/linkedin-posts");
 
 	private static final String EMPLOYEE_JSON = """
 			{"employeeCode":"TRI-0101","firstName":"Priya","lastName":"Menon","dateOfBirth":"1992-10-14",
@@ -105,13 +116,9 @@ class CelebrationApiSecurityTest {
 	}
 
 	@Test
-	void everySignedInUserCanLook() throws Exception {
-		for (AuthenticatedUser user : List.of(SliceAuth.NOBODY, SliceAuth.EMPLOYEE)) {
-			for (String path : List.of("/api/celebrations/employees", "/api/celebrations/employees/1",
-					"/api/celebrations/important-days", "/api/celebrations/important-days/1",
-					"/api/celebrations/important-days/export", "/api/celebrations/important-days/1/attachments",
-					"/api/celebrations/events", "/api/celebrations/events/1", "/api/celebrations/events/1/attachments",
-					"/api/celebrations/upcoming", "/api/celebrations/linkedin-posts")) {
+	void digitalMarketingUsersCanLook() throws Exception {
+		for (AuthenticatedUser user : List.of(SliceAuth.SUPER_ADMIN, MARKETER, EDITOR)) {
+			for (String path : READS) {
 				mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, bearer(user))).andExpect(status().isOk());
 			}
 		}
@@ -119,8 +126,19 @@ class CelebrationApiSecurityTest {
 	}
 
 	@Test
+	void everyoneElseIsForbidden() throws Exception {
+		for (AuthenticatedUser user : List.of(SliceAuth.NOBODY, SliceAuth.EMPLOYEE, SliceAuth.USER_ADMIN,
+				EDIT_WITHOUT_MARKETING)) {
+			for (String path : READS) {
+				mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, bearer(user))).andExpect(status().isForbidden());
+			}
+		}
+		verifyNoInteractions(employeeService, importantDayService, eventService, occasionCalendar, linkedInPostService);
+	}
+
+	@Test
 	void onlyCelebrationEditorsChangeAnything() throws Exception {
-		for (AuthenticatedUser user : List.of(SliceAuth.EMPLOYEE, MARKETER)) {
+		for (AuthenticatedUser user : List.of(SliceAuth.EMPLOYEE, MARKETER, EDIT_WITHOUT_MARKETING)) {
 			for (AbstractMockHttpServletRequestBuilder<?> request : changes()) {
 				mvc.perform(request.header(HttpHeaders.AUTHORIZATION, bearer(user))).andExpect(status().isForbidden());
 			}

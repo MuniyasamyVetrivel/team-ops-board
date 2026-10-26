@@ -23,7 +23,7 @@ import { AccessEditor } from './AccessEditor';
 import { useUpdateUser, useUser, type UserDetail } from './api';
 import { ProfileFields } from './ProfileFields';
 import { RoleBadges } from './RoleBadges';
-import { profileSchema, toProfilePayload, type ProfileFormInput, type ProfileFormValues } from './schemas';
+import { capacityOrDefault, profileSchema, toProfilePayload, type ProfileFormInput, type ProfileFormValues } from './schemas';
 import { SecurityPanel } from './SecurityPanel';
 
 const SERVER_FIELDS = ['employeeId', 'email', 'firstName', 'lastName', 'jobTitle', 'phone', 'location', 'workingHours', 'timeZone', 'departmentId', 'reportsToId', 'weeklyCapacityHours'] as const;
@@ -124,7 +124,7 @@ function ProfileForm({ user }: { user: UserDetail }) {
       timeZone: user.timeZone ?? '',
       departmentId: String(user.department.id),
       reportsToId: user.reportsTo ? String(user.reportsTo.id) : '',
-      weeklyCapacityHours: user.weeklyCapacityHours,
+      weeklyCapacityHours: capacityOrDefault(user.weeklyCapacityHours),
     },
   });
   const { handleSubmit, setError, reset, formState: { isSubmitting, isDirty } } = form;

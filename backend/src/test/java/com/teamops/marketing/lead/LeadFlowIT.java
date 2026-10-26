@@ -96,9 +96,10 @@ class LeadFlowIT {
 	@BeforeEach
 	void setUp() throws Exception {
 		users = new IntegrationUsers(userService, userRepository, departmentRepository);
-		editorId = users.create("DM", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "LEAD_VIEW", "LEAD_EDIT", "TARGET_VIEW",
+		// Outside Digital Marketing, so each holds only the permissions granted here (V41 gives DM members all of them).
+		editorId = users.create("PRESALES", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "LEAD_VIEW", "LEAD_EDIT", "TARGET_VIEW",
 				"CAMPAIGN_VIEW", "CAMPAIGN_EDIT");
-		Long viewerId = users.create("DM", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "LEAD_VIEW");
+		Long viewerId = users.create("PRESALES", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "LEAD_VIEW");
 		adminId = users.create("IT", RoleCodes.SUPER_ADMIN);
 		editorToken = login(users.email(editorId));
 		viewerToken = login(users.email(viewerId));

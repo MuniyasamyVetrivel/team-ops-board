@@ -100,9 +100,10 @@ class ContentFlowIT {
 	@BeforeEach
 	void setUp() throws Exception {
 		users = new IntegrationUsers(userService, userRepository, departmentRepository);
-		editorId = users.create("DM", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "CONTENT_VIEW", "CONTENT_EDIT", "TARGET_VIEW",
+		// Outside Digital Marketing, so each holds only the permissions granted here (V41 gives DM members all of them).
+		editorId = users.create("PRESALES", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "CONTENT_VIEW", "CONTENT_EDIT", "TARGET_VIEW",
 				"LEAD_VIEW", "LEAD_EDIT");
-		Long viewerId = users.create("DM", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "CONTENT_VIEW");
+		Long viewerId = users.create("PRESALES", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "CONTENT_VIEW");
 		adminId = users.create("IT", RoleCodes.SUPER_ADMIN);
 		editorToken = login(users.email(editorId));
 		viewerToken = login(users.email(viewerId));

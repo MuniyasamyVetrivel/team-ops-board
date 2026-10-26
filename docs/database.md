@@ -64,6 +64,8 @@ change is a new migration. See [architecture.md](architecture.md) for how the ap
 | V38 finance_expenses_budgets | Phase X8, part 2: `finance_expenses` (with the stored AUD rate, rate date and AUD amount, receipt, optional approval), `finance_budgets` (AUD, one per department and month); the `finance.defaultCurrency` setting (INR) |
 | V39 receipt_audit_owner | Phase X8: files the audit entries of expense receipts under their expense (`parent_type`/`parent_id`), so they are masked like the expense |
 | V40 bench_for_talent_acquisition | Phase X6 fix: switches the `bench` tool on for Talent Acquisition (code `TA`; V34 looked for `TALENT_ACQUISITION`, which does not exist), unless that department already has a bench row |
+| V41 department_permissions | `department_permissions`: permissions every member of a department holds through their primary department; Digital Marketing (`DM`) gets all marketing permissions and `CELEBRATIONS_EDIT` |
+| V42 employees_work_department_tickets | Adds `TICKET_EDIT` to the `EMPLOYEE` role, so employees see and pick up tickets sent to their own department |
 
 Never edit an applied migration; add `V{n+1}__description.sql` instead, in the phase that first needs it.
 
@@ -75,7 +77,7 @@ Never edit an applied migration; add `V{n+1}__description.sql` instead, in the p
 |---|---|---|
 | `users` | People: employee ID, names, job title, contact, department, `reports_to_id`, weekly capacity, status, profile photo, BCrypt hash | Unique `email`, unique `employee_id` |
 | `roles`, `permissions` | Role and permission catalogue | Unique `code` |
-| `user_roles`, `role_permissions`, `user_permissions` | Role membership, role grants and direct (per-person) grants | Composite primary keys |
+| `user_roles`, `role_permissions`, `user_permissions`, `department_permissions` | Role membership, role grants, direct (per-person) grants and grants to everyone whose primary department it is | Composite primary keys |
 | `departments` | Department with optional `manager_id` and status | Unique `code`, unique `name` |
 | `department_members` | Secondary memberships (`MEMBER` or `MANAGER`) | Composite primary key |
 | `refresh_tokens` | SHA-256 hash of each refresh token, expiry, revocation time, user agent and IP | Unique `token_hash` |

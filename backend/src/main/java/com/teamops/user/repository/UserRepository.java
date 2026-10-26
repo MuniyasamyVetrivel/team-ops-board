@@ -19,10 +19,12 @@ import com.teamops.user.entity.UserStatus;
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
 
 	/** Loads the user with everything needed to resolve authorities, in a single query. */
-	@EntityGraph(attributePaths = { "department", "roles", "roles.permissions", "directPermissions" })
+	@EntityGraph(attributePaths = { "department", "department.permissions", "roles", "roles.permissions",
+			"directPermissions" })
 	Optional<User> findWithAuthoritiesById(Long id);
 
-	@EntityGraph(attributePaths = { "department", "roles", "roles.permissions", "directPermissions" })
+	@EntityGraph(attributePaths = { "department", "department.permissions", "roles", "roles.permissions",
+			"directPermissions" })
 	Optional<User> findWithAuthoritiesByEmailIgnoreCase(String email);
 
 	/** Paged search. Only to-one associations are fetched here; roles are batch-loaded to keep paging in SQL. */
@@ -60,10 +62,12 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 	@Query("select distinct u from User u join u.roles r where r.code = :roleCode and u.status = :status")
 	List<User> findByRoleAndStatus(@Param("roleCode") String roleCode, @Param("status") UserStatus status);
 
-	/** Active users holding a permission through a role or a direct grant, by name. */
+	/** Active users holding a permission through a role, their department or a direct grant, by name. */
 	@Query("select u from User u where u.status = :status and (exists (select 1 from Role r join r.permissions p "
-			+ "where r member of u.roles and p.code = :permission) or exists (select 1 from Permission dp "
-			+ "where dp member of u.directPermissions and dp.code = :permission)) order by u.firstName, u.lastName")
+			+ "where r member of u.roles and p.code = :permission) or exists (select 1 from Permission gp "
+			+ "where gp member of u.department.permissions and gp.code = :permission) or exists (select 1 "
+			+ "from Permission dp where dp member of u.directPermissions and dp.code = :permission)) "
+			+ "order by u.firstName, u.lastName")
 	List<User> findActiveWithPermission(@Param("permission") String permission, @Param("status") UserStatus status);
 
 	@Query("select u.department.id as departmentId, count(u) as total from User u where u.status = :status "

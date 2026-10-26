@@ -16,7 +16,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * Resolves effective permissions: SUPER_ADMIN gets every permission in the catalogue; everyone else gets the union
- * of their role permissions and direct grants.
+ * of their role permissions, their primary department's permissions and direct grants.
  */
 @Component
 @RequiredArgsConstructor
@@ -24,14 +24,15 @@ public class AuthenticatedUserFactory {
 
 	private final PermissionRepository permissionRepository;
 
-	/** The user must have department, roles, role permissions and direct permissions loaded. */
+	/** The user must have department (and its permissions), roles, role permissions and direct permissions loaded. */
 	public AuthenticatedUser from(User user) {
 		Set<String> roles = user.getRoles().stream().map(Role::getCode).collect(Collectors.toSet());
 		Set<String> permissions = roles.contains(RoleCodes.SUPER_ADMIN)
 				? Set.copyOf(permissionRepository.findAllCodes())
 				: Stream
-					.concat(user.getRoles().stream().flatMap(role -> role.getPermissions().stream()),
-							user.getDirectPermissions().stream())
+					.of(user.getRoles().stream().flatMap(role -> role.getPermissions().stream()),
+							user.getDepartment().getPermissions().stream(), user.getDirectPermissions().stream())
+					.flatMap(s -> s)
 					.map(Permission::getCode)
 					.collect(Collectors.toSet());
 		return new AuthenticatedUser(user.getId(), user.getEmail(), user.getFullName(), user.getDepartment().getId(),

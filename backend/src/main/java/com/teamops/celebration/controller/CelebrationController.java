@@ -31,10 +31,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 /**
- * "Coming up" (the dashboard widget) and the LinkedIn posts list: every signed-in user reads; CELEBRATIONS_EDIT
- * changes post tracking.
+ * "Coming up" (the dashboard widget) and the LinkedIn posts list: Digital Marketing users (MARKETING_VIEW) read;
+ * CELEBRATIONS_EDIT changes post tracking.
  */
 @RestController
+@PreAuthorize("hasAuthority('MARKETING_VIEW')")
 @RequestMapping("/api/celebrations")
 @RequiredArgsConstructor
 public class CelebrationController {

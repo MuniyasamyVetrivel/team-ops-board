@@ -156,6 +156,23 @@ describe('DashboardPage', () => {
     expect(screen.queryByText('Team members')).not.toBeInTheDocument();
   });
 
+  it('shows HR and IT employees only team events in "Coming up", never celebrations', async () => {
+    const requests: string[] = [];
+    mockApi({
+      'GET /dashboard': () => dashboard({ scope: 'OWN', departments: [] }),
+      'GET /calendar': () => calendar,
+      'GET /celebrations/upcoming': () => (requests.push('upcoming'), upcoming),
+    });
+
+    renderPage(<DashboardPage />, webEmployee);
+
+    const comingUp = (await screen.findByRole('heading', { name: 'Coming up in the next 14 days' })).closest('[data-slot="card"]') as HTMLElement;
+    expect(await within(comingUp).findByText('Quarterly town hall')).toBeInTheDocument();
+    expect(within(comingUp).getByText('Team events')).toBeInTheDocument();
+    expect(within(comingUp).queryByText("Priya Menon's birthday")).not.toBeInTheDocument();
+    expect(requests).toEqual([]);
+  });
+
   it('shows an error state with retry when the dashboard fails', async () => {
     mockApi({
       'GET /dashboard': () => {

@@ -151,9 +151,18 @@ public class RecordHistoryAccess {
 			require(u, "CALENDAR_VIEW");
 			calendar.get(id, u);
 		});
-		register(Employee.class, (id, u) -> employees.get(id, u));
-		register(ImportantDay.class, (id, u) -> importantDays.get(id, u));
-		register(MarketingEvent.class, (id, u) -> events.get(id, u));
+		register(Employee.class, (id, u) -> {
+			require(u, "MARKETING_VIEW");
+			employees.get(id, u);
+		});
+		register(ImportantDay.class, (id, u) -> {
+			require(u, "MARKETING_VIEW");
+			importantDays.get(id, u);
+		});
+		register(MarketingEvent.class, (id, u) -> {
+			require(u, "MARKETING_VIEW");
+			events.get(id, u);
+		});
 		register(SeoPage.class, (id, u) -> require(u, "MARKETING_VIEW", "SEO_VIEW"));
 		register(SeoKeyword.class, (id, u) -> require(u, "MARKETING_VIEW", "SEO_VIEW"));
 		register(TargetType.class, (id, u) -> require(u, "MARKETING_VIEW", "TARGET_VIEW"));

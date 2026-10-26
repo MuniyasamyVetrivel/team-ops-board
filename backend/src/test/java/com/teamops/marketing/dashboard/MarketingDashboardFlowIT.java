@@ -78,9 +78,10 @@ class MarketingDashboardFlowIT {
 	@BeforeEach
 	void setUp() throws Exception {
 		users = new IntegrationUsers(userService, userRepository, departmentRepository);
-		ownerId = users.create("DM", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "SEO_VIEW", "LEAD_VIEW", "LEAD_EDIT", "CAMPAIGN_VIEW",
+		// Outside Digital Marketing, so each holds only the permissions granted here (V41 gives DM members all of them).
+		ownerId = users.create("PRESALES", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "SEO_VIEW", "LEAD_VIEW", "LEAD_EDIT", "CAMPAIGN_VIEW",
 				"CAMPAIGN_EDIT", "BACKLINK_VIEW", "BACKLINK_EDIT", "CONTENT_VIEW", "CONTENT_EDIT", "TARGET_VIEW");
-		Long marketingOnlyId = users.create("DM", RoleCodes.EMPLOYEE, "MARKETING_VIEW");
+		Long marketingOnlyId = users.create("PRESALES", RoleCodes.EMPLOYEE, "MARKETING_VIEW");
 		Long outsiderId = users.create("IT", RoleCodes.EMPLOYEE);
 		ownerToken = login(users.email(ownerId));
 		marketingOnlyToken = login(users.email(marketingOnlyId));

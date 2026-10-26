@@ -70,3 +70,23 @@ describe('UserDrawer employee ID', () => {
     expect(screen.getByText('Only a Super Admin can change the employee ID')).toBeInTheDocument();
   });
 });
+
+describe('UserDrawer weekly capacity', () => {
+  afterEach(() => {
+    api.defaults.adapter = originalAdapter;
+  });
+
+  it('shows the saved weekly capacity', async () => {
+    mockApi({ ...routes(), 'GET /users/21': () => ({ ...usha, weeklyCapacityHours: 37.5 }) });
+    renderPage(<UserDrawer userId={21} onClose={() => undefined} />, superAdmin);
+
+    expect(await screen.findByLabelText(/Weekly capacity/)).toHaveValue(37.5);
+  });
+
+  it('falls back to 40 hours when none is saved, so the profile can be saved without retyping it', async () => {
+    mockApi({ ...routes(), 'GET /users/21': () => ({ ...usha, weeklyCapacityHours: null }) });
+    renderPage(<UserDrawer userId={21} onClose={() => undefined} />, superAdmin);
+
+    expect(await screen.findByLabelText(/Weekly capacity/)).toHaveValue(40);
+  });
+});

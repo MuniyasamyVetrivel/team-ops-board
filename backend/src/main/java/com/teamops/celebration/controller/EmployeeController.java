@@ -36,11 +36,12 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Employees for birthdays and work anniversaries. Every signed-in user reads active employees (the service hides birth
+ * Employees for birthdays and work anniversaries. Digital Marketing users (MARKETING_VIEW) read active employees (the service hides birth
  * years and people who left from them); CELEBRATIONS_EDIT changes and exports. CSV import runs through
  * {@code /api/marketing/imports/employees}.
  */
 @RestController
+@PreAuthorize("hasAuthority('MARKETING_VIEW')")
 @RequestMapping("/api/celebrations/employees")
 @RequiredArgsConstructor
 public class EmployeeController {

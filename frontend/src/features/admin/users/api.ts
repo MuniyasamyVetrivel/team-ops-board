@@ -42,7 +42,8 @@ export interface UserDetail {
   location: string | null;
   workingHours: string | null;
   timeZone: string | null;
-  weeklyCapacityHours: number;
+  /** The edit form shows the default (40) when none is saved. */
+  weeklyCapacityHours: number | null;
   department: DepartmentRef;
   reportsTo: UserSummary | null;
   status: UserStatus;

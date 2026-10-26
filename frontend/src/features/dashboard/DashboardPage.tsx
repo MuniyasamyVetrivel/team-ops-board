@@ -11,6 +11,7 @@ import { hasPermission } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
 import { useCalendar } from '@/features/calendar/api';
 import { addDays } from '@/features/calendar/calendar-dates';
+import { useCanSeeCelebrations } from '@/features/celebrations/access';
 import { COMING_UP_DAYS, ComingUp } from '@/features/celebrations/ComingUp';
 import { TaskDrawer } from '@/features/tasks/TaskDrawer';
 import { parseLocalDate } from '@/features/tasks/task-meta';
@@ -100,6 +101,7 @@ export default function DashboardPage() {
   const dashboard = useDashboard();
   const [taskId, setTaskId] = useTaskParam();
   const canSeeCalendar = hasPermission(user, 'CALENDAR_VIEW');
+  const canSeeCelebrations = useCanSeeCelebrations();
   const today = dashboard.data?.today;
   const events = useCalendar({ from: today ?? '', to: today ? addDays(today, COMING_UP_DAYS - 1) : '' }, canSeeCalendar && Boolean(today));
   if (!user) return null;
@@ -252,8 +254,12 @@ export default function DashboardPage() {
             <Panel title="Recent activity" className="col-span-12 xl:col-span-7">
               <RecentActivity items={data.recentActivity} onOpenTask={setTaskId} />
             </Panel>
-            <Panel title="Coming up in the next 14 days" description="Birthdays, work anniversaries, important days and events" className="col-span-12 xl:col-span-5">
-              <ComingUp teamEvents={events.data?.items} />
+            <Panel
+              title="Coming up in the next 14 days"
+              description={canSeeCelebrations ? 'Birthdays, work anniversaries, important days and events' : 'Team events'}
+              className="col-span-12 xl:col-span-5"
+            >
+              <ComingUp teamEvents={events.data?.items} today={data.today} />
             </Panel>
           </div>
         </>

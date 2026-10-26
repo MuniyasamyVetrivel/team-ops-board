@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createUserSchema, EMPLOYEE_ID_PATTERN, passwordSchema, profileSchema, resetPasswordSchema, toProfilePayload } from './schemas';
+import { capacityOrDefault, createUserSchema, EMPLOYEE_ID_PATTERN, passwordSchema, profileSchema, resetPasswordSchema, toProfilePayload } from './schemas';
 
 const validProfile = {
   employeeId: 'E-1042',
@@ -91,5 +91,18 @@ describe('employee IDs', () => {
     const result = createUserSchema.safeParse({ ...validProfile, employeeId: '', password: 'Welcome2026', role: 'EMPLOYEE' });
     expect(result.success).toBe(false);
     expect(result.error?.issues.map((i) => i.path[0])).toContain('employeeId');
+  });
+});
+
+describe('capacityOrDefault', () => {
+  it('keeps the saved weekly capacity', () => {
+    expect(capacityOrDefault(37.5)).toBe(37.5);
+    expect(capacityOrDefault('40.00')).toBe(40);
+  });
+
+  it('falls back to 40 hours when none is saved', () => {
+    expect(capacityOrDefault(null)).toBe(40);
+    expect(capacityOrDefault(undefined)).toBe(40);
+    expect(capacityOrDefault('')).toBe(40);
   });
 });

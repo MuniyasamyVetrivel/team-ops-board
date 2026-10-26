@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { hasPermission } from '@/features/auth/permissions';
 import { useAuth } from '@/features/auth/use-auth';
+import { useCanSeeCelebrations } from '@/features/celebrations/access';
 import type { OccasionCategory } from '@/features/celebrations/api';
 import { OCCASION_CATEGORIES, OCCASION_STYLE } from '@/features/celebrations/celebration-meta';
 import { OccasionDrawer } from '@/features/celebrations/OccasionDrawer';
@@ -79,6 +80,8 @@ export default function CalendarPage() {
   const range = viewRange(view, anchor);
   const calendar = useCalendar({ ...range, mine });
   const canEdit = hasPermission(user, 'CALENDAR_EDIT');
+  // Without Digital Marketing access the server sends no celebrations, so there is nothing to filter or explain.
+  const canSeeCelebrations = useCanSeeCelebrations();
   const today = calendar.data?.today;
   const allItems = calendar.data?.items ?? [];
   const items = allItems.filter((item) => !hidden.has(filterOf(item)));
@@ -123,7 +126,7 @@ export default function CalendarPage() {
     <div className="space-y-6">
       <PageHeader
         title="Calendar"
-        description="Deadlines, milestones, approvals, events and celebrations."
+        description={canSeeCelebrations ? 'Deadlines, milestones, approvals, events and celebrations.' : 'Deadlines, milestones, approvals and events.'}
         actions={
           canEdit && (
             <Button onClick={() => setEventTarget({ day: today ?? anchor })}>
@@ -165,28 +168,30 @@ export default function CalendarPage() {
             </div>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 border-b px-6 py-3" role="group" aria-label="Show categories">
-          {FILTERS.map((f) => {
-            const shown = !hidden.has(f.id);
-            const count = allItems.filter((item) => filterOf(item) === f.id).length;
-            return (
-              <button
-                key={f.id}
-                type="button"
-                aria-pressed={shown}
-                onClick={() => toggle(f.id)}
-                className={cn(
-                  'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-[opacity,background-color] focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
-                  shown ? f.className : 'border-dashed border-border bg-transparent text-muted-foreground line-through',
-                )}
-              >
-                <f.icon className="size-3.5" aria-hidden />
-                {f.label}
-                {calendar.data && <span className="tabular-nums opacity-80">{count}</span>}
-              </button>
-            );
-          })}
-        </div>
+        {canSeeCelebrations && (
+          <div className="flex flex-wrap gap-2 border-b px-6 py-3" role="group" aria-label="Show categories">
+            {FILTERS.map((f) => {
+              const shown = !hidden.has(f.id);
+              const count = allItems.filter((item) => filterOf(item) === f.id).length;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  aria-pressed={shown}
+                  onClick={() => toggle(f.id)}
+                  className={cn(
+                    'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-[opacity,background-color] focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+                    shown ? f.className : 'border-dashed border-border bg-transparent text-muted-foreground line-through',
+                  )}
+                >
+                  <f.icon className="size-3.5" aria-hidden />
+                  {f.label}
+                  {calendar.data && <span className="tabular-nums opacity-80">{count}</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
         {calendar.isError ? (
           <ErrorState error={calendar.error} title="Couldn't load the calendar" onRetry={() => void calendar.refetch()} />
         ) : calendar.isPending ? (
@@ -198,7 +203,7 @@ export default function CalendarPage() {
         ) : (
           <Grid view={view} items={items} from={range.from} to={range.to} anchor={anchor} today={today} onOpen={open} onDay={canEdit ? (day) => setEventTarget({ day }) : undefined} />
         )}
-        <Legend />
+        <Legend celebrations={canSeeCelebrations} />
       </Card>
       <OccasionDrawer item={occasion} onClose={() => setOccasionKey(null)} />
       <TaskDrawer taskId={taskId} onClose={() => setTaskId(null)} />
@@ -340,8 +345,8 @@ function Agenda({ items, from, to, today, onOpen }: { items: CalendarItem[]; fro
 }
 
 /** What each colour and icon means; every item also carries its label for screen readers. */
-function Legend() {
-  const entries = [...WORK_LEGEND, ...OCCASION_CATEGORIES.map((category) => OCCASION_STYLE[category])];
+function Legend({ celebrations }: { celebrations: boolean }) {
+  const entries = celebrations ? [...WORK_LEGEND, ...OCCASION_CATEGORIES.map((category) => OCCASION_STYLE[category])] : WORK_LEGEND;
   return (
     <div className="border-t px-6 py-3">
       <h3 className="sr-only">Legend</h3>

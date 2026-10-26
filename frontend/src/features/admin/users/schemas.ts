@@ -4,6 +4,15 @@ import { passwordSchema } from '@/features/auth/password-schema';
 
 export { passwordSchema };
 
+/** Weekly capacity of a new user, and of an existing one with none saved. */
+export const DEFAULT_WEEKLY_CAPACITY_HOURS = 40;
+
+/** The saved weekly capacity as a number for the edit form, or the default when none is saved. */
+export function capacityOrDefault(saved: number | string | null | undefined): number {
+  const hours = Number(saved);
+  return saved === null || saved === undefined || saved === '' || !Number.isFinite(hours) ? DEFAULT_WEEKLY_CAPACITY_HOURS : hours;
+}
+
 const optionalText = (max: number) => z.string().trim().max(max, `At most ${max} characters`);
 
 /** Blank, or a zone the browser knows (the backend checks against the Java zone list). */

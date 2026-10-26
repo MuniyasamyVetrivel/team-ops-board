@@ -8,6 +8,7 @@ import type { CalendarItem } from '@/features/calendar/api';
 import { itemVisual } from '@/features/calendar/calendar-meta';
 import { cn } from '@/lib/utils';
 
+import { useCanSeeCelebrations } from './access';
 import { useUpcoming } from './api';
 import { LinkedInBadge } from './CelebrationBadges';
 import { formatOccasionDate, formatTime, relativeDay } from './celebration-meta';
@@ -17,13 +18,15 @@ export const COMING_UP_DAYS = 14;
 
 /**
  * The dashboard's "Coming up in the next 14 days": birthdays, work anniversaries, important days and marketing events
- * (everyone), plus the team events the viewer's calendar shows. Celebrations open their drawer.
+ * (Digital Marketing users only), plus the team events the viewer's calendar shows. Celebrations open their drawer.
+ * @param today the business "today" from the server, used when celebrations are not loaded
  */
-export function ComingUp({ teamEvents = [] }: { teamEvents?: CalendarItem[] }) {
-  const upcoming = useUpcoming(COMING_UP_DAYS);
+export function ComingUp({ teamEvents = [], today: serverToday }: { teamEvents?: CalendarItem[]; today: string }) {
+  const canSeeCelebrations = useCanSeeCelebrations();
+  const upcoming = useUpcoming(COMING_UP_DAYS, canSeeCelebrations);
   const [openKey, setOpenKey] = useState<string | null>(null);
 
-  if (upcoming.isPending) {
+  if (canSeeCelebrations && upcoming.isPending) {
     return (
       <div className="space-y-2 p-6" role="status" aria-label="Loading what is coming up">
         {Array.from({ length: 3 }, (_, i) => (
@@ -32,15 +35,18 @@ export function ComingUp({ teamEvents = [] }: { teamEvents?: CalendarItem[] }) {
       </div>
     );
   }
-  if (upcoming.isError) return <ErrorState error={upcoming.error} title="Couldn't load what is coming up" onRetry={() => void upcoming.refetch()} />;
+  if (canSeeCelebrations && upcoming.isError) return <ErrorState error={upcoming.error} title="Couldn't load what is coming up" onRetry={() => void upcoming.refetch()} />;
 
-  const items = [...upcoming.data.items, ...teamEvents.filter((item) => item.kind === 'EVENT')].sort(
+  const items = [...(upcoming.data?.items ?? []), ...teamEvents.filter((item) => item.kind === 'EVENT')].sort(
     (a, b) => a.startDate.localeCompare(b.startDate) || (a.startAt ?? '').localeCompare(b.startAt ?? '') || a.title.localeCompare(b.title),
   );
   if (items.length === 0) {
-    return <EmptyState icon={CalendarDays} title="Nothing coming up" description="Birthdays, work anniversaries, important days and events for the next two weeks appear here." className="py-10" />;
+    const description = canSeeCelebrations
+      ? 'Birthdays, work anniversaries, important days and events for the next two weeks appear here.'
+      : 'Team events for the next two weeks appear here.';
+    return <EmptyState icon={CalendarDays} title="Nothing coming up" description={description} className="py-10" />;
   }
-  const today = upcoming.data.today;
+  const today = upcoming.data?.today ?? serverToday;
   // The open item is looked up again after a refresh, so its LinkedIn status stays current.
   const open = items.find((item) => item.key === openKey) ?? null;
 

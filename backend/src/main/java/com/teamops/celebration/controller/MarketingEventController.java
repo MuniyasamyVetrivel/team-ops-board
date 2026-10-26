@@ -40,8 +40,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-/** Upcoming events, webinars, event marketing and email marketing: every signed-in user reads, CELEBRATIONS_EDIT changes. */
+/** Upcoming events, webinars, event marketing and email marketing: MARKETING_VIEW reads, CELEBRATIONS_EDIT changes. */
 @RestController
+@PreAuthorize("hasAuthority('MARKETING_VIEW')")
 @RequestMapping("/api/celebrations/events")
 @RequiredArgsConstructor
 public class MarketingEventController {

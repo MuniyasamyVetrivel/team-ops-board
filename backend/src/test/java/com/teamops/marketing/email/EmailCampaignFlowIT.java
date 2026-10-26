@@ -79,8 +79,9 @@ class EmailCampaignFlowIT {
 	@BeforeEach
 	void setUp() throws Exception {
 		users = new IntegrationUsers(userService, userRepository, departmentRepository);
-		editorId = users.create("DM", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "CAMPAIGN_VIEW", "CAMPAIGN_EDIT", "TARGET_VIEW");
-		Long viewerId = users.create("DM", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "CAMPAIGN_VIEW");
+		// Outside Digital Marketing, so each holds only the permissions granted here (V41 gives DM members all of them).
+		editorId = users.create("PRESALES", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "CAMPAIGN_VIEW", "CAMPAIGN_EDIT", "TARGET_VIEW");
+		Long viewerId = users.create("PRESALES", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "CAMPAIGN_VIEW");
 		editorToken = login(users.email(editorId));
 		viewerToken = login(users.email(viewerId));
 		nonce = Long.toHexString(System.nanoTime()).toUpperCase();

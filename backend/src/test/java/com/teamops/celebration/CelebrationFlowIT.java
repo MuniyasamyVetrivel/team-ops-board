@@ -45,7 +45,9 @@ import com.teamops.user.service.UserService;
 /**
  * Calendar celebrations end-to-end against MySQL: leave is gone (V22), employees with private birth years, important
  * days, events and scheduled email campaigns on the calendar and in "Coming up", LinkedIn post tracking, idempotent
- * reminders with the days-before setting, CSV import and export, and audit entries. Everything is created with a
+ * reminders with the days-before setting, CSV import and export, and audit entries. Celebrations belong to Digital
+ * Marketing: a plain Digital Marketing employee edits them through the department's permissions (V41), a
+ * MARKETING_VIEW holder elsewhere reads them, and everyone else gets 403 and sees none of them on the calendar. Everything is created with a
  * unique nonce and removed afterwards, so seeded data never changes the checks. Run with: mvnw verify -Pit.
  */
 @SpringBootTest
@@ -84,11 +86,15 @@ class CelebrationFlowIT {
 
 	private Long adminId;
 
+	private Long outsiderId;
+
 	private String editorToken;
 
 	private String viewerToken;
 
 	private String adminToken;
+
+	private String outsiderToken;
 
 	private String nonce;
 
@@ -105,12 +111,15 @@ class CelebrationFlowIT {
 	@BeforeEach
 	void setUp() throws Exception {
 		users = new IntegrationUsers(userService, userRepository, departmentRepository);
-		editorId = users.create("DM", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "CELEBRATIONS_EDIT");
-		viewerId = users.create("IT", RoleCodes.EMPLOYEE, "CALENDAR_VIEW");
+		// No direct grants: the Digital Marketing department brings MARKETING_VIEW and CELEBRATIONS_EDIT.
+		editorId = users.create("DM", RoleCodes.EMPLOYEE);
+		viewerId = users.create("IT", RoleCodes.EMPLOYEE, "MARKETING_VIEW");
 		adminId = users.create("IT", RoleCodes.SUPER_ADMIN);
+		outsiderId = users.create("HR", RoleCodes.EMPLOYEE);
 		editorToken = login(users.email(editorId));
 		viewerToken = login(users.email(viewerId));
 		adminToken = login(users.email(adminId));
+		outsiderToken = login(users.email(outsiderId));
 		nonce = "it" + Long.toHexString(System.nanoTime());
 		today = calendar.today();
 		daysBeforeSetting = jdbc.queryForObject("SELECT setting_value FROM app_settings WHERE setting_key = ?",
@@ -137,10 +146,11 @@ class CelebrationFlowIT {
 			deleteOccasionRows("EVENT", id);
 			jdbc.update("DELETE FROM marketing_events WHERE id = ?", id);
 		}
-		jdbc.update("DELETE FROM marketing_events WHERE owner_id IN (?, ?, ?)", editorId, viewerId, adminId);
+		jdbc.update("DELETE FROM marketing_events WHERE owner_id IN (?, ?, ?, ?)", editorId, viewerId, adminId,
+				outsiderId);
 		jdbc.update("DELETE FROM email_campaigns WHERE name LIKE ?", "%" + nonce + "%");
-		jdbc.update("DELETE FROM files WHERE uploaded_by IN (?, ?, ?)", editorId, viewerId, adminId);
-		jdbc.update("DELETE FROM audit_logs WHERE actor_id IN (?, ?, ?)", editorId, viewerId, adminId);
+		jdbc.update("DELETE FROM files WHERE uploaded_by IN (?, ?, ?, ?)", editorId, viewerId, adminId, outsiderId);
+		jdbc.update("DELETE FROM audit_logs WHERE actor_id IN (?, ?, ?, ?)", editorId, viewerId, adminId, outsiderId);
 		users.deleteAll();
 	}
 
@@ -195,6 +205,15 @@ class CelebrationFlowIT {
 		as(viewerToken, get("/api/celebrations/upcoming").param("days", "14")).andExpect(status().isOk())
 			.andExpect(jsonPath("$.items[*].key", hasItem(birthdayKey)));
 
+		// Outside Digital Marketing: no celebrations on the calendar, and 403 from their API.
+		as(outsiderToken, get("/api/calendar").param("from", today.toString()).param("to", today.plusDays(10).toString()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.items[*].key", not(hasItem(birthdayKey))))
+			.andExpect(jsonPath("$.items[*].key", not(hasItem(anniversaryKey))));
+		as(outsiderToken, get("/api/celebrations/upcoming")).andExpect(status().isForbidden());
+		as(outsiderToken, get("/api/celebrations/employees")).andExpect(status().isForbidden());
+		as(outsiderToken, get("/api/celebrations/employees/" + priya)).andExpect(status().isForbidden());
+
 		// People who left stop appearing.
 		Integer version = JsonPath.read(as(editorToken, get("/api/celebrations/employees/" + priya)).andReturn()
 			.getResponse()
@@ -246,6 +265,15 @@ class CelebrationFlowIT {
 			.andExpect(jsonPath("$.items[?(@.key == '%s')].kind".formatted(eventKey)).value("MARKETING_EVENT"))
 			.andExpect(jsonPath("$.items[?(@.key == '%s')].occasion.category".formatted(eventKey)).value("WEBINAR"))
 			.andExpect(jsonPath("$.items[*].key", not(hasItem("CAMPAIGN-" + campaign))));
+		as(outsiderToken, get(range)).andExpect(status().isOk())
+			.andExpect(jsonPath("$.items[*].key", not(hasItem(dayKey))))
+			.andExpect(jsonPath("$.items[*].key", not(hasItem(eventKey))));
+		for (String path : List.of("/api/celebrations/important-days", "/api/celebrations/important-days/" + diwali,
+				"/api/celebrations/events", "/api/celebrations/events/" + webinar, "/api/celebrations/linkedin-posts")) {
+			as(outsiderToken, get(path)).andExpect(status().isForbidden());
+		}
+		as(outsiderToken, post("/api/celebrations/important-days").contentType(MediaType.APPLICATION_JSON)
+			.content(dayJson("Holi " + nonce, dayDate, "YEARLY"))).andExpect(status().isForbidden());
 		// Scheduled email campaigns: Email marketing, for Digital Marketing campaign viewers.
 		as(adminToken, get(range))
 			.andExpect(jsonPath("$.items[?(@.key == 'CAMPAIGN-%d')].occasion.category".formatted(campaign))
@@ -283,12 +311,16 @@ class CelebrationFlowIT {
 			.content(eventJson("SAP webinar " + nonce, start, "\"emailCampaignId\":" + campaign + ",\"version\":0")))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.emailCampaignId").value(campaign))
+			// Digital Marketing members hold CAMPAIGN_VIEW through their department; other viewers do not see it.
+			.andExpect(jsonPath("$.emailCampaign.id").value(campaign));
+		as(viewerToken, get("/api/celebrations/events/" + webinar)).andExpect(status().isOk())
+			.andExpect(jsonPath("$.emailCampaignId").value(campaign))
 			.andExpect(jsonPath("$.emailCampaign").doesNotExist());
 		as(adminToken, get(range)).andExpect(jsonPath("$.items[*].key", not(hasItem("CAMPAIGN-" + campaign))));
 	}
 
 	@Test
-	void remindersGoToEditorsOnceWithTheDaysBeforeSetting() throws Exception {
+	void remindersGoToDigitalMarketingEditorsOnceWithTheDaysBeforeSetting() throws Exception {
 		jdbc.update("UPDATE app_settings SET setting_value = '3' WHERE setting_key = ?", DAYS_BEFORE);
 		LocalDate birthday = today.plusDays(3);
 		Long arun = id(createEmployee(code(3), "Arun", birthday.minusYears(28), null).andExpect(status().isCreated()));
@@ -307,6 +339,8 @@ class CelebrationFlowIT {
 				key + editorId)).isEqualTo(1);
 		assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND dedup_key LIKE 'OCCASION:%'",
 				Integer.class, viewerId)).as("only editors and Super Admins").isZero();
+		assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND dedup_key LIKE 'OCCASION:%'",
+				Integer.class, outsiderId)).as("never outside Digital Marketing").isZero();
 	}
 
 	@Test

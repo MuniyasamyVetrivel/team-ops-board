@@ -29,7 +29,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * Birthdays, work anniversaries, important days and marketing events as calendar items, with their LinkedIn post
- * status. Every signed-in user sees them. Scheduled email campaigns join them as "Email marketing" for CAMPAIGN_VIEW
+ * status. Only Digital Marketing users see them ({@link CelebrationAccess#canView}). Scheduled email campaigns join them as "Email marketing" for CAMPAIGN_VIEW
  * holders (the Email Campaigns module is part of Digital Marketing), unless an event already links the campaign.
  */
 @Service
@@ -51,6 +51,9 @@ public class OccasionCalendar {
 	/** Everything in [from, to] for the calendar, cancelled events included (the UI marks them). */
 	@Transactional(readOnly = true)
 	public List<CalendarItem> items(LocalDate from, LocalDate to, AuthenticatedUser viewer) {
+		if (!CelebrationAccess.canView(viewer)) {
+			return List.of();
+		}
 		List<Occasion> occasions = finder.between(from, to, true);
 		List<CalendarItem> items = new ArrayList<>(toItems(occasions));
 		if (viewer.isSuperAdmin() || viewer.hasPermission(MarketingEventService.CAMPAIGN_VIEW)) {

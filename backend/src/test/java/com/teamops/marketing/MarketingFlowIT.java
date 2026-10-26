@@ -159,8 +159,9 @@ class MarketingFlowIT {
 	void setUp() throws Exception {
 		IMPORTED.clear();
 		users = new IntegrationUsers(userService, userRepository, departmentRepository);
-		marketerId = users.create("DM", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "MARKETING_EDIT");
-		viewerId = users.create("DM", RoleCodes.EMPLOYEE, "MARKETING_VIEW");
+		// Outside Digital Marketing, so each holds only the permissions granted here (V41 gives DM members all of them).
+		marketerId = users.create("PRESALES", RoleCodes.EMPLOYEE, "MARKETING_VIEW", "MARKETING_EDIT");
+		viewerId = users.create("PRESALES", RoleCodes.EMPLOYEE, "MARKETING_VIEW");
 		employeeId = users.create("IT", RoleCodes.EMPLOYEE);
 		marketerToken = login(users.email(marketerId));
 		viewerToken = login(users.email(viewerId));

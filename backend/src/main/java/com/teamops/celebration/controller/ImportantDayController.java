@@ -40,10 +40,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Important days: every signed-in user reads and exports, CELEBRATIONS_EDIT changes. CSV import runs through
+ * Important days: Digital Marketing users (MARKETING_VIEW) read and export, CELEBRATIONS_EDIT changes. CSV import runs through
  * {@code /api/marketing/imports/important-days}.
  */
 @RestController
+@PreAuthorize("hasAuthority('MARKETING_VIEW')")
 @RequestMapping("/api/celebrations/important-days")
 @RequiredArgsConstructor
 public class ImportantDayController {

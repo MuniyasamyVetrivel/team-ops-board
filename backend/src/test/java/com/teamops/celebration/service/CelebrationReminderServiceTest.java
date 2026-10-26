@@ -60,6 +60,12 @@ class CelebrationReminderServiceTest {
 
 	private final User editor = TestFixtures.user(5L, "priya.menon@teamops.local", TestFixtures.role(3L, "EMPLOYEE"));
 
+	/** CELEBRATIONS_EDIT without Digital Marketing access: no reminders. */
+	private final User hrEditor = TestFixtures.user(7L, "hr.user@teamops.local", TestFixtures.role(3L, "EMPLOYEE"));
+
+	/** Digital Marketing access without CELEBRATIONS_EDIT: no reminders either. */
+	private final User marketer = TestFixtures.user(8L, "arun.kumar@teamops.local", TestFixtures.role(3L, "EMPLOYEE"));
+
 	private CelebrationReminderService service;
 
 	@BeforeEach
@@ -70,7 +76,9 @@ class CelebrationReminderServiceTest {
 		when(settings.celebrationReminderDaysBefore()).thenReturn(2);
 		when(userRepository.findByRoleAndStatus("SUPER_ADMIN", UserStatus.ACTIVE)).thenReturn(List.of(admin));
 		when(userRepository.findActiveWithPermission("CELEBRATIONS_EDIT", UserStatus.ACTIVE))
-			.thenReturn(List.of(admin, editor));
+			.thenReturn(List.of(admin, editor, hrEditor));
+		when(userRepository.findActiveWithPermission("MARKETING_VIEW", UserStatus.ACTIVE))
+			.thenReturn(List.of(admin, editor, marketer));
 		when(linkedInPosts.forOccasions(anyCollection())).thenReturn(Map.of());
 	}
 
@@ -115,6 +123,11 @@ class CelebrationReminderServiceTest {
 		verify(notificationService).notify(eq(1L), eq(NotificationType.OCCASION_REMINDER),
 				eq("Today: Diwali (India). LinkedIn post: Not started"), any(), eq(NotificationService.ENTITY_IMPORTANT_DAY),
 				eq(4L), eq("OCCASION:IMPORTANT_DAY:4:2026-10-13:0:1"));
+	}
+
+	@Test
+	void onlyDigitalMarketingEditorsAndSuperAdminsAreReminded() {
+		assertThat(service.recipients()).extracting(User::getId).containsExactly(1L, 5L);
 	}
 
 	@Test

@@ -179,6 +179,8 @@ Internal Work & Performance Management System. Full requirements are in `docs/PR
 - `DEPARTMENT_MANAGER` manages their own department.
 - `EMPLOYEE` works on their own assigned work.
 - The Digital Marketing menu and APIs are available only to SUPER_ADMIN and to users holding marketing permissions (`MARKETING_VIEW` etc.).
+  - Every member of the Digital Marketing department (primary department, code `DM`) holds all marketing permissions and `CELEBRATIONS_EDIT` through `department_permissions` (V41), resolved in `AuthenticatedUserFactory` and `UserRepository.findActiveWithPermission`. Moving someone out of the department removes them; no per-user grants.
+  - Celebrations (employees, important days, events, LinkedIn posts) are part of Digital Marketing: `/api/celebrations/**` needs `MARKETING_VIEW` (403 otherwise), the calendar and "Coming up" leave them out for everyone else (`CelebrationAccess.canView`, `useCanSeeCelebrations()`), and reminders go only to Super Admins and `CELEBRATIONS_EDIT` holders with `MARKETING_VIEW`.
 
 ## Business rules (implement exactly; unit-test them)
 - **Task statuses**: TODO, IN_PROGRESS, BLOCKED, IN_REVIEW, COMPLETED, CANCELLED.

@@ -294,8 +294,8 @@ export function useMarketingEvent(id: number | null) {
 }
 
 /** "Coming up": birthdays, anniversaries, important days and events from today through the next `days` days. */
-export function useUpcoming(days = 14) {
-  return useQuery({ queryKey: celebrationKeys.upcoming(days), queryFn: () => get<CalendarResponse>('/celebrations/upcoming', { days }) });
+export function useUpcoming(days = 14, enabled = true) {
+  return useQuery({ queryKey: celebrationKeys.upcoming(days), queryFn: () => get<CalendarResponse>('/celebrations/upcoming', { days }), enabled });
 }
 
 export function useLinkedInPosts(query: LinkedInPostQuery) {

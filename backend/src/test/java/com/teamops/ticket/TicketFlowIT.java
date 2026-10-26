@@ -311,6 +311,44 @@ class TicketFlowIT {
 		as(outsiderToken, get("/api/tickets/" + id + "/attachments/" + fileId)).andExpect(status().isNotFound());
 	}
 
+	@Test
+	void anyEmployeeRaisesATicketToItAndItsTeamPicksItUp() throws Exception {
+		Long itId = departmentRepository.findByCode("IT").orElseThrow().getId();
+		Long hrRequesterId = users.create("HR", RoleCodes.EMPLOYEE);
+		Long itMemberId = users.create("IT", RoleCodes.EMPLOYEE);
+		Long hrColleagueId = users.create("HR", RoleCodes.EMPLOYEE);
+		String hrRequester = login(users.email(hrRequesterId));
+		String itMember = login(users.email(itMemberId));
+		String hrColleague = login(users.email(hrColleagueId));
+		String subject = "Laptop will not boot " + Long.toHexString(System.nanoTime());
+
+		// A plain HR employee picks the category and sends the ticket to IT.
+		String response = as(hrRequester, post("/api/tickets").contentType(MediaType.APPLICATION_JSON)
+			.content("{\"subject\":\"%s\",\"categoryId\":%d,\"departmentId\":%d,\"priority\":\"HIGH\"}"
+				.formatted(subject, otherCategoryId, itId)))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.department.id").value(itId))
+			.andExpect(jsonPath("$.category.id").value(otherCategoryId))
+			.andReturn()
+			.getResponse()
+			.getContentAsString();
+		Long id = ((Number) JsonPath.read(response, "$.id")).longValue();
+		tickets.add(id);
+
+		// Any IT employee sees it in Tickets and can take it; other HR employees cannot see it.
+		as(itMember, get("/api/tickets").param("search", subject)).andExpect(status().isOk())
+			.andExpect(jsonPath("$.content[0].id").value(id));
+		as(itMember, get("/api/tickets/" + id)).andExpect(jsonPath("$.permissions.canWork").value(true));
+		as(itMember, put("/api/tickets/" + id + "/assignee").contentType(MediaType.APPLICATION_JSON)
+			.content("{\"assigneeId\":%d}".formatted(itMemberId)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.assignee.id").value(itMemberId));
+		as(hrColleague, get("/api/tickets").param("search", subject)).andExpect(jsonPath("$.totalElements").value(0));
+		as(hrColleague, get("/api/tickets/" + id)).andExpect(status().isNotFound());
+		as(hrRequester, get("/api/tickets/" + id)).andExpect(status().isOk())
+			.andExpect(jsonPath("$.assignee.id").value(itMemberId));
+	}
+
 	private Long create(String token, String subject, String priority) throws Exception {
 		String response = as(token, post("/api/tickets").contentType(MediaType.APPLICATION_JSON)
 			.content("{\"subject\":\"%s\",\"categoryId\":%d,\"departmentId\":%d,\"priority\":\"%s\"}".formatted(subject,

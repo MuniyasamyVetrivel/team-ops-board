@@ -104,11 +104,6 @@ export const NAVIGATION: NavSection[] = [
       { label: 'Knowledge Base', path: '/knowledge-base', icon: BookOpen, permission: 'KB_VIEW', description: 'SOPs, FAQs and how-to articles.' },
       { label: 'Documents', path: '/documents', icon: FileText, permission: 'DOCUMENT_VIEW', description: 'Versioned department documents.' },
       { label: 'Team', path: '/team', icon: Users, permission: 'TEAM_VIEW', description: 'Team directory and employee profiles.' },
-      // Celebrations, important days and events: everyone signed in can see them (CELEBRATIONS_EDIT changes them).
-      { label: 'Employees & celebrations', path: '/celebrations/employees', icon: Cake, description: 'Birthdays and work anniversaries.' },
-      { label: 'Important days', path: '/celebrations/important-days', icon: Sparkles, description: 'Festivals, national and industry days for marketing.' },
-      { label: 'Events', path: '/celebrations/events', icon: CalendarHeart, description: 'Events, webinars, event and email marketing.' },
-      { label: 'LinkedIn posts', path: '/celebrations/linkedin-posts', icon: Share2, description: 'Posts for everything coming up, so nothing is missed.' },
     ],
   },
   {
@@ -126,6 +121,11 @@ export const NAVIGATION: NavSection[] = [
       { label: 'Content & Blog', path: '/digital-marketing/content', icon: SquarePen, permission: 'CONTENT_VIEW', description: 'Blog pipeline, publishing targets and leads.' },
       { label: 'Marketing Activities', path: '/digital-marketing/activities', icon: Repeat, permission: 'MARKETING_VIEW', description: 'Recurring marketing processes and their occurrences.' },
       { label: 'Monthly Report', path: '/digital-marketing/reports', icon: FileText, permission: 'MARKETING_VIEW', description: 'Every module against the month before, with CSV export.' },
+      // Celebrations, important days and events belong to Digital Marketing (CELEBRATIONS_EDIT changes them).
+      { label: 'Employees & celebrations', path: '/celebrations/employees', icon: Cake, permission: 'MARKETING_VIEW', description: 'Birthdays and work anniversaries.' },
+      { label: 'Important days', path: '/celebrations/important-days', icon: Sparkles, permission: 'MARKETING_VIEW', description: 'Festivals, national and industry days for marketing.' },
+      { label: 'Events', path: '/celebrations/events', icon: CalendarHeart, permission: 'MARKETING_VIEW', description: 'Events, webinars, event and email marketing.' },
+      { label: 'LinkedIn posts', path: '/celebrations/linkedin-posts', icon: Share2, permission: 'MARKETING_VIEW', description: 'Posts for everything coming up, so nothing is missed.' },
     ],
   },
   {

@@ -111,6 +111,17 @@ describe('CalendarPage', () => {
     expect(within(dialog).getByRole('button', { name: 'Done' })).toBeInTheDocument();
   });
 
+  it('has no celebration filters or legend entries for employees outside Digital Marketing', async () => {
+    mockApi({ 'GET /calendar': () => response() });
+
+    renderPage(<CalendarPage />, webEmployee);
+
+    await screen.findByRole('button', { name: 'Milestone: Beta launch' });
+    expect(screen.queryByRole('group', { name: 'Show categories' })).not.toBeInTheDocument();
+    expect(within(screen.getByRole('list', { name: 'Legend' })).queryByText('Birthday')).not.toBeInTheDocument();
+    expect(screen.getByText('Deadlines, milestones, approvals and events.')).toBeInTheDocument();
+  });
+
   it('shows celebrations with their own label, hides a category with its chip and opens the drawer', async () => {
     const today = toIsoDate(new Date());
     const diwali = occasionItem(
